@@ -1,0 +1,11 @@
+Task: recipe_finder
+Category: simple
+Request: Find me a recipe for dinner using chicken and rice. I also have tomatoes, onions, and garlic. Make it something I can cook in 30 minutes.
+Marker: MARKER_20250626_092350_326939_simple_2
+Duration: 0.12s
+================================================================================
+
+MARKER_20250626_092350_326939_simple_2
+Question: MARKER_20250626_092350_326939_simple_2
+
+Find me a ...

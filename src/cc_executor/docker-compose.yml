@@ -1,0 +1,26 @@
+version: '3.8'
+
+# CC-Executor MCP WebSocket Service
+# Available endpoints:
+# - ws://localhost:8003/ws/mcp - WebSocket MCP endpoint
+# - http://localhost:8003/health - Health check endpoint
+# Note: No HTTP streaming endpoint exists - use WebSocket only
+
+services:
+  cc-executor-mcp:
+    build: .
+    container_name: cc_executor_mcp
+    ports:
+      - "8003:8003"
+    environment:
+      - LOG_LEVEL=INFO
+      - MAX_BUFFER_SIZE=1048576
+      - MAX_BUFFER_LINES=10000
+      - ALLOWED_COMMANDS=bash,claude,claude-code,python,node,npm,git,ls,cat,echo,pwd
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

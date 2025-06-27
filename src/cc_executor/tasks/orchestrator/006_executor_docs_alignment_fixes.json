@@ -1,0 +1,61 @@
+{
+  "review_id": "006_executor_docs_alignment",
+  "component": "executor_docs",
+  "date": "2025-06-26",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "critical",
+      "file": "tasks/executor/EXECUTOR_GUIDE.md",
+      "line": 15,
+      "issue": "Workflow conflicts with prompts/executor/EXECUTOR_CONTEXT.md (GUIDE uses incoming/outgoing; CONTEXT expects implementation/test files).",
+      "fix": "Select GUIDE's incoming/outgoing workflow as canonical. Update prompts/executor/EXECUTOR_CONTEXT.md to refer to it and remove conflicting sections.",
+      "verification": "grep -n 'incoming/' prompts/executor/EXECUTOR_CONTEXT.md | wc -l  # should be >0 and in workflow section"
+    },
+    {
+      "id": 2,
+      "severity": "major",
+      "file": "prompts/executor/EXECUTOR_CONTEXT.md",
+      "line": 16,
+      "issue": "Stale example references fixed review 001; should be placeholder.",
+      "fix": "Replace hard-coded file with placeholder: cat orchestrator/{SEQUENCE}_{COMPONENT}_fixes.json",
+      "verification": "grep -n '{SEQUENCE}_{COMPONENT}_fixes.json' prompts/executor/EXECUTOR_CONTEXT.md"
+    },
+    {
+      "id": 3,
+      "severity": "major",
+      "file": "tasks/executor/EXECUTOR_GUIDE.md",
+      "line": 41,
+      "issue": "Instruction to update JSON in place conflicts with separate implementation/test-file workflow.",
+      "fix": "Clarify that executor must EITHER update JSON in place OR attach implementation files; state preferred method (update in place). Remove duplicates.",
+      "verification": "grep -n 'result" tasks/executor/EXECUTOR_GUIDE.md | head -n 1"
+    },
+    {
+      "id": 4,
+      "severity": "major",
+      "file": "tasks/executor/NAMING_CONVENTION.md",
+      "line": 5,
+      "issue": "Doc missing mention of incoming/outgoing directories and template review request file.",
+      "fix": "Add subsection explaining incoming/ (new tasks), outgoing/ (completed), and REVIEW_REQUEST_TEMPLATE.md usage.",
+      "verification": "grep -n 'incoming/' tasks/executor/NAMING_CONVENTION.md"
+    },
+    {
+      "id": 5,
+      "severity": "minor",
+      "file": "tasks/executor/EXECUTOR_GUIDE.md",
+      "line": 140,
+      "issue": "Inconsistent absolute paths to transcript_helper.py and check_file_rules.py.",
+      "fix": "Use $REPO_ROOT placeholder in both docs to avoid hard-coded paths.",
+      "verification": "rg '\$REPO_ROOT' tasks/executor/EXECUTOR_GUIDE.md prompts/executor/EXECUTOR_CONTEXT.md"
+    },
+    {
+      "id": 6,
+      "severity": "minor",
+      "file": "tasks/executor/EXECUTOR_GUIDE.md",
+      "line": 75,
+      "issue": "No explicit instruction to run hallucination checker after each fix.",
+      "fix": "Insert bullet under Verification Requirements: 'Run hallucination_checker.md on combined stdout; exit code must be 0'.",
+      "verification": "grep -n 'hallucination checker' tasks/executor/EXECUTOR_GUIDE.md"
+    }
+  ]
+}

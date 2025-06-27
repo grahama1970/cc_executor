@@ -1,0 +1,34 @@
+{
+  "task_list_id": "007_stress_test_claude_fix",
+  "description": "Fix for stress test executor to actually invoke Claude Code instead of just echoing",
+  "fixes": [
+    {
+      "id": 1,
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 92,
+      "issue": "Stress test only echoes marker instead of invoking Claude Code",
+      "fix": "Replace echo command with actual Claude Code invocation using full path",
+      "verification": "Run stress test and verify Claude actually generates haikus",
+      "priority": "critical",
+      "root_cause": "Command was just echoing instead of calling claude, and claude path not in PATH when run via WebSocket"
+    }
+  ],
+  "implementation_notes": {
+    "changes_made": [
+      "Line 92-100: Changed from echo command to bash -c with PATH set and claude --print",
+      "Used bash -c to set PATH=/home/graham/.nvm/versions/node/v22.15.0/bin:$PATH",
+      "Properly escaped prompt with double quotes to preserve newlines",
+      "Updated docker-compose.yml to include bash in ALLOWED_COMMANDS"
+    ],
+    "testing_status": "SUCCESSFUL - Claude now generates actual content",
+    "test_results": {
+      "single_haiku_test": {
+        "response_length": 1834,
+        "patterns_found": ["variable", "loop", "function"],
+        "duration": "25.96s",
+        "exit_code": 0
+      }
+    },
+    "verification": "cat stress_test_outputs/parallel_parallel_2_20250626_104039_624326.txt | head -20"
+  }
+}

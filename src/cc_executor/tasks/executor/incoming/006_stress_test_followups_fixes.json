@@ -1,0 +1,43 @@
+{
+  "review_id": "006_stress_test_followups",
+  "component": "stress_test_system",
+  "date": "2025-06-26",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "critical",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 99,
+      "issue": "Executor just echoes a marker instead of invoking Claude, so no real LLM output is produced and pattern checks always fail.",
+      "fix": "Replace the placeholder echo logic with a real call to the local Claude CLI.  Use: `await websocket.send(json.dumps(cmd))` where `cmd` is the JSON payload already present in the task.  Remove the intermediate shell call entirely.",
+      "verification": "Run `python tests/stress/unified_stress_test_executor_v3.py src/cc_executor/tasks/haiku_single_task.json` and confirm response length > 500 and at least 3 expected patterns are found."
+    },
+    {
+      "id": 2,
+      "severity": "major",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 150,
+      "issue": "Transcript verification is performed but failure does not mark the task as failed (PARTIALLY_FIXED).",
+      "fix": "After calling `verify_in_transcript`, if verification fails set `task_result['success']=False` and append an error message so summary reflects failure.",
+      "verification": "Intentionally set an impossible marker, run the test, and confirm the JSON summary marks `success:false`."
+    },
+    {
+      "id": 3,
+      "severity": "major",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 239,
+      "issue": "Missing `execution_config` triggers KeyError; quick patch added but we should provide sensible defaults and CLI override.",
+      "fix": "Define `self.execution_config = self.tasks.get('execution_config', {\"max_concurrent\":5, \"retry\":2})` in `__init__` and reference it throughout.  Allow `--max-concurrent` CLI arg to override.",
+      "verification": "Run with a task JSON that lacks execution_config and ensure no crash; pass `--max-concurrent 1` and see single-task batches."
+    },
+    {
+      "id": 4,
+      "severity": "minor",
+      "file": "prompts/hallucination_checker.sh",
+      "line": 0,
+      "issue": "Script created in previous iteration but not committed to repo, so fresh clones fail.",
+      "fix": "Add the script to repo under prompts/, ensure execute bit, and include README usage.",
+      "verification": "`bash prompts/hallucination_checker.sh stress_test_summary_*.json` exits 0 for valid summaries, 1 for failures."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "summary": {
+    "start_time": "2025-06-25T16:20:18.120140",
+    "end_time": "2025-06-25T16:21:17.497687",
+    "total_duration": 59.377289,
+    "total_tasks": 3,
+    "successful": 2,
+    "failed": 1,
+    "success_rate": 66.66666666666666
+  },
+  "categories": {
+    "simple": {
+      "total": 3,
+      "success": 2,
+      "failed": 1
+    }
+  },
+  "detailed_results": [
+    {
+      "task_id": "simple_1",
+      "task_name": "daily_standup",
+      "category": "simple",
+      "marker": "MARKER_20250625_162018_120256_simple_1",
+      "verified": true,
+      "duration": 12.466283798217773,
+      "response_length": 1015,
+      "timestamp": "2025-06-25T16:20:30.586564"
+    },
+    {
+      "task_id": "simple_2",
+      "task_name": "recipe_finder",
+      "category": "simple",
+      "marker": "MARKER_20250625_162032_586785_simple_2",
+      "verified": false,
+      "error": "HTTPConnectionPool(host='localhost', port=8002): Read timed out.",
+      "duration": 30.034645795822144,
+      "timestamp": "2025-06-25T16:21:02.621553"
+    },
+    {
+      "task_id": "simple_3",
+      "task_name": "quick_math",
+      "category": "simple",
+      "marker": "MARKER_20250625_162104_621734_simple_3",
+      "verified": true,
+      "duration": 10.875400066375732,
+      "response_length": 622,
+      "timestamp": "2025-06-25T16:21:15.497243"
+    }
+  ]
+}

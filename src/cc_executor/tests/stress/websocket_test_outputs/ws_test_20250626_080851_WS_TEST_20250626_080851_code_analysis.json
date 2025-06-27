@@ -1,0 +1,61 @@
+{
+  "marker": "WS_TEST_20250626_080851_code_analysis",
+  "command": "python -c \"import ast; print(len(ast.parse('def foo(): return 42').body))\"",
+  "start_time": 1750939731.7389998,
+  "response": [
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "status": "started",
+        "pid": 930,
+        "pgid": 930
+      },
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.started",
+      "params": {
+        "status": "started",
+        "pid": 930,
+        "pgid": 930,
+        "exit_code": null,
+        "error": null
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "WS_TEST_20250626_080851_code_analysis\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "1\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.completed",
+      "params": {
+        "status": "completed",
+        "pid": 930,
+        "pgid": 930,
+        "exit_code": 0,
+        "error": null
+      }
+    }
+  ],
+  "success": true,
+  "error": null,
+  "session_id": "bab2bfc2-b7b9-4008-b801-d191b36ea998",
+  "end_time": 1750939731.7652535,
+  "duration": 0.026253700256347656
+}

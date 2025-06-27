@@ -1,0 +1,31 @@
+{
+  "total": 4,
+  "successful": 4,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "marker": "WS_TEST_20250626_080809_simple_echo",
+      "success": true,
+      "duration": 0.026185035705566406,
+      "error": null
+    },
+    {
+      "marker": "WS_TEST_20250626_080809_python_calc",
+      "success": true,
+      "duration": 0.019049644470214844,
+      "error": null
+    },
+    {
+      "marker": "WS_TEST_20250626_080809_code_analysis",
+      "success": true,
+      "duration": 0.025689363479614258,
+      "error": null
+    },
+    {
+      "marker": "WS_TEST_20250626_080809_multi_line_output",
+      "success": true,
+      "duration": 0.020299196243286133,
+      "error": null
+    }
+  ]
+}

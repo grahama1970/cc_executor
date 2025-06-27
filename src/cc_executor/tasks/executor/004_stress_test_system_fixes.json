@@ -1,0 +1,70 @@
+{
+  "review_id": "004_stress_test_system",
+  "component": "stress_test_system",
+  "date": "2025-06-26",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "critical",
+      "file": "core/websocket_handler.py",
+      "line": 65,
+      "issue": "Handshake message uses non-standard keys (type/sessionId)",
+      "fix": "Send {\"method\":\"connected\", \"params\": {\"session_id\": session_id}} instead of {type:'connection',sessionId:…}",
+      "verification": "Run tests/stress/websocket_test_executor.py; expect connection without KeyError"
+    },
+    {
+      "id": 2,
+      "severity": "critical",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 85,
+      "issue": "Executor uses HTTP POST /stream which is not implemented",
+      "fix": "Replace HTTP logic with WebSocket client to ws://localhost:8003/ws/mcp; merge logic from websocket_test_executor.py; delete obsolete file",
+      "verification": "Suite connects and proceeds past connection stage"
+    },
+    {
+      "id": 3,
+      "severity": "major",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 30,
+      "issue": "Adaptive timeout disabled (hard-coded 300s)",
+      "fix": "Call helper scripts check-task-timeout / record-task-time to fetch & store dynamic timeout",
+      "verification": "Redis shows updated timeout stats after two runs"
+    },
+    {
+      "id": 4,
+      "severity": "major",
+      "file": "tasks/unified_stress_test_tasks.json",
+      "line": 0,
+      "issue": "Expected patterns contain stray spaces causing false negatives",
+      "fix": "Trim trailing spaces or use regex \\bdef\\b, etc.",
+      "verification": "pytest tests/unit/test_pattern_match.py passes"
+    },
+    {
+      "id": 5,
+      "severity": "major",
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 150,
+      "issue": "No transcript verification ⇒ hallucination risk",
+      "fix": "Invoke prompts/commands/transcript_helper.py after each test and assert success",
+      "verification": "Suite fails fast if helper returns non-zero"
+    },
+    {
+      "id": 6,
+      "severity": "minor",
+      "file": "prompts/T03_websocket_stress_tests.md",
+      "line": 70,
+      "issue": "Missing 3 recovery tests & inaccurate metrics",
+      "fix": "Add recovery scenarios, initialise Success/Failure metrics, usage increments metrics",
+      "verification": "Running usage section updates metrics and lists recovery tests"
+    },
+    {
+      "id": 7,
+      "severity": "minor",
+      "file": "docker-compose.yml",
+      "line": 75,
+      "issue": "Comments mention non-existent /stream endpoint",
+      "fix": "Update documentation to state only WebSocket /ws/mcp and /health exist",
+      "verification": "docker compose up and curl /health returns 200"
+    }
+  ]
+}

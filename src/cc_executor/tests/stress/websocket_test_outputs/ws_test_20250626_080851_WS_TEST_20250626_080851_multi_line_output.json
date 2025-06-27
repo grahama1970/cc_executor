@@ -1,0 +1,97 @@
+{
+  "marker": "WS_TEST_20250626_080851_multi_line_output",
+  "command": "python -c \"for i in range(5): print(f'Line {i}')\"",
+  "start_time": 1750939731.7953823,
+  "response": [
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "status": "started",
+        "pid": 932,
+        "pgid": 932
+      },
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.started",
+      "params": {
+        "status": "started",
+        "pid": 932,
+        "pgid": 932,
+        "exit_code": null,
+        "error": null
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "WS_TEST_20250626_080851_multi_line_output\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 0\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 1\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 2\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 3\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 4\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.completed",
+      "params": {
+        "status": "completed",
+        "pid": 932,
+        "pgid": 932,
+        "exit_code": 0,
+        "error": null
+      }
+    }
+  ],
+  "success": true,
+  "error": null,
+  "session_id": "55e5637a-a34d-44a5-9017-6abe89c70883",
+  "end_time": 1750939731.816297,
+  "duration": 0.020914793014526367
+}

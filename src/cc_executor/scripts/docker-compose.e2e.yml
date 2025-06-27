@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  cc-executor-mcp:
+    build: 
+      # AMENDED: Correct context path from project root
+      context: ../
+      dockerfile: Dockerfile
+    ports: ["8003:8003"]
+    environment:
+      - CLAUDE_API_URL=http://claude-api:8000
+    networks:
+      - mcp-net
+    depends_on:
+      claude-api:
+        condition: service_healthy
+
+  claude-api:
+    image: cc-executor/claude-code-docker:latest
+    container_name: claude-api-e2e-test
+    ports:
+      - "8002:8000"
+    networks:
+      - mcp-net
+    environment:
+      # AMENDED: Ensure local execution by unsetting the API key
+      ANTHROPIC_API_KEY: ""
+      # Pass through API keys for LiteLLM if they exist
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      PERPLEXITY_API_KEY: "${PERPLEXITY_API_KEY:-}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      COHERE_API_KEY: "${COHERE_API_KEY:-}"
+    volumes:
+      - ~/.claude:/home/claude-user/.claude:rw
+      - ~/.config/claude:/home/claude-user/.config/claude:ro
+      # Mount the commands directory to ensure unified_llm_call.md is available
+      - ~/.claude/commands:/home/claude-user/.claude/commands:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+networks:
+  mcp-net:
+    driver: bridge

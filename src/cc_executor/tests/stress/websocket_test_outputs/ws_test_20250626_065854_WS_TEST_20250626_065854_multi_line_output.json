@@ -1,0 +1,11 @@
+{
+  "marker": "WS_TEST_20250626_065854_multi_line_output",
+  "command": "python -c \"for i in range(5): print(f'Line {i}')\"",
+  "start_time": 1750935534.928027,
+  "response": [],
+  "success": false,
+  "error": "'sessionId'",
+  "session_id": null,
+  "end_time": 1750935534.9312177,
+  "duration": 0.003190755844116211
+}

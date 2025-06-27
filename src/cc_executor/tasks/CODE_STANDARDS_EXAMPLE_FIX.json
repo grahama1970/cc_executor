@@ -1,0 +1,45 @@
+{
+  "review_id": "006_code_standards_compliance",
+  "component": "core_modules",
+  "date": "2025-06-26",
+  "assigned_to": "executor",
+  "instructions": "Fix code standards violations. Add 'result' node to each fix.",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "major",
+      "file": "core/process_manager.py",
+      "line": 1,
+      "issue": "Missing required documentation header with third-party links and examples",
+      "fix": "Add standard header with asyncio docs, example input (command dict), and expected output (ProcessResult)",
+      "verification": "python core/process_manager.py should run usage example successfully"
+    },
+    {
+      "id": 2,
+      "severity": "major",
+      "file": "core/process_manager.py",
+      "line": 600,
+      "issue": "File exceeds 500 line limit (currently 632 lines)",
+      "fix": "Split into process_manager.py (core logic) and process_monitor.py (monitoring/stats)",
+      "verification": "wc -l core/process_manager.py should show < 500 lines"
+    },
+    {
+      "id": 3,
+      "severity": "major",
+      "file": "core/stream_handler.py",
+      "line": 45,
+      "issue": "Using print() instead of loguru logger",
+      "fix": "Replace all print() calls with appropriate logger.info() or logger.debug()",
+      "verification": "grep -c 'print(' core/stream_handler.py should return 0"
+    },
+    {
+      "id": 4,
+      "severity": "minor",
+      "file": "core/websocket_handler.py",
+      "line": 0,
+      "issue": "Missing usage function at end of file",
+      "fix": "Add if __name__ == '__main__' block with example WebSocket connection test",
+      "verification": "grep -q '__main__' core/websocket_handler.py && echo 'Found' || echo 'Missing'"
+    }
+  ]
+}

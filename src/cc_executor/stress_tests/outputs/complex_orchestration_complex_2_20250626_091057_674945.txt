@@ -1,0 +1,8 @@
+Task: code_review_chain
+Category: complex_orchestration
+Request: Here's a Python function. First analyze it for issues, then refactor it, then write tests for it, then create documentation, and finally optimize its performance. The function is: def process_data(data): result = []; for i in range(len(data)): if data[i] > 0: result.append(data[i] * 2); return result
+Marker: MARKER_20250626_091057_674945_complex_2
+Duration: 0.06s
+================================================================================
+
+/bin/bash: -c: line 3: unexpected EOF while looking for matching `''

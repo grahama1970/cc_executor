@@ -1,0 +1,11 @@
+Task: research_explosion
+Category: extreme_stress
+Request: Research these 20 topics simultaneously and create a comparison table: Rust vs Go performance, Python vs JavaScript for ML, React vs Vue vs Angular, AWS vs Azure vs GCP pricing, MongoDB vs PostgreSQL, GraphQL vs REST, Kubernetes vs Docker Swarm, TensorFlow vs PyTorch, Vim vs Emacs, Linux vs Windows for servers, Git vs SVN, Agile vs Waterfall, microservices vs monolith, SQL vs NoSQL, functional vs OOP, static vs dynamic typing, compiled vs interpreted, sync vs async, REST vs gRPC, and tabs vs spaces. Include pros, cons, and use cases for each.
+Marker: MARKER_20250626_093228_580256_extreme_1
+Duration: 0.09s
+================================================================================
+
+MARKER_20250626_093228_580256_extreme_1
+Question: MARKER_20250626_093228_580256_extreme_1
+
+Research ...

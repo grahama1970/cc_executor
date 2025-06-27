@@ -1,0 +1,11 @@
+{
+  "marker": "WS_TEST_20250626_065854_code_analysis",
+  "command": "python -c \"import ast; print(len(ast.parse('def foo(): return 42').body))\"",
+  "start_time": 1750935534.8952398,
+  "response": [],
+  "success": false,
+  "error": "'sessionId'",
+  "session_id": null,
+  "end_time": 1750935534.8986228,
+  "duration": 0.0033829212188720703
+}

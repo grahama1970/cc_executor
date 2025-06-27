@@ -1,43 +1,152 @@
-[project]
-name = "cc_executor"
-version = "0.1.0"
-description = "CC-Executor: Docker container for executing Claude Code tasks"
-readme = "README.md"
-requires-python = ">=3.10.11"
-dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-    "httpx>=0.25.0",
-    "pydantic>=2.4.0",
-    "python-dotenv>=1.0.0",
-    "docker>=6.1.0",
-    "loguru>=0.7.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.black]
-line-length = 120
-target-version = ["py310"]
+[project]
+name = "cc_executor"
+version = "1.0.0"
+description = "MCP WebSocket Service for remote command execution with Claude Code"
+authors = [{ name = "Graham Anderson", email = "graham@grahama.co" }]
+requires-python = ">=3.10.11"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+keywords = [
+    "mcp",
+    "websocket",
+    "claude",
+    "executor",
+    "fastapi"
+]
 
+# Core dependencies for cc_executor
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "websockets>=12.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0.0",
+    "loguru>=0.7.2",
+    "python-dotenv>=1.0.0",
+    "aiofiles>=23.0.0",
+    "asyncio>=3.4.3",
+    "redis>=5.0.0", # For timeout tracking
+    "tenacity>=9.1.2",
+    "litellm>=1.73.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "httpx>=0.27.0",  # For testing
+]
+
+stress = [
+    "aiohttp>=3.11.18",  # For stress testing
+    "numpy>=1.26.4",     # For statistics
+]
+
+[project.urls]
+Repository = "https://github.com/grahama1970/cc_executor"
+
+[project.scripts]
+# Main service entry point
+cc-executor = "cc_executor.core.main:main"
+
+# Utility scripts
+check-file-rules = "cc_executor.prompts.commands.check_file_rules:main"
+transcript-helper = "cc_executor.prompts.commands.transcript_helper:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "src/cc_executor/__init__.py"
+
+[tool.hatch.envs.default]
+features = ["dev", "stress"]
+python = "3.10.11"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "README.md",
+    "LICENSE",
+    "Dockerfile",
+    "docker-compose.yml",
+    "requirements.txt"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cc_executor"]
+
+# Ruff configuration
 [tool.ruff]
 line-length = 120
-select = ["E", "F", "I", "N", "UP", "YTT", "B", "A", "COM", "C4", "DTZ", "ISC", "ICN", "PIE", "T20", "PYI", "Q", "RSE", "RET", "SLF", "SIM", "TID", "TCH", "INT", "ARG", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG", "RUF"]
-ignore = ["E501", "PLR0913", "PLR2004"]
+target-version = "py310"
+select = ["E", "W", "F", "I", "UP", "B", "C4", "RUF"]
+ignore = ["E501"]  # Line too long
 
+[tool.ruff.lint.isort]
+known-first-party = ["cc_executor"]
+
+# Pytest configuration
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "stress: Stress tests",
+    "slow: Slow tests",
+]
+filterwarnings = ["ignore::Warning"]
+addopts = "-v"
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "loguru.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "websockets.*"
+ignore_missing_imports = true
+
+# Black configuration
+[tool.black]
+line-length = 120
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''

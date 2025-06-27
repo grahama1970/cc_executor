@@ -1,0 +1,214 @@
+{
+  "summary": {
+    "start_time": "2025-06-25T17:42:10.891083",
+    "end_time": "2025-06-25T18:15:30.157460",
+    "total_tasks": 15,
+    "successful_tasks": 15,
+    "failed_tasks": 0,
+    "success_rate": 100.0
+  },
+  "categories": {
+    "simple": {
+      "total": 3,
+      "success": 3,
+      "failed": 0
+    },
+    "parallel": {
+      "total": 2,
+      "success": 2,
+      "failed": 0
+    },
+    "model_comparison": {
+      "total": 2,
+      "success": 2,
+      "failed": 0
+    },
+    "long_running": {
+      "total": 2,
+      "success": 2,
+      "failed": 0
+    },
+    "rapid_fire": {
+      "total": 1,
+      "success": 1,
+      "failed": 0
+    },
+    "complex_orchestration": {
+      "total": 2,
+      "success": 2,
+      "failed": 0
+    },
+    "extreme_stress": {
+      "total": 3,
+      "success": 3,
+      "failed": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "task_id": "simple_1",
+      "task_name": "daily_standup",
+      "category": "simple",
+      "marker": "MARKER_20250625_174158_507723_simple_1",
+      "verified": true,
+      "duration": 12.37449336051941,
+      "response_length": 959,
+      "complexity_score": 0,
+      "timestamp": "2025-06-25T17:42:10.891083"
+    },
+    {
+      "task_id": "simple_2",
+      "task_name": "recipe_finder",
+      "category": "simple",
+      "marker": "MARKER_20250625_174212_891247_simple_2",
+      "verified": true,
+      "duration": 77.00402688980103,
+      "response_length": 1762,
+      "complexity_score": 5,
+      "timestamp": "2025-06-25T17:43:29.901943"
+    },
+    {
+      "task_id": "simple_3",
+      "task_name": "quick_math",
+      "category": "simple",
+      "marker": "MARKER_20250625_174331_902172_simple_3",
+      "verified": true,
+      "duration": 12.058642625808716,
+      "response_length": 627,
+      "complexity_score": 13,
+      "timestamp": "2025-06-25T17:43:43.967413"
+    },
+    {
+      "task_id": "parallel_2",
+      "task_name": "twenty_haikus",
+      "category": "parallel",
+      "marker": "MARKER_20250625_174345_968827_parallel_2",
+      "verified": true,
+      "duration": 25.66111707687378,
+      "response_length": 2426,
+      "complexity_score": 13,
+      "timestamp": "2025-06-25T17:44:11.636691"
+    },
+    {
+      "task_id": "parallel_1",
+      "task_name": "ten_functions",
+      "category": "parallel",
+      "marker": "MARKER_20250625_174345_968380_parallel_1",
+      "verified": true,
+      "duration": 31.61676263809204,
+      "response_length": 563,
+      "complexity_score": 12,
+      "timestamp": "2025-06-25T17:44:17.592508"
+    },
+    {
+      "task_id": "model_1",
+      "task_name": "gpt_vs_claude",
+      "category": "model_comparison",
+      "marker": "MARKER_20250625_174417_592727_model_1",
+      "verified": true,
+      "duration": 133.18051719665527,
+      "response_length": 2319,
+      "complexity_score": 21,
+      "timestamp": "2025-06-25T17:46:30.780085"
+    },
+    {
+      "task_id": "model_2",
+      "task_name": "all_models_fibonacci",
+      "category": "model_comparison",
+      "marker": "MARKER_20250625_174632_780274_model_2",
+      "verified": true,
+      "duration": 119.85412240028381,
+      "response_length": 1145,
+      "complexity_score": 31,
+      "timestamp": "2025-06-25T17:48:32.641296"
+    },
+    {
+      "task_id": "long_1",
+      "task_name": "epic_story",
+      "category": "long_running",
+      "marker": "MARKER_20250625_174834_641469_long_1",
+      "verified": true,
+      "duration": 151.98094153404236,
+      "response_length": 12388,
+      "complexity_score": 40,
+      "timestamp": "2025-06-25T17:51:06.629136"
+    },
+    {
+      "task_id": "long_2",
+      "task_name": "comprehensive_guide",
+      "category": "long_running",
+      "marker": "MARKER_20250625_175108_629342_long_2",
+      "verified": true,
+      "duration": 405.0961675643921,
+      "response_length": 1392,
+      "complexity_score": 43,
+      "timestamp": "2025-06-25T17:57:53.731943"
+    },
+    {
+      "task_id": "rapid_1",
+      "task_name": "hundred_questions",
+      "category": "rapid_fire",
+      "marker": "MARKER_20250625_175755_732401_rapid_1",
+      "verified": true,
+      "duration": 28.718766689300537,
+      "response_length": 3307,
+      "complexity_score": 13,
+      "timestamp": "2025-06-25T17:58:24.457385"
+    },
+    {
+      "task_id": "complex_1",
+      "task_name": "full_stack_app",
+      "category": "complex_orchestration",
+      "marker": "MARKER_20250625_175824_457557_complex_1",
+      "verified": true,
+      "duration": 453.66750168800354,
+      "response_length": 2306,
+      "complexity_score": 39,
+      "timestamp": "2025-06-25T18:05:58.132030"
+    },
+    {
+      "task_id": "complex_2",
+      "task_name": "code_review_chain",
+      "category": "complex_orchestration",
+      "marker": "MARKER_20250625_180600_132191_complex_2",
+      "verified": true,
+      "duration": 277.2015414237976,
+      "response_length": 2061,
+      "complexity_score": 16,
+      "timestamp": "2025-06-25T18:10:37.340229"
+    },
+    {
+      "task_id": "extreme_3",
+      "task_name": "ultimate_stress",
+      "category": "extreme_stress",
+      "marker": "MARKER_20250625_181039_341679_extreme_3",
+      "verified": true,
+      "duration": 270.7684042453766,
+      "response_length": 953,
+      "complexity_score": 19,
+      "timestamp": "2025-06-25T18:15:10.120187"
+    },
+    {
+      "task_id": "extreme_2",
+      "task_name": "infinite_improvement",
+      "category": "extreme_stress",
+      "marker": "MARKER_20250625_181039_341056_extreme_2",
+      "verified": true,
+      "duration": 282.1007807254791,
+      "response_length": 906,
+      "complexity_score": 11,
+      "timestamp": "2025-06-25T18:15:21.450708"
+    },
+    {
+      "task_id": "extreme_1",
+      "task_name": "research_explosion",
+      "category": "extreme_stress",
+      "marker": "MARKER_20250625_181039_340681_extreme_1",
+      "verified": true,
+      "duration": 290.8074195384979,
+      "response_length": 1112,
+      "complexity_score": 19,
+      "timestamp": "2025-06-25T18:15:30.157460"
+    }
+  ]
+}

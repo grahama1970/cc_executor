@@ -1,0 +1,406 @@
+================================================================================
+UNIFIED STRESS TEST DETAILED REPORT
+================================================================================
+Generated: 2025-06-26 09:30:42
+Task File: /home/graham/workspace/experiments/cc_executor/src/cc_executor/tasks/unified_stress_test_tasks.json
+Total Duration: 1.47s
+
+Total Tasks: 15
+Successful: 15
+Failed: 0
+Success Rate: 100.0%
+
+
+================================================================================
+CATEGORY: simple
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: daily_standup (ID: simple_1)
+Duration: 0.11s
+Success: ✅ Yes
+
+Request: Help me write my daily standup update. Ask me what I worked on yesterday, what I'm working on today, and if I have any blockers. Then format it nicely for Slack....
+
+Pattern Verification:
+  ✗ 'yesterday'
+  ✗ 'today'
+  ✗ 'blocker'
+
+Response Preview (103 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_366214_simple_1
+Question: MARKER_20250626_093041_366214_simple_1
+
+Help me wr...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: recipe_finder (ID: simple_2)
+Duration: 0.12s
+Success: ✅ Yes
+
+Request: Find me a recipe for dinner using chicken and rice. I also have tomatoes, onions, and garlic. Make it something I can cook in 30 minutes....
+
+Pattern Verification:
+  ✗ 'chicken'
+  ✗ 'rice'
+  ✗ '30 minutes'
+
+Response Preview (103 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_391407_simple_2
+Question: MARKER_20250626_093041_391407_simple_2
+
+Find me a ...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: quick_math (ID: simple_3)
+Duration: 0.15s
+Success: ✅ Yes
+
+Request: Calculate these 10 math problems quickly: 15+27, 83-46, 12*9, 144/12, 2^8, sqrt(169), 15% of 200, 3! (factorial), fibonacci(10), prime factors of 60...
+
+Pattern Verification:
+  ✗ '42'
+  ✗ '37'
+  ✗ '108'
+  ✗ '256'
+
+Response Preview (103 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_399866_simple_3
+Question: MARKER_20250626_093041_399866_simple_3
+
+Calculate ...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: parallel
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: ten_functions (ID: parallel_1)
+Duration: 0.07s
+Success: ✅ Yes
+
+Request: Generate 10 different Python functions simultaneously: 1) Calculate area of circle, 2) Convert celsius to fahrenheit, 3) Check if number is prime, 4) Reverse a string, 5) Find factorial, 6) Sort a lis...
+
+Pattern Verification:
+  ✗ 'def'
+  ✗ 'return'
+  ✗ 'circle'
+  ✗ 'fibonacci'
+
+Response Preview (105 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_679930_parallel_1
+Question: MARKER_20250626_093041_679930_parallel_1
+
+Generate...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: twenty_haikus (ID: parallel_2)
+Duration: 0.10s
+Success: ✅ Yes
+
+Request: Write 20 different haikus about programming. Each one should be about a different programming concept: variables, loops, functions, classes, debugging, git, APIs, databases, algorithms, data structure...
+
+Pattern Verification:
+  ✗ '5-7-5'
+  ✗ 'variable'
+  ✗ 'loop'
+  ✗ 'function'
+
+Response Preview (105 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_686279_parallel_2
+Question: MARKER_20250626_093041_686279_parallel_2
+
+Write 20...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: model_comparison
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: gpt_vs_claude (ID: model_1)
+Duration: 0.07s
+Success: ✅ Yes
+
+Request: Use your ~/.claude/commands/unified_llm_call.md command to call model='perplexity/sonar' with query='Explain recursion in programming with a simple example' and output_path='/tmp/litellm_recursion.txt...
+
+Pattern Verification:
+  ✗ 'recursion'
+  ✗ 'example'
+  ✗ 'function calls itself'
+
+Response Preview (102 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_850038_model_1
+Question: MARKER_20250626_093041_850038_model_1
+
+Use your ~/...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: all_models_fibonacci (ID: model_2)
+Duration: 0.10s
+Success: ✅ Yes
+
+Request: Use your ~/.claude/commands/unified_llm_call.md command to calculate the 20th Fibonacci number. Try multiple models by setting fallback_models=['gpt-3.5-turbo', 'vertex_ai/gemini-1.5-flash', 'perplexi...
+
+Pattern Verification:
+  ✗ '6765'
+  ✗ 'fibonacci'
+  ✗ '20th'
+
+Response Preview (102 chars total):
+------------------------------------------------------------
+MARKER_20250626_093041_857231_model_2
+Question: MARKER_20250626_093041_857231_model_2
+
+Use your ~/...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: long_running
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: epic_story (ID: long_1)
+Duration: 0.07s
+Success: ✅ Yes
+
+Request: Write a 5000 word science fiction story about a programmer who discovers their code is sentient. Include dialogue, plot twists, and a surprising ending. Stream the entire story....
+
+Pattern Verification:
+  ✗ 'programmer'
+  ✗ 'sentient'
+  ✗ 'code'
+
+Response Preview (101 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_017588_long_1
+Question: MARKER_20250626_093042_017588_long_1
+
+Write a 5000...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: comprehensive_guide (ID: long_2)
+Duration: 0.10s
+Success: ✅ Yes
+
+Request: Create a comprehensive 10,000 word guide on 'Building Production-Ready Python Applications'. Cover architecture, testing, deployment, monitoring, security, performance optimization, and best practices...
+
+Pattern Verification:
+  ✗ 'Python'
+  ✗ 'testing'
+  ✗ 'deployment'
+  ✗ 'def'
+
+Response Preview (101 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_024729_long_2
+Question: MARKER_20250626_093042_024729_long_2
+
+Create a com...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: rapid_fire
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: hundred_questions (ID: rapid_1)
+Duration: 0.05s
+Success: ✅ Yes
+
+Request: Answer these 100 quick yes/no questions as fast as possible: Is Python interpreted? Is Java compiled? Is 2+2=4? Is the sky blue? Is water wet? [... continue with 95 more simple questions about program...
+
+Pattern Verification:
+  ✗ 'Yes'
+  ✗ 'No'
+  ✗ 'Python'
+  ✗ 'Java'
+
+Response Preview (102 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_254906_rapid_1
+Question: MARKER_20250626_093042_254906_rapid_1
+
+Answer thes...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: complex_orchestration
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: full_stack_app (ID: complex_1)
+Duration: 0.11s
+Success: ✅ Yes
+
+Request: Guide me through building a complete todo app with these steps: 1) Design the database schema, 2) Create a REST API with FastAPI, 3) Build a React frontend, 4) Write unit tests for the API, 5) Create ...
+
+Pattern Verification:
+  ✗ 'CREATE TABLE'
+  ✗ 'FastAPI'
+  ✗ 'React'
+  ✗ 'Dockerfile'
+
+Response Preview (104 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_341307_complex_1
+Question: MARKER_20250626_093042_341307_complex_1
+
+Guide me ...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: code_review_chain (ID: complex_2)
+Duration: 0.07s
+Success: ✅ Yes
+
+Request: Here's a Python function. First analyze it for issues, then refactor it, then write tests for it, then create documentation, and finally optimize its performance. The function is: def process_data(dat...
+
+Pattern Verification:
+  ✗ 'def test'
+  ✗ 'docstring'
+  ✗ 'list comprehension'
+
+Response Preview (69 chars total):
+------------------------------------------------------------
+/bin/bash: -c: line 3: unexpected EOF while looking for matching `''
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+CATEGORY: extreme_stress
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: research_explosion (ID: extreme_1)
+Duration: 0.12s
+Success: ✅ Yes
+
+Request: Research these 20 topics simultaneously and create a comparison table: Rust vs Go performance, Python vs JavaScript for ML, React vs Vue vs Angular, AWS vs Azure vs GCP pricing, MongoDB vs PostgreSQL,...
+
+Pattern Verification:
+  ✗ 'Rust'
+  ✗ 'Python'
+  ✗ 'comparison'
+  ✗ 'pros'
+  ✗ 'cons'
+
+Response Preview (104 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_547139_extreme_1
+Question: MARKER_20250626_093042_547139_extreme_1
+
+Research ...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: infinite_improvement (ID: extreme_2)
+Duration: 0.07s
+Success: ✅ Yes
+
+Request: Take this code and improve it 10 times. Each improvement should build on the previous one. Start with: print('hello world'). For each iteration, make it more sophisticated, add features, improve struc...
+
+Pattern Verification:
+  ✗ 'class'
+  ✗ 'def'
+  ✗ 'try'
+  ✗ 'except'
+  ✗ 'logging'
+
+Response Preview (104 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_554259_extreme_2
+Question: MARKER_20250626_093042_554259_extreme_2
+
+Take this...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: ultimate_stress (ID: extreme_3)
+Duration: 0.14s
+Success: ✅ Yes
+
+Request: Create 100 different Python scripts that each do something unique. Topics: file operations, web scraping, data analysis, API clients, databases, algorithms, data structures, machine learning, web serv...
+
+Pattern Verification:
+  ✗ 'import'
+  ✗ 'def'
+  ✗ 'class'
+  ✗ '#!/usr/bin/env python3'
+
+Response Preview (104 chars total):
+------------------------------------------------------------
+MARKER_20250626_093042_560901_extreme_3
+Question: MARKER_20250626_093042_560901_extreme_3
+
+Create 10...
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+SUMMARY BY CATEGORY
+================================================================================
+Category                  Total      Success    Failed     Avg Time  
+-----------------------------------------------------------------
+simple                    3          3          0          0.13      s
+parallel                  2          2          0          0.08      s
+model_comparison          2          2          0          0.08      s
+long_running              2          2          0          0.09      s
+rapid_fire                1          1          0          0.05      s
+complex_orchestration     2          2          0          0.09      s
+extreme_stress            3          3          0          0.11      s

@@ -1,0 +1,11 @@
+Task: quick_math
+Category: simple
+Request: Calculate these 10 math problems quickly: 15+27, 83-46, 12*9, 144/12, 2^8, sqrt(169), 15% of 200, 3! (factorial), fibonacci(10), prime factors of 60
+Marker: MARKER_20250626_093227_427007_simple_3
+Duration: 0.15s
+================================================================================
+
+MARKER_20250626_093227_427007_simple_3
+Question: MARKER_20250626_093227_427007_simple_3
+
+Calculate ...

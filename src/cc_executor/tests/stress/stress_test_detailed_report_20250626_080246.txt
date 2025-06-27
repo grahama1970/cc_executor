@@ -1,0 +1,91 @@
+================================================================================
+UNIFIED STRESS TEST DETAILED REPORT
+================================================================================
+Generated: 2025-06-26 08:02:46
+Task File: ../../tasks/unified_stress_test_tasks.json
+Total Duration: 0.27s
+
+Total Tasks: 3
+Successful: 3
+Failed: 0
+Success Rate: 100.0%
+
+
+================================================================================
+CATEGORY: simple
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: daily_standup (ID: simple_1)
+Duration: 0.10s
+Success: ✅ Yes
+
+Request: Help me write my daily standup update. Ask me what I worked on yesterday, what I'm working on today, and if I have any blockers. Then format it nicely for Slack....
+
+Pattern Verification:
+  ✗ 'yesterday'
+  ✗ 'today'
+  ✗ 'blocker'
+
+Response Preview (185 chars total):
+------------------------------------------------------------
+MARKER_20250626_080246_102674_simple_1
+/bin/bash: line 1: MARKER_20250626_080246_102674_simple_1: command not found
+/bin/bash: -c: line 3: unexpected EOF while looking for matching `''
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: recipe_finder (ID: simple_2)
+Duration: 0.12s
+Success: ✅ Yes
+
+Request: Find me a recipe for dinner using chicken and rice. I also have tomatoes, onions, and garlic. Make it something I can cook in 30 minutes....
+
+Pattern Verification:
+  ✗ 'chicken'
+  ✗ 'rice'
+  ✗ '30 minutes'
+
+Response Preview (159 chars total):
+------------------------------------------------------------
+MARKER_20250626_080246_124694_simple_2
+/bin/bash: line 1: MARKER_20250626_080246_124694_simple_2: command not found
+/bin/bash: line 3: Find: command not found
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: quick_math (ID: simple_3)
+Duration: 0.15s
+Success: ✅ Yes
+
+Request: Calculate these 10 math problems quickly: 15+27, 83-46, 12*9, 144/12, 2^8, sqrt(169), 15% of 200, 3! (factorial), fibonacci(10), prime factors of 60...
+
+Pattern Verification:
+  ✗ '42'
+  ✗ '37'
+  ✗ '108'
+  ✗ '256'
+
+Response Preview (352 chars total):
+------------------------------------------------------------
+MARKER_20250626_080246_132674_simple_3
+/bin/bash: line 1: MARKER_20250626_080246_132674_simple_3: command not found
+/bin/bash: -c: line 3: syntax error near unexpected token `('
+/bin/bash: -c: line 3: `Calculate these 10 math problems quickly: 15+27, 83-46, 12*9, 144/12, 2^8, sqrt(169), 15% of 200, 3! (factorial), fibonacci(10), prime factors of 60'
+
+------------------------------------------------------------
+
+Transcript Verified: ✗ No
+
+================================================================================
+SUMMARY BY CATEGORY
+================================================================================
+Category                  Total      Success    Failed     Avg Time  
+-----------------------------------------------------------------
+simple                    3          3          0          0.12      s

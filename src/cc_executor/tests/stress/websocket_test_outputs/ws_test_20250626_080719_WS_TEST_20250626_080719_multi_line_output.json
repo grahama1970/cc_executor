@@ -1,0 +1,97 @@
+{
+  "marker": "WS_TEST_20250626_080719_multi_line_output",
+  "command": "python -c \"for i in range(5): print(f'Line {i}')\"",
+  "start_time": 1750939639.9165337,
+  "response": [
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "status": "started",
+        "pid": 898,
+        "pgid": 898
+      },
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.started",
+      "params": {
+        "status": "started",
+        "pid": 898,
+        "pgid": 898,
+        "exit_code": null,
+        "error": null
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "WS_TEST_20250626_080719_multi_line_output\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 0\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 1\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 2\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 3\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Line 4\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.completed",
+      "params": {
+        "status": "completed",
+        "pid": 898,
+        "pgid": 898,
+        "exit_code": 0,
+        "error": null
+      }
+    }
+  ],
+  "success": true,
+  "error": null,
+  "session_id": "feb01a40-c4cf-4f61-9b1f-41593855b3c7",
+  "end_time": 1750939639.9386227,
+  "duration": 0.022089004516601562
+}

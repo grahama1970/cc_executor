@@ -1,0 +1,11 @@
+Task: full_stack_app
+Category: complex_orchestration
+Request: Guide me through building a complete todo app with these steps: 1) Design the database schema, 2) Create a REST API with FastAPI, 3) Build a React frontend, 4) Write unit tests for the API, 5) Create a Dockerfile, 6) Write deployment instructions for AWS. Show all code and explanations for each step.
+Marker: MARKER_20250626_093228_346134_complex_1
+Duration: 0.11s
+================================================================================
+
+MARKER_20250626_093228_346134_complex_1
+Question: MARKER_20250626_093228_346134_complex_1
+
+Guide me ...

@@ -1,0 +1,10 @@
+Task: recipe_finder
+Category: simple
+Request: Find me a recipe for dinner using chicken and rice. I also have tomatoes, onions, and garlic. Make it something I can cook in 30 minutes.
+Marker: MARKER_20250626_080246_124694_simple_2
+Duration: 0.12s
+================================================================================
+
+MARKER_20250626_080246_124694_simple_2
+/bin/bash: line 1: MARKER_20250626_080246_124694_simple_2: command not found
+/bin/bash: line 3: Find: command not found

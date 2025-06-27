@@ -1,0 +1,61 @@
+{
+  "marker": "WS_TEST_20250626_080859_python_calc",
+  "command": "python -c \"print(42 * 17)\"",
+  "start_time": 1750939739.8676112,
+  "response": [
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "status": "started",
+        "pid": 936,
+        "pgid": 936
+      },
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.started",
+      "params": {
+        "status": "started",
+        "pid": 936,
+        "pgid": 936,
+        "exit_code": null,
+        "error": null
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "WS_TEST_20250626_080859_python_calc\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "714\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.completed",
+      "params": {
+        "status": "completed",
+        "pid": 936,
+        "pgid": 936,
+        "exit_code": 0,
+        "error": null
+      }
+    }
+  ],
+  "success": true,
+  "error": null,
+  "session_id": "32d009c4-8de1-4189-a23c-6973b4492b89",
+  "end_time": 1750939739.8876798,
+  "duration": 0.020068645477294922
+}

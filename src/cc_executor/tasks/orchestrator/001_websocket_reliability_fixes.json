@@ -1,0 +1,108 @@
+{
+  "review_id": "001_websocket_reliability",
+  "component": "core_implementation",
+  "focus": "websocket_reliability_and_process_control",
+  "date": "2025-06-25",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "critical",
+      "category": "process_control",
+      "file": "implementation.py",
+      "line": 402,
+      "issue": "Process group termination uses incorrect PID - processes are orphaned on disconnect",
+      "fix": "Change os.killpg(pgid, signal.SIGTERM) to os.killpg(-pgid, signal.SIGTERM) for proper process group termination",
+      "test": "Start long process, disconnect WebSocket, verify process is killed with pgrep"
+    },
+    {
+      "id": 2,
+      "severity": "critical",
+      "category": "process_control",
+      "file": "implementation.py",
+      "line": 360,
+      "issue": "No process existence check before sending signals - causes crashes",
+      "fix": "Wrap all os.killpg calls in try/except ProcessLookupError blocks",
+      "test": "Send control signal to non-existent process, verify graceful error response"
+    },
+    {
+      "id": 3,
+      "severity": "critical",
+      "category": "memory_management",
+      "file": "implementation.py",
+      "line": 193,
+      "issue": "Unlimited readline() buffer can cause memory exhaustion",
+      "fix": "Implement buffer limit: line = await stream.readline(8192) and handle partial lines",
+      "test": "Run 'yes | pv -qL 500000' for 60s, verify memory stays under 100MB"
+    },
+    {
+      "id": 4,
+      "severity": "major",
+      "category": "connection_handling",
+      "file": "implementation.py",
+      "line": 167,
+      "issue": "No WebSocket connection state check before sending",
+      "fix": "Add 'if ws.client_state == WebSocketState.CONNECTED:' check before send_json",
+      "test": "Close connection during streaming, verify no unhandled exceptions"
+    },
+    {
+      "id": 5,
+      "severity": "major",
+      "category": "concurrency",
+      "file": "implementation.py",
+      "line": 337,
+      "issue": "Race condition in task state checking",
+      "fix": "Use asyncio.Lock() for session modifications or atomic task assignment",
+      "test": "Send 10 simultaneous execute requests, verify only one runs"
+    },
+    {
+      "id": 6,
+      "severity": "major",
+      "category": "error_handling",
+      "file": "implementation.py",
+      "line": 249,
+      "issue": "Process can be orphaned if error occurs between creation and PID storage",
+      "fix": "Use try/finally block to ensure process cleanup on any exception",
+      "test": "Simulate exception after process start, verify no orphaned process"
+    },
+    {
+      "id": 7,
+      "severity": "major",
+      "category": "resource_limits",
+      "file": "implementation.py",
+      "line": 311,
+      "issue": "No limit on concurrent sessions - DoS vulnerability",
+      "fix": "Add MAX_SESSIONS check: if len(SESSIONS) >= MAX_SESSIONS: return error",
+      "test": "Try to create 101 sessions with MAX_SESSIONS=100, verify rejection"
+    },
+    {
+      "id": 8,
+      "severity": "minor",
+      "category": "error_handling",
+      "file": "implementation.py",
+      "line": 274,
+      "issue": "Session might be deleted when sending error response",
+      "fix": "Store websocket reference: ws = session['websocket'] at function start",
+      "test": "Trigger error in execute_command_task, verify error message delivery"
+    },
+    {
+      "id": 9,
+      "severity": "major",
+      "category": "stream_handling",
+      "file": "implementation.py",
+      "line": 259,
+      "issue": "No timeout on stream gathering - can hang indefinitely",
+      "fix": "Add timeout: await asyncio.wait_for(asyncio.gather(...), timeout=300)",
+      "test": "Run process that never produces output, verify 5-minute timeout"
+    },
+    {
+      "id": 10,
+      "severity": "minor",
+      "category": "cleanup",
+      "file": "implementation.py",
+      "line": 256,
+      "issue": "Stream tasks not cancelled on error",
+      "fix": "Store task references and cancel in finally block",
+      "test": "Cause exception during streaming, verify tasks are cancelled"
+    }
+  ]
+}

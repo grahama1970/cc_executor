@@ -1,0 +1,11 @@
+Task: comprehensive_guide
+Category: long_running
+Request: Create a comprehensive 10,000 word guide on 'Building Production-Ready Python Applications'. Cover architecture, testing, deployment, monitoring, security, performance optimization, and best practices. Include code examples throughout.
+Marker: MARKER_20250626_091057_311630_long_2
+Duration: 0.10s
+================================================================================
+
+MARKER_20250626_091057_311630_long_2
+Question: MARKER_20250626_091057_311630_long_2
+
+Create a com...

@@ -1,0 +1,62 @@
+{
+  "task_list_id": "008_live_streaming_fixes",
+  "description": "Enable bidirectional streaming communication between WebSocket server and clients for real-time output",
+  "fixes": [
+    {
+      "id": 1,
+      "file": "core/websocket_handler.py",
+      "line": 270,
+      "issue": "ALREADY WORKING - WebSocket server correctly streams output",
+      "fix": "No fix needed - _stream_process_output already sends process.output notifications",
+      "verification": "Confirmed working - sends data immediately via multiplex_streams",
+      "priority": "NA",
+      "result": {
+        "status": "NO_CHANGE_NEEDED",
+        "finding": "WebSocket handler already implements streaming correctly via _stream_process_output",
+        "verification_command": "grep -A20 '_stream_process_output' src/cc_executor/core/websocket_handler.py"
+      }
+    },
+    {
+      "id": 2,
+      "file": "tests/stress/unified_stress_test_executor_v3.py",
+      "line": 131,
+      "issue": "Client prints dots instead of actual streamed content",
+      "fix": "Change line 131 to print(data, end='', flush=True) to show real-time output",
+      "verification": "Run stress test and see Claude's actual output as it's generated",
+      "priority": "critical",
+      "result": {
+        "status": "FIXED",
+        "changes_made": [
+          "Line 131: Changed from printing dots to printing actual data",
+          "Changed: print('.', end='', flush=True) → print(data, end='', flush=True)"
+        ],
+        "verification_command": "python src/cc_executor/tests/stress/unified_stress_test_executor_v3.py src/cc_executor/tasks/haiku_single_task.json 2>&1 | head -50",
+        "hallucination_check": "sed -n '131p' src/cc_executor/tests/stress/unified_stress_test_executor_v3.py | grep 'print(data'"
+      }
+    },
+    {
+      "id": 3,
+      "file": "core/stream_handler.py",
+      "line": 85,
+      "issue": "ALREADY WORKING - StreamHandler correctly streams output",
+      "fix": "No fix needed - multiplex_streams already sends data immediately via callback",
+      "verification": "Confirmed by successful real-time streaming in tests",
+      "priority": "NA",
+      "result": {
+        "status": "NO_CHANGE_NEEDED",
+        "finding": "StreamHandler works correctly - data flows immediately from process to WebSocket",
+        "verification_command": "grep -A10 'await callback' src/cc_executor/core/stream_handler.py"
+      }
+    }
+  ],
+  "implementation_notes": {
+    "summary": "Bidirectional streaming was already implemented server-side, only needed client-side display fix",
+    "test_results": {
+      "before": "Output showed as dots: ..........",
+      "after": "Output streams in real-time showing actual Claude responses",
+      "example": "Shows haikus as they're generated: 'Variables\\nNames hold fleeting thoughts...'"
+    },
+    "key_finding": "The WebSocket server was correctly streaming all along - the client just wasn't displaying it",
+    "limitation": "Claude Code CLI doesn't support token-by-token streaming - it generates the full response before outputting"
+  }
+}

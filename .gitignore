@@ -17,13 +17,13 @@ uploads
 node_modules
 dist
 coverage.xml
-verification-app/
-verification-app/node_modules/
+repos/
+archive
 
 # Sensitive credentials and service accounts
 vertex_ai_service_account.json
 **/vertex_ai_service_account.json
-*.json
+# *.json  # removed global JSON ignore
 !pyproject.toml
 !package*.json
 !examples/*.json
@@ -96,6 +96,25 @@ images/test_*
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+
+# CC-Executor specific
+logs/*.log
+test_outputs/*.txt
+# Keep the directories but ignore the contents
+!logs/.gitkeep
+!test_outputs/.gitkeep
+
+# Local configuration and MCP
+.mcp.json
+.claude/
+
+# Archive and output directories
+archive/
+test_outputs/
+
+# IDE-specific files (redundant but explicit)
+.vscode/
+.idea/
 
 # Flask stuff:
 instance/
@@ -187,6 +206,12 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Allow task fix JSON files
+!src/cc_executor/tasks/orchestrator/*.json
+!src/cc_executor/tasks/orchestrator/incoming/*.json
+!src/cc_executor/tasks/executor/*.json
+!src/cc_executor/tasks/executor/incoming/*.json
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

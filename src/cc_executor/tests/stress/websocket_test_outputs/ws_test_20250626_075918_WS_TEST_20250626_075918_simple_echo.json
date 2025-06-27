@@ -1,0 +1,61 @@
+{
+  "marker": "WS_TEST_20250626_075918_simple_echo",
+  "command": "echo \"Hello from WebSocket test\"",
+  "start_time": 1750939158.7954922,
+  "response": [
+    {
+      "jsonrpc": "2.0",
+      "result": {
+        "status": "started",
+        "pid": 779,
+        "pgid": 779
+      },
+      "id": 1
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.started",
+      "params": {
+        "status": "started",
+        "pid": 779,
+        "pgid": 779,
+        "exit_code": null,
+        "error": null
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "WS_TEST_20250626_075918_simple_echo\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.output",
+      "params": {
+        "type": "stdout",
+        "data": "Hello from WebSocket test\n",
+        "truncated": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "process.completed",
+      "params": {
+        "status": "completed",
+        "pid": 779,
+        "pgid": 779,
+        "exit_code": 0,
+        "error": null
+      }
+    }
+  ],
+  "success": true,
+  "error": null,
+  "session_id": "fa6e509f-36db-451e-a939-169099bc92a9",
+  "end_time": 1750939158.8213294,
+  "duration": 0.025837182998657227
+}

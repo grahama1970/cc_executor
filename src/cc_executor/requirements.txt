@@ -1,0 +1,6 @@
+fastapi>=0.110,<0.112
+uvicorn>=0.25
+websockets
+python-json-logger
+loguru
+requests

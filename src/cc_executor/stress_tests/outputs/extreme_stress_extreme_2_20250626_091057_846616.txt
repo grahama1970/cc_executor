@@ -1,0 +1,11 @@
+Task: infinite_improvement
+Category: extreme_stress
+Request: Take this code and improve it 10 times. Each improvement should build on the previous one. Start with: print('hello world'). For each iteration, make it more sophisticated, add features, improve structure, add error handling, optimize performance, add tests, add documentation, make it configurable, add logging, and make it production-ready.
+Marker: MARKER_20250626_091057_846616_extreme_2
+Duration: 0.12s
+================================================================================
+
+MARKER_20250626_091057_846616_extreme_2
+Question: MARKER_20250626_091057_846616_extreme_2
+
+Take this...

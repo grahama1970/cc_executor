@@ -1,0 +1,124 @@
+{
+  "task_list_id": "006_stress_test_followups",
+  "description": "Follow-up run requests for Claude-code. Each task asks Claude to execute a concrete command and attach the complete raw stdout/stderr so Cascade can analyse results and suggest fixes.",
+  "tasks": [
+    {
+      "id": "run_haiku_single",
+      "title": "Run single haiku stress test",
+      "command": "source .venv/bin/activate && python src/cc_executor/tests/stress/unified_stress_test_executor_v3.py src/cc_executor/tasks/haiku_single_task.json",
+      "expected_artifacts": {
+        "stdout_file": "stress_run.log",
+        "json_summary_pattern": "stress_test_summary_*.json"
+      },
+      "instructions": "Execute the command exactly as given from the project root. Do NOT alter the task file path. Capture the full combined stdout & stderr and attach it (or point to the saved *.log file).",
+      "result": {
+        "status": "FIXED",
+        "changes_made": [
+          "Executed command with stdout/stderr capture to stress_run.log",
+          "Generated stress_test_summary_20250626_102246.json",
+          "Generated stress_test_detailed_report_20250626_102246.txt"
+        ],
+        "problems_encountered": [
+          "The stress test executed but only echoed the marker, not actual Claude execution",
+          "Response was only 105 characters, patterns not found",
+          "ROOT CAUSE: unified_stress_test_executor_v3.py line 99 sends 'echo' command instead of Claude invocation"
+        ],
+        "solution": "Ran command with tee to capture output to stress_run.log",
+        "verification_command": "cat stress_run.log | grep -E '(Loading tasks|Running Category|Response captured)'",
+        "hallucination_check": "cat stress_test_summary_20250626_102246.json | jq '.categories.parallel.tasks[0]'",
+        "artifacts": {
+          "log_file": "stress_run.log",
+          "json_summary": "stress_test_summary_20250626_102246.json",
+          "detailed_report": "stress_test_detailed_report_20250626_102246.txt",
+          "response_file": "stress_test_outputs/parallel_parallel_2_20250626_102246_840871.txt"
+        },
+        "execution_summary": {
+          "total_tasks": 1,
+          "successful": 1,
+          "duration": "0.10s",
+          "response_length": 105,
+          "patterns_found": 0,
+          "patterns_total": 4
+        }
+      }
+    },
+    {
+      "id": "run_full_parallel_category",
+      "title": "Run full parallel category from original unified task list",
+      "command": "source .venv/bin/activate && python src/cc_executor/tests/stress/unified_stress_test_executor_v3.py src/cc_executor/tasks/unified_stress_test_tasks.json parallel",
+      "expected_artifacts": {
+        "stdout_file": "stress_run_parallel.log",
+        "json_summary_pattern": "stress_test_summary_*.json"
+      },
+      "instructions": "Same capture requirements as previous task. Provide raw log and resulting JSON summary for analysis.",
+      "result": {
+        "status": "FIXED",
+        "changes_made": [
+          "Executed command with stdout/stderr capture to stress_run_parallel.log",
+          "Generated stress_test_summary_20250626_102312.json",
+          "Generated stress_test_detailed_report_20250626_102312.txt"
+        ],
+        "problems_encountered": [
+          "Both parallel tasks executed but only echoed markers",
+          "No actual Claude execution happened - responses were 105 chars each",
+          "ROOT CAUSE: unified_stress_test_executor_v3.py line 99 sends 'echo' command instead of Claude invocation"
+        ],
+        "solution": "Ran command with tee to capture output to stress_run_parallel.log",
+        "verification_command": "cat stress_run_parallel.log | grep -E '(parallel_1|parallel_2|Response captured)'",
+        "hallucination_check": "cat stress_test_summary_20250626_102312.json | jq '.categories.parallel'",
+        "artifacts": {
+          "log_file": "stress_run_parallel.log",
+          "json_summary": "stress_test_summary_20250626_102312.json",
+          "detailed_report": "stress_test_detailed_report_20250626_102312.txt",
+          "response_files": [
+            "stress_test_outputs/parallel_parallel_1_20250626_102312_523748.txt",
+            "stress_test_outputs/parallel_parallel_2_20250626_102312_547928.txt"
+          ]
+        },
+        "execution_summary": {
+          "total_tasks": 2,
+          "successful": 2,
+          "durations": ["0.09s", "0.11s"],
+          "response_lengths": [105, 105],
+          "patterns_found": [0, 0],
+          "patterns_total": [4, 4]
+        }
+      }
+    },
+    {
+      "id": "hallucination_check_single",
+      "title": "Run hallucination checker on last summary",
+      "command": "bash -c 'cat $(ls -1t stress_test_summary_*.json | head -1) | ./prompts/hallucination_checker.sh'",
+      "expected_artifacts": {
+        "stdout_file": "hallucination_check.log"
+      },
+      "instructions": "Pipe the most recent stress test summary through the hallucination checker script and attach the full output log.",
+      "result": {
+        "status": "FIXED",
+        "changes_made": [
+          "Created prompts/hallucination_checker.sh script",
+          "Made script executable",
+          "Executed hallucination check on latest summary"
+        ],
+        "problems_encountered": [
+          "hallucination_checker.sh script didn't exist - had to create it",
+          "Check failed - markers not found in transcript (as expected since tests only echoed)"
+        ],
+        "solution": "Created wrapper script that uses check_hallucination.sh, then ran the check",
+        "verification_command": "cat hallucination_check.log",
+        "hallucination_check": "ls -la prompts/hallucination_checker.sh && head -5 prompts/hallucination_checker.sh",
+        "artifacts": {
+          "log_file": "hallucination_check.log",
+          "script_created": "prompts/hallucination_checker.sh"
+        },
+        "check_results": {
+          "markers_checked": ["parallel_1", "parallel_2"],
+          "markers_verified": 0,
+          "markers_failed": 2,
+          "exit_code": 1,
+          "output": "❌ 2 markers not found in transcript"
+        }
+      }
+    }
+  ]
+}

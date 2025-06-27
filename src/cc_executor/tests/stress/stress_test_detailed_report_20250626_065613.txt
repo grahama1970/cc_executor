@@ -1,0 +1,59 @@
+================================================================================
+UNIFIED STRESS TEST DETAILED REPORT
+================================================================================
+Generated: 2025-06-26 06:56:13
+Task File: ../../tasks/unified_stress_test_tasks.json
+Total Duration: 0.03s
+
+Total Tasks: 3
+Successful: 0
+Failed: 3
+Success Rate: 0.0%
+
+
+================================================================================
+CATEGORY: simple
+================================================================================
+
+────────────────────────────────────────────────────────────
+Task: daily_standup (ID: simple_1)
+Duration: 0.03s
+Success: ❌ No
+Error: Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 8002, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 8002)]
+
+Request: Help me write my daily standup update. Ask me what I worked on yesterday, what I'm working on today, and if I have any blockers. Then format it nicely for Slack....
+
+Pattern Verification:
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: recipe_finder (ID: simple_2)
+Duration: 0.02s
+Success: ❌ No
+Error: Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 8002, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 8002)]
+
+Request: Find me a recipe for dinner using chicken and rice. I also have tomatoes, onions, and garlic. Make it something I can cook in 30 minutes....
+
+Pattern Verification:
+
+Transcript Verified: ✗ No
+
+────────────────────────────────────────────────────────────
+Task: quick_math (ID: simple_3)
+Duration: 0.01s
+Success: ❌ No
+Error: Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('127.0.0.1', 8002), [Errno 111] Connect call failed ('::1', 8002, 0, 0)]
+
+Request: Calculate these 10 math problems quickly: 15+27, 83-46, 12*9, 144/12, 2^8, sqrt(169), 15% of 200, 3! (factorial), fibonacci(10), prime factors of 60...
+
+Pattern Verification:
+
+Transcript Verified: ✗ No
+
+================================================================================
+SUMMARY BY CATEGORY
+================================================================================
+Category                  Total      Success    Failed     Avg Time  
+-----------------------------------------------------------------
+simple                    3          0          3          0.02      s

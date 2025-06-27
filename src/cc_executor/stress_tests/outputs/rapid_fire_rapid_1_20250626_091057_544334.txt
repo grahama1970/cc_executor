@@ -1,0 +1,11 @@
+Task: hundred_questions
+Category: rapid_fire
+Request: Answer these 100 quick yes/no questions as fast as possible: Is Python interpreted? Is Java compiled? Is 2+2=4? Is the sky blue? Is water wet? [... continue with 95 more simple questions about programming, math, and general knowledge]
+Marker: MARKER_20250626_091057_544334_rapid_1
+Duration: 0.06s
+================================================================================
+
+MARKER_20250626_091057_544334_rapid_1
+Question: MARKER_20250626_091057_544334_rapid_1
+
+Answer thes...

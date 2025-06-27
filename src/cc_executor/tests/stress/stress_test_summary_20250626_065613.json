@@ -1,0 +1,41 @@
+{
+  "execution_time": 0.026290416717529297,
+  "categories": {
+    "simple": {
+      "total": 3,
+      "successful": 0,
+      "tasks": [
+        {
+          "id": "simple_1",
+          "name": "daily_standup",
+          "success": false,
+          "duration": 0.02575063705444336,
+          "response_length": 0,
+          "patterns_found": 0,
+          "patterns_total": 0,
+          "error": "Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 8002, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 8002)]"
+        },
+        {
+          "id": "simple_2",
+          "name": "recipe_finder",
+          "success": false,
+          "duration": 0.015232563018798828,
+          "response_length": 0,
+          "patterns_found": 0,
+          "patterns_total": 0,
+          "error": "Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 8002, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 8002)]"
+        },
+        {
+          "id": "simple_3",
+          "name": "quick_math",
+          "success": false,
+          "duration": 0.008649587631225586,
+          "response_length": 0,
+          "patterns_found": 0,
+          "patterns_total": 0,
+          "error": "Cannot connect to host localhost:8002 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('127.0.0.1', 8002), [Errno 111] Connect call failed ('::1', 8002, 0, 0)]"
+        }
+      ]
+    }
+  }
+}
