@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-06-30T15:00:35.934406",
+  "total": 5,
+  "passed": 2,
+  "failed": 3,
+  "results": [
+    {
+      "name": "Simple Math (2+2)",
+      "success": true,
+      "duration": 4.726486921310425,
+      "exit_code": 0,
+      "output_size": 1218
+    },
+    {
+      "name": "Capital of France",
+      "success": true,
+      "duration": 4.6866326332092285,
+      "exit_code": 0,
+      "output_size": 1220
+    },
+    {
+      "name": "Hello World Python",
+      "success": false,
+      "duration": 60.022464752197266,
+      "error": "sent 1011 (internal error) keepalive ping timeout; no close frame received"
+    },
+    {
+      "name": "List 3 Colors",
+      "success": false,
+      "duration": 10.010971784591675,
+      "error": "timed out during opening handshake"
+    },
+    {
+      "name": "Echo Test",
+      "success": false,
+      "duration": 10.010798692703247,
+      "error": "timed out during opening handshake"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+1. Python - High-level, interpreted language known for readable syntax and versatility in web, data science, and automation.
+
+2. JavaScript - Dynamic scripting language primarily for web development, runs in browsers and Node.js for server-side.
+
+3. Java - Object-oriented, platform-independent language widely used for enterprise applications and Android development.
+
+4. C++ - Low-level, high-performance language with object-oriented features, used for systems programming and game development.
+
+5. C# - Microsoft's object-oriented language for .NET framework, popular for Windows applications and game development with Unity.
+
+6. Go - Google's compiled language emphasizing simplicity, concurrency, and performance for cloud and network services.
+
+7. Rust - Systems programming language focusing on memory safety, concurrency, and performance without garbage collection.
+
+8. TypeScript - JavaScript superset adding static typing, improving code maintainability for large-scale applications.
+
+9. Swift - Apple's modern language for iOS, macOS development, designed for safety and performance.
+
+10. Kotlin - JVM language interoperable with Java, Google's preferred language for Android development.
+
+11. Ruby - Dynamic, interpreted language emphasizing programmer productivity and simplicity, famous for Rails framework.
+
+12. PHP - Server-side scripting language widely used for web development, powers WordPress and many websites.
+
+13. R - Statistical computing language popular in data analysis, machine learning, and academic research.
+
+14. Scala - JVM language combining object-oriented and functional programming, used for big data with Apache Spark.
+
+15. Haskell - Pure functional programming language with strong static typing, used in academia and finance.
+
+16. Elixir - Dynamic, functional language running on Erlang VM, designed for scalable, fault-tolerant applications.
+
+17. Dart - Google's language for client-side development, primarily used with Flutter for cross-platform mobile apps.
+
+18. Julia - High-performance language for scientific computing, combining ease of use with speed of compiled languages.
+
+19. Lua - Lightweight, embeddable scripting language popular in game development and configuration.
+
+20. COBOL - Legacy business-oriented language still maintaining critical financial and government systems worldwide.

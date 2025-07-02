@@ -1,0 +1,42 @@
+{
+  "task_list_id": "SIMPLE_STRESS_TESTS_20250630",
+  "description": "Simple stress tests that complete quickly (5-30s)",
+  "timeout": 120,
+  "tests": [
+    {
+      "id": "simple_math",
+      "name": "Basic Math",
+      "command": "claude -p \"What is 2+2?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["4", "four"],
+      "description": "Basic arithmetic"
+    },
+    {
+      "id": "calculations",
+      "name": "Multiple Calculations",
+      "command": "claude -p \"What is the result of these calculations: 15+27, 83-46, 12*9, 144/12, 2^8?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["42", "37", "108", "12", "256"],
+      "description": "Multiple arithmetic operations"
+    },
+    {
+      "id": "fibonacci",
+      "name": "Fibonacci Number",
+      "command": "claude -p \"What is the 10th Fibonacci number?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["55", "fibonacci"],
+      "description": "Calculate Fibonacci sequence"
+    },
+    {
+      "id": "echo_test",
+      "name": "Echo Test",
+      "command": "echo \"Testing basic echo command\"",
+      "expected_patterns": ["Testing basic echo"],
+      "description": "Basic echo command"
+    },
+    {
+      "id": "date_test",
+      "name": "Date Command",
+      "command": "date",
+      "expected_patterns": ["202"],
+      "description": "System date command"
+    }
+  ]
+}

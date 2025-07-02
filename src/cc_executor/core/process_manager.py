@@ -58,212 +58,176 @@ class ProcessManager:
     - Protection against orphaned processes
     """
     
-    async def execute_command(
-        self,
-        command: str,
-        preexec_fn: Optional[Callable] = None,
-        cwd: Optional[str] = None,
-        env: Optional[dict] = None
-    ) -> asyncio.subprocess.Process:
+    async def execute_command(self, command: str, cwd: Optional[str] = None) -> Any:
         """
-        Execute a command in a new process.
+        Execute a command in a subprocess, creating a new process group.
         
         Args:
-            command: Shell command to execute
-            preexec_fn: Optional pre-execution function (default: os.setsid)
-            cwd: Optional working directory for the subprocess
-            env: Optional environment variables dict (defaults to current environment)
+            command: The command to execute.
+            cwd: The working directory.
             
         Returns:
-            asyncio.subprocess.Process instance
+            The process object.
         """
-        # Default to creating new session for process group control
-        if preexec_fn is None:
-            preexec_fn = os.setsid
-            
-        logger.info(f"Executing command: {command[:100]}...")
-        if cwd:
-            logger.info(f"Working directory: {cwd}")
-        else:
-            logger.info(f"Working directory: {os.getcwd()} (current)")
+        logger.info(f"Executing command in new process group: {command[:100]}...")
         
-        # Use shlex to correctly split the command string into a list
-        # This avoids shell parsing issues with quotes and arguments
-        command_args = shlex.split(command)
+        env = os.environ.copy()
         
-        # Prepare environment - inherit current environment by default
-        if env is None:
-            env = os.environ.copy()
-        else:
-            # Merge provided env with current environment
-            merged_env = os.environ.copy()
-            merged_env.update(env)
-            env = merged_env
+        # CRITICAL: Force unbuffered output to prevent stalling
+        # Without this, subprocess output gets buffered and WebSocket stalls
+        env['PYTHONUNBUFFERED'] = '1'
+        env['NODE_NO_READLINE'] = '1'  # For Node.js based CLIs
         
-        # Remove ANTHROPIC_API_KEY since we're using Claude Max
-        # Claude Max uses browser-based auth, not API keys
+        # Remove ANTHROPIC_API_KEY for Claude Max (it uses browser auth, not API keys)
         if 'ANTHROPIC_API_KEY' in env:
-            logger.info("Removing ANTHROPIC_API_KEY from subprocess environment (Claude Max uses browser auth)")
+            logger.info("ANTHROPIC_API_KEY found in environment, removing it (using Claude Max)")
             del env['ANTHROPIC_API_KEY']
-            
+        else:
+            logger.info("ANTHROPIC_API_KEY not present in environment (expected for Claude Max)")
+
+        # Check if stdbuf is available for forcing unbuffered output
+        stdbuf_check = await asyncio.create_subprocess_shell(
+            "which stdbuf",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await stdbuf_check.wait()
+        
+        # Enhanced unbuffering for various command types
+        if stdbuf_check.returncode == 0:
+            # Apply stdbuf to various CLI tools that might buffer
+            cli_tools = ['claude', 'python', 'node', 'npm', 'npx']
+            for tool in cli_tools:
+                if command.strip().startswith(tool):
+                    # Force unbuffered output (-o0 = no output buffering, -e0 = no error buffering)
+                    command = f"stdbuf -o0 -e0 {command}"
+                    logger.info(f"Wrapping {tool} command with stdbuf for unbuffered output")
+                    break
+        
+        process = await asyncio.create_subprocess_shell(
+            command,
+            stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,  # Pass the modified environment
+            preexec_fn=os.setsid,  # CRITICAL: Creates a new process group
+            limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
+        )
+        return process
+
+    def get_process_group_id(self, process: Any) -> Optional[int]:
+        """Get the process group ID (pgid) for a process."""
         try:
-            # Execute the command directly, not through a shell
-            # The first argument is the program, the rest are its arguments
-            proc = await asyncio.create_subprocess_exec(
-                *command_args,
-                limit=8 * 1024 * 1024,  # 8 MiB per line to handle large Claude JSON events
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.DEVNULL,  # Explicitly close stdin to prevent hanging
-                preexec_fn=preexec_fn,
-                cwd=cwd,
-                env=env
-            )
-            
-            logger.info(f"Process started with PID: {proc.pid}")
-            return proc
-            
-        except Exception as e:
-            logger.error(f"Failed to execute command: {e}")
-            raise
-            
-    def get_process_group_id(self, process: asyncio.subprocess.Process) -> Optional[int]:
+            return os.getpgid(process.pid)
+        except ProcessLookupError:
+            return None
+
+    def control_process(self, pgid: int, action: str) -> None:
         """
-        Get the process group ID for a process.
-        
-        Args:
-            process: asyncio.subprocess.Process instance
-            
-        Returns:
-            Process group ID or None if process is terminated
-        """
-        if process.pid and process.returncode is None:
-            try:
-                # Get process group ID (should be same as PID due to setsid)
-                pgid = os.getpgid(process.pid)
-                return pgid
-            except ProcessLookupError:
-                return None
-        return None
-        
-    def control_process(self, pgid: int, control_type: str) -> None:
-        """
-        Send control signals to a process group.
+        Control a process group with pause/resume/cancel operations.
         
         Args:
             pgid: Process group ID
-            control_type: One of "PAUSE", "RESUME", "CANCEL"
-            
-        Raises:
-            ProcessNotFoundError: If process group doesn't exist
-            ValueError: If control_type is invalid
+            action: Control action (PAUSE, RESUME, CANCEL)
         """
+        valid_actions = {"PAUSE", "RESUME", "CANCEL"}
+        if action not in valid_actions:
+            raise ValueError(f"Invalid action: {action}. Must be one of {valid_actions}")
+        
         try:
-            if control_type == "PAUSE":
-                logger.info(f"Pausing process group {pgid}")
+            if action == "PAUSE":
                 os.killpg(pgid, signal.SIGSTOP)
-                
-            elif control_type == "RESUME":
-                logger.info(f"Resuming process group {pgid}")
+                logger.info(f"Sent SIGSTOP to process group {pgid}")
+            elif action == "RESUME":
                 os.killpg(pgid, signal.SIGCONT)
-                
-            elif control_type == "CANCEL":
-                logger.info(f"Cancelling process group {pgid}")
-                # Note: Using positive pgid (O3's suggestion was incorrect)
+                logger.info(f"Sent SIGCONT to process group {pgid}")
+            elif action == "CANCEL":
                 os.killpg(pgid, signal.SIGTERM)
-                
-            else:
-                raise ValueError(f"Unknown control type: {control_type}")
-                
+                logger.info(f"Sent SIGTERM to process group {pgid}")
         except ProcessLookupError:
-            logger.error(f"Process group {pgid} not found")
             raise ProcessNotFoundError(f"Process group {pgid} not found")
-            
+
     async def terminate_process(
-        self,
+        self, 
         process: asyncio.subprocess.Process,
         pgid: Optional[int] = None,
         timeout: float = PROCESS_CLEANUP_TIMEOUT
     ) -> Optional[int]:
         """
-        Gracefully terminate a process and its group.
+        Terminate a process and its group, ensuring complete cleanup.
         
         Args:
             process: Process to terminate
-            pgid: Process group ID (will be determined if not provided)
+            pgid: Process group ID (will be obtained if not provided)
             timeout: Maximum time to wait for termination
             
         Returns:
-            Exit code if process terminated, None otherwise
+            Exit code if process terminated, None if timeout
         """
-        if process.returncode is not None:
-            return process.returncode
-            
-        # Get process group ID if not provided
         if pgid is None:
             pgid = self.get_process_group_id(process)
-            
-        try:
-            # First try SIGTERM
-            if pgid:
-                logger.info(f"Sending SIGTERM to process group {pgid}")
-                try:
-                    os.killpg(pgid, signal.SIGTERM)
-                except ProcessLookupError:
-                    logger.warning(f"Process group {pgid} already terminated")
-                    
-            # Wait for termination
+        
+        if process.returncode is not None:
+            # Process already terminated
+            return process.returncode
+        
+        # First try SIGTERM for graceful shutdown
+        if pgid:
             try:
-                exit_code = await asyncio.wait_for(
-                    process.wait(),
-                    timeout=timeout
-                )
-                logger.info(f"Process terminated with exit code: {exit_code}")
-                return exit_code
+                os.killpg(pgid, signal.SIGTERM)
+                logger.info(f"Sent SIGTERM to process group {pgid}")
                 
-            except asyncio.TimeoutError:
-                # Force kill if still running
-                logger.warning(f"Process did not terminate within {timeout}s, forcing kill")
-                
-                if pgid:
-                    try:
-                        os.killpg(pgid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                        
-                # Final wait
+                # Give process time to terminate gracefully
+                # ALWAYS give at least 2s for graceful shutdown, regardless of caller timeout
                 try:
                     exit_code = await asyncio.wait_for(
                         process.wait(),
-                        timeout=5.0
+                        timeout=2.0  # Fixed 2s grace period before SIGKILL
                     )
+                    logger.info(f"Process terminated gracefully with exit code: {exit_code}")
                     return exit_code
                 except asyncio.TimeoutError:
-                    logger.error("Process could not be terminated")
-                    return None
-                    
-        except Exception as e:
-            logger.error(f"Error terminating process: {e}")
-            return None
-            
-    async def cleanup_process(
-        self,
-        process: asyncio.subprocess.Process,
-        pgid: Optional[int] = None
-    ) -> None:
-        """
-        Ensure process is terminated and cleaned up.
+                    # Process didn't terminate gracefully
+                    logger.info(f"Process did not terminate within 2s grace period, will force kill")
+                    pass
+            except Exception as e:
+                logger.error(f"Error during SIGTERM: {e}")
         
-        This is called during session cleanup to prevent orphaned processes.
+        # Force kill with SIGKILL
+        if pgid:
+            logger.warning(f"Sending SIGKILL to process group {pgid}")
+            try:
+                await asyncio.sleep(0.1)  # Brief pause before SIGKILL
+                os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                logger.info(f"Process group {pgid} already terminated")
+            except Exception as e:
+                logger.error(f"Error during SIGKILL: {e}")
+        
+        # Final wait for process death
+        try:
+            exit_code = await asyncio.wait_for(
+                process.wait(),
+                timeout=5.0
+            )
+            logger.info(f"Process terminated with exit code: {exit_code}")
+            return exit_code
+        except asyncio.TimeoutError:
+            logger.error("Process could not be terminated even with SIGKILL")
+            return None
+
+    async def cleanup_process(self, process: Any, pgid: Optional[int] = None) -> None:
+        """
+        Clean up an entire process group to prevent zombie processes.
         
         Args:
-            process: Process to cleanup
-            pgid: Process group ID
+            process: The process object (for logging).
+            pgid: The process group ID to terminate.
         """
         if process and process.returncode is None:
             logger.info("Cleaning up process during session cleanup")
             await self.terminate_process(process, pgid)
-            
+
     def is_process_alive(self, process: asyncio.subprocess.Process) -> bool:
         """
         Check if a process is still running.
@@ -275,7 +239,7 @@ class ProcessManager:
             True if process is running
         """
         return process.returncode is None
-        
+
     async def wait_for_process(
         self,
         process: asyncio.subprocess.Process,
@@ -299,9 +263,8 @@ class ProcessManager:
                 )
             else:
                 exit_code = await process.wait()
-                
-            return exit_code
             
+            return exit_code
         except asyncio.TimeoutError:
             logger.warning(f"Process wait timed out after {timeout}s")
             return None

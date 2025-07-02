@@ -1,0 +1,56 @@
+{
+  "task_list_id": "COMPLEX_STRESS_TESTS_20250630",
+  "description": "Complex tests requiring significant processing (90-300s)",
+  "timeout": 300,
+  "tests": [
+    {
+      "id": "python_checklist",
+      "name": "Python Best Practices",
+      "command": "claude -p \"What is a 500-word checklist for Python best practices in production?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["python", "production", "best practice", "testing"],
+      "description": "Comprehensive best practices guide"
+    },
+    {
+      "id": "todo_architecture",
+      "name": "Todo App Architecture",
+      "command": "claude -p \"What is the architecture for a todo app with database schema, REST API, and frontend overview?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["database", "API", "frontend", "schema", "REST"],
+      "description": "Complete application architecture"
+    },
+    {
+      "id": "hello_world_prod",
+      "name": "Production Hello World",
+      "command": "claude -p \"What is a production-ready hello world in Python with logging and error handling?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["logging", "error", "exception", "production"],
+      "description": "Production-ready code example"
+    },
+    {
+      "id": "large_essay",
+      "name": "Programming History Essay",
+      "command": "claude -p \"What is a 2000 word essay about the history of programming languages?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["programming", "language", "history", "evolution"],
+      "description": "Long-form essay generation"
+    },
+    {
+      "id": "comparison_table",
+      "name": "Language Comparison",
+      "command": "claude -p \"What is a detailed comparison table of Python vs JavaScript for web development?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["Python", "JavaScript", "comparison", "web"],
+      "description": "Detailed comparison analysis"
+    },
+    {
+      "id": "async_guide",
+      "name": "Async/Await Guide",
+      "command": "claude -p \"What is a comprehensive guide to async/await in Python with 5 examples?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["async", "await", "asyncio", "example"],
+      "description": "Technical guide with examples"
+    },
+    {
+      "id": "webdev_comparison",
+      "name": "Web Development Analysis",
+      "command": "claude -p \"What is a comprehensive comparison of Python vs JavaScript for web development including frameworks, performance, and use cases?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["framework", "performance", "Django", "React", "Node"],
+      "description": "In-depth technical comparison"
+    }
+  ]
+}

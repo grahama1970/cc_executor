@@ -1,0 +1,56 @@
+{
+  "task_list_id": "MEDIUM_STRESS_TESTS_20250630",
+  "description": "Medium complexity tests (30-90s)",
+  "timeout": 180,
+  "tests": [
+    {
+      "id": "reverse_string",
+      "name": "String Reversal Function",
+      "command": "claude -p \"What is a Python function to reverse a string?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["def", "reverse", "[::-1]", "return"],
+      "description": "Generate string reversal code"
+    },
+    {
+      "id": "recursion",
+      "name": "Recursion Example",
+      "command": "claude -p \"What is recursion in programming with one simple Python example?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["def", "recursion", "base case", "recursive"],
+      "description": "Explain recursion with example"
+    },
+    {
+      "id": "five_functions",
+      "name": "Five Math Functions",
+      "command": "claude -p \"What is Python code for 5 functions: area of circle, celsius to fahrenheit, prime check, string reverse, and factorial?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["def", "area", "celsius", "prime", "factorial"],
+      "description": "Generate multiple function implementations"
+    },
+    {
+      "id": "ten_functions",
+      "name": "Ten Math Functions",
+      "command": "claude -p \"What is Python code for 10 basic math functions?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["def", "return", "math"],
+      "description": "Generate ten function implementations"
+    },
+    {
+      "id": "haikus",
+      "name": "Programming Haikus",
+      "command": "claude -p \"What is a collection of 5 haikus about programming: variables, loops, functions, debugging, and git?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["haiku", "syllable", "variable", "loop", "function"],
+      "description": "Creative writing - haikus"
+    },
+    {
+      "id": "recipe",
+      "name": "Quick Recipe",
+      "command": "claude -p \"What is a quick chicken and rice recipe that takes 30 minutes?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["chicken", "rice", "minutes", "ingredients"],
+      "description": "Recipe generation"
+    },
+    {
+      "id": "story_outline",
+      "name": "Story Outline",
+      "command": "claude -p \"What is a 500-word outline for a story about a programmer discovering sentient code?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "expected_patterns": ["programmer", "sentient", "code", "story"],
+      "description": "Creative story outline"
+    }
+  ]
+}

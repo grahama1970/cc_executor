@@ -1,0 +1,85 @@
+{
+  "total": 10,
+  "passed": 1,
+  "failed": 9,
+  "tests": [
+    {
+      "name": "Simple Prompt (2+2)",
+      "success": true,
+      "duration": 4.3978188037872314,
+      "exit_code": 0,
+      "output_size": 1207,
+      "error": null
+    },
+    {
+      "name": "Large Output (1000 word essay)",
+      "success": false,
+      "duration": 34.9284234046936,
+      "exit_code": null,
+      "output_size": 931,
+      "word_count": 12,
+      "error": "Stalled"
+    },
+    {
+      "name": "Self-Reflection Format",
+      "success": false,
+      "duration": 10.010136127471924,
+      "exit_code": null,
+      "output_size": 0,
+      "has_sections": false,
+      "error": "timed out during opening handshake"
+    },
+    {
+      "name": "JSON Streaming",
+      "success": false,
+      "duration": 10.009946823120117,
+      "exit_code": null,
+      "output_lines": 0,
+      "error": "timed out during opening handshake"
+    },
+    {
+      "name": "Timeout Handling",
+      "success": false,
+      "duration": 10.010628700256348,
+      "error": "timed out during opening handshake",
+      "timed_out": false
+    },
+    {
+      "name": "Sequential Requests",
+      "success": false,
+      "duration": 33.03843665122986,
+      "requests": 3,
+      "successful_requests": 0
+    },
+    {
+      "name": "Error Handling",
+      "success": false,
+      "duration": 10.01009488105774,
+      "exit_code": null,
+      "handled_error": false
+    },
+    {
+      "name": "Environment Validation",
+      "success": false,
+      "duration": 10.01120638847351,
+      "exit_code": null,
+      "has_pythonpath": false,
+      "has_working_dir": false
+    },
+    {
+      "name": "Buffer Handling",
+      "success": false,
+      "duration": 10.010532855987549,
+      "exit_code": null,
+      "expected_size": 100000,
+      "actual_size": 0
+    },
+    {
+      "name": "Claude with Tools",
+      "success": false,
+      "duration": 10.0103280544281,
+      "exit_code": null,
+      "output_size": 0
+    }
+  ]
+}

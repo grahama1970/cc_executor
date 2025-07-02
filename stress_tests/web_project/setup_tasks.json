@@ -1,0 +1,38 @@
+{
+  "task_list": {
+    "name": "Project Setup Tasks",
+    "description": "Tasks for setting up the development environment using cc_execute.md",
+    "tasks": [
+      {
+        "id": "task_001",
+        "name": "Setup Virtual Environment",
+        "command": "Use your ./src/cc_executor/prompts/cc_execute.md to execute the task: Setup the venv with uv venv --python=3.10.11 .venv. Then source .venv/bin/activate. Expect an execution time using the redis prompt of 90 seconds. Evaluate the response based on calling `which python` to confirm that the python environment is correct. Retry if the task fails.",
+        "timeout": 180
+      },
+      {
+        "id": "task_002",
+        "name": "Install Dependencies",
+        "command": "Use your ./src/cc_executor/prompts/cc_execute.md to execute the task: Install project dependencies using uv pip install -r requirements.txt. Expect a timeout of 120 seconds. Evaluate results based on: 1) uv pip list shows installed packages, 2) No error messages during installation, 3) Key packages like fastapi, sqlalchemy, pytest are installed. Retry if the task fails.",
+        "timeout": 240
+      },
+      {
+        "id": "task_003",
+        "name": "Create Project Structure",
+        "command": "Use your ./src/cc_executor/prompts/cc_execute.md to execute the task: Create project directories using mkdir -p src/app/{models,api,core} tests/{unit,integration} docs static templates. Expect a timeout of 30 seconds. Evaluate results based on: 1) All directories exist when checked with ls -la, 2) Directory structure matches the specified layout, 3) No permission errors. Retry if the task fails.",
+        "timeout": 90
+      },
+      {
+        "id": "task_004",
+        "name": "Initialize Git Repository",
+        "command": "Use your ./src/cc_executor/prompts/cc_execute.md to execute the task: Initialize git repository with git init and create .gitignore file with Python template. Expect a timeout of 45 seconds. Evaluate results based on: 1) .git directory exists, 2) .gitignore contains common Python patterns (__pycache__, *.pyc, .venv/), 3) git status shows clean working tree. Retry if the task fails.",
+        "timeout": 120
+      },
+      {
+        "id": "task_005",
+        "name": "Create Initial Configuration",
+        "command": "Use your ./src/cc_executor/prompts/cc_execute.md to execute the task: Create a .env.example file with template environment variables (DATABASE_URL, SECRET_KEY, DEBUG, API_HOST, API_PORT). Expect a timeout of 60 seconds. Evaluate results based on: 1) .env.example file exists, 2) Contains all specified variables with placeholder values, 3) File is readable with proper formatting. Retry if the task fails.",
+        "timeout": 120
+      }
+    ]
+  }
+}

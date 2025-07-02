@@ -1,0 +1,53 @@
+{
+  "review_id": "014_hooks_integration_followups",
+  "component": "executor_hook_integration",
+  "date": "2025-07-02",
+  "reference_pr": "tasks/orchestrator/incoming/014_code_review_hooks_integration.md",
+  "fixes": [
+    {
+      "id": 1,
+      "severity": "major",
+      "file": "src/cc_executor/core/hook_integration.py",
+      "line": 0,
+      "issue": "`execute_hook()` accepts an untyped `Dict` which hides missing/extra keys until runtime, leading to KeyError in production logs during stress tests.",
+      "fix": "Introduce TypedDicts (`PreExecCtx`, `PostExecCtx`, etc.) in `cc_executor.types` and annotate the method signatures.  Run `mypy --strict` in CI to catch violations.",
+      "verification": "Run `mypy src/cc_executor/core/hook_integration.py` and confirm zero `TypedDict`-related errors."
+    },
+    {
+      "id": 2,
+      "severity": "critical",
+      "file": "src/cc_executor/core/websocket_handler.py",
+      "line": 130,
+      "issue": "Hook latency spikes (>2s) are blocking the main event loop because `post_execution_hook` is awaited serially for every command, causing websocket back-pressure and timeouts under load.",
+      "fix": "Fire-and-forget post hooks with `asyncio.create_task()` and add timeout guard (e.g. 1s) to avoid piling up tasks.  Provide opt-in sync mode via `HOOKS_SYNC=true`.",
+      "verification": "Run unified stress test with 200 concurrent commands; observe >95th percentile latency < 400 ms and zero websocket disconnects." 
+    },
+    {
+      "id": 3,
+      "severity": "major",
+      "file": "src/cc_executor/core/hook_integration.py",
+      "line": 90,
+      "issue": "Redis is imported at module import time; environments without Redis fail even when metrics collection is disabled.",
+      "fix": "Wrap Redis import in `try/except ImportError` and lazily import inside `MetricsClient` constructor.  Document `pip install redis` in optional-deps extras section of `pyproject.toml`.",
+      "verification": "Create a venv without Redis, run a simple executor task with hooks disabled, and confirm no ImportError." 
+    },
+    {
+      "id": 4,
+      "severity": "minor",
+      "file": "src/cc_executor/hooks/setup_environment.py",
+      "line": 0,
+      "issue": "Script assumes `.venv/` but some repos use `env/` or Conda; hard-coded path causes `source: No such file` errors.",
+      "fix": "Detect virtualenv location via `sys.prefix` or fall back to `$VIRTUAL_ENV`; if not found, skip activation and emit warning instead of error.",
+      "verification": "Run hook in repo using Conda env; ensure it logs a warning but proceeds without raising." 
+    },
+    {
+      "id": 5,
+      "severity": "minor",
+      "file": "docs/ANTHROPIC_HOOKS_INTEGRATION.md",
+      "line": 0,
+      "issue": "Documentation lacks a one-page reference table mapping hook names to scripts/purpose which reviewers requested.",
+      "fix": "Add an auto-generated markdown table via `scripts/generate_hook_reference.py` and include it in the doc.  The script should fail CI if the table is stale.",
+      "verification": "Run `python scripts/generate_hook_reference.py --check` and CI passes with no diff." 
+    }
+  ]
+}

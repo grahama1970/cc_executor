@@ -189,19 +189,21 @@ class SessionManager:
             Number of sessions cleaned up
         """
         current_time = time.time()
-        expired_sessions = []
+        cleaned = 0
         
+        # Perform all deletions while holding the lock to prevent race conditions
         async with self.lock:
+            expired_sessions = []
             for session_id, session in self.sessions.items():
                 if current_time - session.last_activity > SESSION_TIMEOUT:
                     expired_sessions.append(session_id)
-                    
-        # Remove expired sessions outside the lock to avoid holding it too long
-        cleaned = 0
-        for session_id in expired_sessions:
-            if await self.remove_session(session_id):
-                cleaned += 1
-                logger.info(f"Expired session cleaned up: {session_id}")
+            
+            # Remove expired sessions while still holding the lock
+            for session_id in expired_sessions:
+                session = self.sessions.pop(session_id, None)
+                if session:
+                    cleaned += 1
+                    logger.info(f"Expired session cleaned up: {session_id}")
                 
         return cleaned
         

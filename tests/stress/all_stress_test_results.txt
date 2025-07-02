@@ -1,0 +1,77 @@
+[32m2025-06-30 21:56:27[0m | [33m[1mWARNING [0m | [36mcore.websocket_handler[0m:[36m__init__[0m:[36m170[0m - [33m[1mCould not initialize Redis task timer: cannot import name 'RedisTaskTimer' from partially initialized module 'prompts.redis_task_timing' (most likely due to a circular import) (/home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/redis_task_timing.py). Using fallback timeouts.[0m
+[32m2025-06-30 21:56:27[0m | [1mINFO    [0m | [36mcc_executor.core.websocket_handler[0m:[36m__init__[0m:[36m168[0m - [1mRedis task timer initialized for intelligent timeout estimation[0m
+21:56:27 | Found 0 test sources:
+21:56:27 | ================================================================================
+21:56:27 | COMPREHENSIVE STRESS TEST EXECUTION - ALL TESTS
+21:56:27 | ================================================================================
+21:56:27 | Start: 2025-06-30 21:56:27.635853
+21:56:27 | Test sources: 0
+21:56:27 | 
+21:56:27 | 
+======================================================================
+21:56:27 | ESSENTIAL STRESS TESTS
+21:56:27 | ======================================================================
+21:56:27 | 
+Executing: essential_simple_math
+21:56:27 | Command: claude -p "What is 2+2?" --output-format stream-json --verbose --dangerously-skip-permissions --allo...
+21:56:27 | [RESTART] Restarting handler for clean state...
+21:56:38 | Handler failed to start within 10s
+21:56:38 | ❌ FAILED: Failed to start handler
+21:56:38 | 
+Executing: essential_calculations
+21:56:38 | Command: claude -p "What is the result of these calculations: 15+27, 83-46, 12*9, 144/12, 2^8?" --output-form...
+21:56:38 | [RESTART] Restarting handler for clean state...
+21:56:49 | Handler failed to start within 10s
+21:56:49 | ❌ FAILED: Failed to start handler
+21:56:49 | 
+Executing: essential_fibonacci
+21:56:49 | Command: claude -p "What is the 10th Fibonacci number?" --output-format stream-json --verbose --dangerously-s...
+21:56:49 | [RESTART] Restarting handler for clean state...
+21:57:00 | Handler failed to start within 10s
+21:57:00 | ❌ FAILED: Failed to start handler
+21:57:00 | 
+Executing: essential_reverse_string
+21:57:00 | Command: claude -p "What is a Python function to reverse a string?" --output-format stream-json --verbose --d...
+21:57:00 | [RESTART] Restarting handler for clean state...
+21:57:11 | Handler failed to start within 10s
+21:57:11 | ❌ FAILED: Failed to start handler
+21:57:11 | 
+Executing: essential_recursion
+21:57:11 | Command: claude -p "What is recursion in programming with one simple Python example?" --output-format stream-...
+21:57:11 | [RESTART] Restarting handler for clean state...
+21:57:22 | Handler failed to start within 10s
+21:57:22 | ❌ FAILED: Failed to start handler
+21:57:22 | 
+Executing: essential_five_functions
+21:57:22 | Command: claude -p "What is Python code for 5 functions: area of circle, celsius to fahrenheit, prime check, ...
+21:57:22 | [RESTART] Restarting handler for clean state...
+21:57:33 | Handler failed to start within 10s
+21:57:33 | ❌ FAILED: Failed to start handler
+21:57:33 | 
+Executing: essential_haikus
+21:57:33 | Command: claude -p "What is a collection of 5 haikus about programming: variables, loops, functions, debuggin...
+21:57:33 | [RESTART] Restarting handler for clean state...
+21:57:44 | Handler failed to start within 10s
+21:57:44 | ❌ FAILED: Failed to start handler
+21:57:44 | 
+Executing: essential_recipe
+21:57:44 | Command: claude -p "What is a quick chicken and rice recipe that takes 30 minutes?" --output-format stream-js...
+21:57:44 | [RESTART] Restarting handler for clean state...
+21:57:55 | Handler failed to start within 10s
+21:57:55 | ❌ FAILED: Failed to start handler
+21:57:55 | 
+Executing: essential_story_outline
+21:57:55 | Command: claude -p "What is a 500-word outline for a story about a programmer discovering sentient code?" --o...
+21:57:55 | [RESTART] Restarting handler for clean state...
+21:58:06 | Handler failed to start within 10s
+21:58:06 | ❌ FAILED: Failed to start handler
+21:58:06 | 
+Executing: essential_python_checklist
+21:58:06 | Command: claude -p "What is a 500-word checklist for Python best practices in production?" --output-format st...
+21:58:06 | [RESTART] Restarting handler for clean state...
+21:58:17 | Handler failed to start within 10s
+21:58:17 | ❌ FAILED: Failed to start handler
+21:58:17 | 
+Executing: essential_todo_architecture
+21:58:17 | Command: claude -p "What is the architecture for a todo app with database schema, REST API, and frontend over...
+21:58:17 | [RESTART] Restarting handler for clean state...

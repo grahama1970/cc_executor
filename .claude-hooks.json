@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "pre-execute": [
+      "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/check_cli_entry_points.py",
+      "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/setup_environment.py"
+    ],
+    "pre-task-list": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/task_list_preflight_check.py",
+    "pre-claude": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/claude_instance_pre_check.py",
+    "post-claude": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/claude_response_validator.py",
+    "pre-edit": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/analyze_task_complexity.py '$CLAUDE_FILE'",
+    "post-edit": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/review_code_changes.py '$CLAUDE_FILE' '$CLAUDE_DIFF'",
+    "pre-tool": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/check_task_dependencies.py '$CLAUDE_CONTEXT'",
+    "post-tool": "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/update_task_status.py '$CLAUDE_TASK' '$CLAUDE_EXIT_CODE'",
+    "post-output": [
+      "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/record_execution_metrics.py '$CLAUDE_OUTPUT' '$CLAUDE_DURATION' '$CLAUDE_TOKENS'",
+      "python /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/truncate_logs.py"
+    ]
+  },
+  "timeout": 60,
+  "parallel": false,
+  "env": {
+    "REDIS_HOST": "localhost",
+    "REDIS_PORT": "6379",
+    "CC_EXECUTOR_ROOT": "/home/graham/workspace/experiments/cc_executor"
+  }
+}

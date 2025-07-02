@@ -1,0 +1,45 @@
+{
+  "test_id": "IMPROVED_STRESS_TESTS_EXAMPLE",
+  "description": "Example of improved tests with structured outputs",
+  "tests": [
+    {
+      "id": "math_structured",
+      "name": "Basic Math with JSON",
+      "command": "claude -p \"Calculate 2+2 and respond with JSON: {\\\"calculation\\\": \\\"2+2\\\", \\\"answer\\\": <number>, \\\"explanation\\\": \\\"<brief explanation>\\\"}\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "validation": {
+        "type": "json",
+        "schema": {
+          "answer": "number",
+          "calculation": "string",
+          "explanation": "string"
+        },
+        "expected_answer": 4
+      },
+      "description": "Math with structured JSON response"
+    },
+    {
+      "id": "essay_verification",
+      "name": "Essay with Word Count",
+      "command": "claude -p \"Write a 500-word essay about Python. Start with '# Python Essay' and end with 'Word count: X words'. Include the actual essay content, not just a description.\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "validation": {
+        "type": "content_check",
+        "min_length": 2500,
+        "must_contain": ["# Python Essay", "Word count:"],
+        "verify_actual_content": true
+      },
+      "description": "Verify actual essay content, not just description"
+    },
+    {
+      "id": "code_generation_check",
+      "name": "Actual Code Generation",
+      "command": "claude -p \"Write a Python function to reverse a string. Respond with: {\\\"code\\\": \\\"<actual python code>\\\", \\\"works\\\": true/false, \\\"example\\\": \\\"<example usage>\\\"}\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+      "validation": {
+        "type": "code_validation",
+        "language": "python",
+        "must_contain": ["def", "return"],
+        "executable": true
+      },
+      "description": "Ensure actual code is generated"
+    }
+  ]
+}

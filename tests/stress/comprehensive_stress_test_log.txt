@@ -1,0 +1,102 @@
+2025-06-30T21:39:15.321336-0400 | INFO | Checking prerequisites...
+2025-06-30T21:39:15.322610-0400 | SUCCESS | ✓ Claude CLI found
+2025-06-30T21:39:15.324673-0400 | INFO | System load: 1.9
+2025-06-30T21:39:15.559489-0400 | WARNING | Port 8004 in use by PID: 3061766
+2025-06-30T21:39:15.559685-0400 | INFO | ================================================================================
+2025-06-30T21:39:15.559748-0400 | INFO | COMPREHENSIVE STRESS TEST SUITE
+2025-06-30T21:39:15.559800-0400 | INFO | ================================================================================
+2025-06-30T21:39:15.559860-0400 | INFO | Start: 2025-06-30 21:39:15.559851
+2025-06-30T21:39:15.559914-0400 | INFO | Categories: 6
+2025-06-30T21:39:15.559979-0400 | INFO | Total tests: 19
+2025-06-30T21:39:15.560032-0400 | INFO | 
+2025-06-30T21:39:15.560122-0400 | INFO | 
+======================================================================
+2025-06-30T21:39:15.560178-0400 | INFO | CATEGORY: SIMPLE
+2025-06-30T21:39:15.560228-0400 | INFO | ======================================================================
+2025-06-30T21:39:15.560283-0400 | INFO | Description: Simple calculations and basic operations
+2025-06-30T21:39:15.560329-0400 | INFO | Tests: 3
+2025-06-30T21:39:15.560372-0400 | INFO | Timeout: 120s
+
+2025-06-30T21:39:15.560415-0400 | INFO | 
+--- Test: simple_simple_math ---
+2025-06-30T21:39:15.560464-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:39:26.584166-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:39:26.584767-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:39:26.584881-0400 | INFO | 
+--- Test: simple_calculations ---
+2025-06-30T21:39:26.584974-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:39:37.523605-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:39:37.524120-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:39:37.524250-0400 | INFO | 
+--- Test: simple_fibonacci ---
+2025-06-30T21:39:37.524346-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:39:48.486994-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:39:48.487666-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:39:48.487810-0400 | INFO | 
+Category Summary: 0/3 passed (0.0%)
+2025-06-30T21:39:48.487917-0400 | INFO | 
+======================================================================
+2025-06-30T21:39:48.488012-0400 | INFO | CATEGORY: CODE_GENERATION
+2025-06-30T21:39:48.488112-0400 | INFO | ======================================================================
+2025-06-30T21:39:48.488197-0400 | INFO | Description: Code generation tasks
+2025-06-30T21:39:48.488284-0400 | INFO | Tests: 4
+2025-06-30T21:39:48.488368-0400 | INFO | Timeout: 180s
+
+2025-06-30T21:39:48.488459-0400 | INFO | 
+--- Test: code_generation_reverse_string ---
+2025-06-30T21:39:48.488550-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:39:59.450220-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:39:59.450636-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:39:59.450712-0400 | INFO | 
+--- Test: code_generation_recursion ---
+2025-06-30T21:39:59.450764-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:40:10.381772-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:40:10.382307-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:40:10.382394-0400 | INFO | 
+--- Test: code_generation_five_functions ---
+2025-06-30T21:40:10.382454-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:40:21.333159-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:40:21.333630-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:40:21.333721-0400 | INFO | 
+--- Test: code_generation_ten_functions ---
+2025-06-30T21:40:21.333783-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:40:32.346234-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:40:32.346777-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:40:32.346900-0400 | INFO | 
+Category Summary: 0/4 passed (0.0%)
+2025-06-30T21:40:32.346990-0400 | INFO | 
+======================================================================
+2025-06-30T21:40:32.347067-0400 | INFO | CATEGORY: CREATIVE
+2025-06-30T21:40:32.347212-0400 | INFO | ======================================================================
+2025-06-30T21:40:32.347286-0400 | INFO | Description: Creative content generation
+2025-06-30T21:40:32.347358-0400 | INFO | Tests: 3
+2025-06-30T21:40:32.347430-0400 | INFO | Timeout: 240s
+
+2025-06-30T21:40:32.347508-0400 | INFO | 
+--- Test: creative_haikus ---
+2025-06-30T21:40:32.347616-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:40:43.283777-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:40:43.284310-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:40:43.284391-0400 | INFO | 
+--- Test: creative_recipe ---
+2025-06-30T21:40:43.284444-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:40:54.272946-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:40:54.273561-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:40:54.273645-0400 | INFO | 
+--- Test: creative_story_outline ---
+2025-06-30T21:40:54.273709-0400 | DEBUG | [RESTART] Restarting handler for clean state...
+2025-06-30T21:41:05.201803-0400 | ERROR | Handler failed to start within 10s
+2025-06-30T21:41:05.202300-0400 | ERROR | ❌ FAILED: Failed to start handler
+2025-06-30T21:41:05.202397-0400 | INFO | 
+Category Summary: 0/3 passed (0.0%)
+2025-06-30T21:41:05.202465-0400 | INFO | 
+======================================================================
+2025-06-30T21:41:05.202520-0400 | INFO | CATEGORY: COMPLEX
+2025-06-30T21:41:05.202568-0400 | INFO | ======================================================================
+2025-06-30T21:41:05.202612-0400 | INFO | Description: Complex analysis and architecture tasks
+2025-06-30T21:41:05.202657-0400 | INFO | Tests: 3
+2025-06-30T21:41:05.202702-0400 | INFO | Timeout: 300s
+
+2025-06-30T21:41:05.202747-0400 | INFO | 
+--- Test: complex_python_checklist ---
+2025-06-30T21:41:05.202795-0400 | DEBUG | [RESTART] Restarting handler for clean state...

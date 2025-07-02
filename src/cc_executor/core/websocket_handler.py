@@ -55,6 +55,7 @@ import uuid
 import time
 import os
 import sys
+import re
 from typing import Optional, Dict, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -67,7 +68,10 @@ logger.remove()
 logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>", level="INFO")
 
 # File logging (DEBUG and above) with rotation
-log_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + "/logs"
+# Navigate from websocket_handler.py -> core -> cc_executor -> src -> experiments -> cc_executor root
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+log_dir = os.path.join(project_root, "logs")
+os.makedirs(log_dir, exist_ok=True)  # Ensure log directory exists
 logger.add(
     f"{log_dir}/websocket_handler_{{time}}.log",
     level="DEBUG",
@@ -94,6 +98,7 @@ try:
     from .session_manager import SessionManager
     from .process_manager import ProcessManager, ProcessNotFoundError
     from .stream_handler import StreamHandler
+    from .resource_monitor import adjust_timeout
 except ImportError:
     # For standalone execution
     import sys
@@ -114,6 +119,7 @@ except ImportError:
     from session_manager import SessionManager
     from process_manager import ProcessManager, ProcessNotFoundError
     from stream_handler import StreamHandler
+    from resource_monitor import adjust_timeout
 
 
 DEFAULT_HEARTBEAT_INTERVAL = 20  # seconds
@@ -153,6 +159,27 @@ class WebSocketHandler:
         # Use environment variable if not explicitly provided
         self.heartbeat_interval = heartbeat_interval or int(os.environ.get('WEBSOCKET_HEARTBEAT_INTERVAL', '30'))
         
+        # Initialize Redis task timer for intelligent timeout estimation
+        try:
+            # Lazy import to avoid circular import issues
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from prompts.redis_task_timing import RedisTaskTimer
+            self.redis_timer = RedisTaskTimer()
+            logger.info("Redis task timer initialized for intelligent timeout estimation")
+        except Exception as e:
+            logger.warning(f"Could not initialize Redis task timer: {e}. Using fallback timeouts.")
+            self.redis_timer = None
+            
+        # Initialize hook integration
+        try:
+            from .hook_integration import HookIntegration
+            self.hooks = HookIntegration()
+            if self.hooks.enabled:
+                logger.info(f"Hook integration enabled with {len(self.hooks.config.get('hooks', {}))} hooks configured")
+        except Exception as e:
+            logger.warning(f"Could not initialize hook integration: {e}")
+            self.hooks = None
+        
     async def handle_connection(self, websocket: WebSocket, session_id: str) -> None:
         """
         Main WebSocket connection handler.
@@ -188,7 +215,7 @@ class WebSocketHandler:
                     session_id=session_id,
                     version="1.0.0",
                     capabilities=["execute", "control", "stream"]
-                ).dict()
+                ).model_dump()
             )
             
             # Message loop
@@ -248,6 +275,8 @@ class WebSocketHandler:
                 await self._handle_execute(session_id, params, msg_id)
             elif method == "control":
                 await self._handle_control(session_id, params, msg_id)
+            elif method == "hook_status":
+                await self._handle_hook_status(session_id, params, msg_id)
             else:
                 await self._send_error(
                     session.websocket,
@@ -318,12 +347,99 @@ class WebSocketHandler:
             logger.info(f"[EXECUTE] Working directory: {cwd}")
             logger.info(f"[EXECUTE] MCP config exists: {os.path.exists(os.path.join(cwd, '.mcp.json'))}")
             
-            # Check environment - log if ANTHROPIC_API_KEY will be removed
-            if 'ANTHROPIC_API_KEY' in os.environ:
-                logger.info("[EXECUTE] ANTHROPIC_API_KEY will be removed (using Claude Max)")
-            else:
-                logger.info("[EXECUTE] ANTHROPIC_API_KEY not present in environment")
+            # F6: Remove logging of sensitive data - don't log API key information
+            # Check environment silently without logging sensitive info
+            
+            # Execute pre-execution hook if available
+            if self.hooks and self.hooks.enabled:
+                try:
+                    # First try hook-based complexity analysis
+                    hook_complexity = await self.hooks.analyze_command_complexity(req.command)
+                    if hook_complexity and req.timeout is None:
+                        req.timeout = hook_complexity.get('estimated_timeout', 120)
+                        logger.info(f"[HOOK TIMEOUT] Estimated timeout: {req.timeout}s "
+                                  f"(complexity: {hook_complexity.get('complexity')}, "
+                                  f"confidence: {hook_complexity.get('confidence', 0):.2f})")
+                        
+                    # Execute pre-execution validation hook
+                    pre_result = await self.hooks.pre_execution_hook(req.command, session_id)
+                    if pre_result:
+                        # Check if environment was setup
+                        if 'pre-execute' in pre_result and pre_result['pre-execute'].get('success'):
+                            logger.info("[HOOK ENV] Environment setup hook executed successfully")
+                            
+                            # Check if we need to modify environment
+                            try:
+                                # F7: Graceful Redis fallback
+                                import redis
+                                r = redis.Redis(decode_responses=True)
+                                env_key = f"hook:env_setup:{session_id}"
+                                env_data = r.get(env_key)
+                                
+                                if env_data:
+                                    env_info = json.loads(env_data)
+                                    if 'wrapped_command' in env_info:
+                                        original_cmd = req.command
+                                        req.command = env_info['wrapped_command']
+                                        logger.info(f"[HOOK ENV] Command wrapped for venv: {req.command[:100]}...")
+                            except Exception as e:
+                                logger.debug(f"Could not check environment updates: {e}")
+                                
+                        # N2: Improve error propagation - surface pre-execute failures as warnings
+                        for hook_name, result in pre_result.items():
+                            if not result.get('success'):
+                                error_msg = result.get('error', 'Unknown error')
+                                stderr = result.get('stderr', '')
+                                
+                                # Create detailed warning message
+                                warning_details = f"Pre-execution hook '{hook_name}' failed: {error_msg}"
+                                if stderr:
+                                    warning_details += f"\nStderr: {stderr[:500]}"  # Truncate long stderr
+                                
+                                logger.warning(warning_details)
+                                
+                                # Send warning notification to client
+                                await self._send_notification(
+                                    session.websocket,
+                                    "hook.warning",
+                                    {
+                                        "hook_type": hook_name,
+                                        "error": error_msg,
+                                        "stderr": stderr[:500] if stderr else None,
+                                        "message": f"Hook '{hook_name}' failed but execution will continue",
+                                        "severity": "warning"
+                                    }
+                                )
+                                
+                                # Special handling for invalid command errors
+                                if "invalid command" in error_msg.lower() or "command not found" in error_msg.lower():
+                                    # Still execute but with prominent warning
+                                    await self._send_notification(
+                                        session.websocket,
+                                        "command.validation_warning",
+                                        {
+                                            "command": req.command[:100],
+                                            "warning": "Command may be invalid or not found",
+                                            "suggestion": "Check command syntax and availability"
+                                        }
+                                    )
+                except Exception as e:
+                    logger.error(f"Hook execution error: {e}")
+                    
+            # If no timeout provided, use Redis to estimate based on historical data
+            if req.timeout is None and self.redis_timer:
+                try:
+                    estimation = await self.redis_timer.estimate_complexity(req.command)
+                    req.timeout = int(estimation['max_time'])  # Use max_time for safety
+                    logger.info(f"[REDIS TIMEOUT] Estimated timeout: {req.timeout}s based on {estimation['based_on']} "
+                              f"(category: {estimation['category']}, complexity: {estimation['complexity']})")
+                except Exception as e:
+                    logger.warning(f"[REDIS TIMEOUT] Could not estimate timeout: {e}")
+                    # Fall back to default timeout logic
                 
+            # Record start time for metrics
+            start_time = time.time()
+            
             process = await self.processes.execute_command(req.command, cwd=cwd)
             pgid = self.processes.get_process_group_id(process)
             
@@ -349,12 +465,12 @@ class WebSocketHandler:
                     status="started",
                     pid=process.pid,
                     pgid=pgid
-                ).dict()
+                ).model_dump()
             )
             
-            # Start streaming task - no timeout, let process complete naturally
+            # Start streaming task with optional timeout from request
             stream_task = asyncio.create_task(
-                self._stream_process_output(session_id, process)
+                self._stream_process_output(session_id, process, req.command, req.timeout)
             )
             await self.sessions.update_session(session_id, task=stream_task)
             
@@ -422,12 +538,18 @@ class WebSocketHandler:
                     status=status_map[req.type],
                     pid=session.process.pid,
                     pgid=session.pgid
-                ).dict()
+                ).model_dump()
             )
             
             # Handle cancellation
-            if req.type == "CANCEL" and session.task:
-                session.task.cancel()
+            if req.type == "CANCEL":
+                if session.task and not session.task.done():
+                    session.task.cancel()
+                    # Wait a moment for cancellation to propagate
+                    try:
+                        await asyncio.wait_for(session.task, timeout=2.0)
+                    except (asyncio.CancelledError, asyncio.TimeoutError):
+                        pass
                 
         except ProcessNotFoundError as e:
             await self._send_error(
@@ -445,55 +567,286 @@ class WebSocketHandler:
                 msg_id
             )
             
-    async def _stream_process_output(self, session_id: str, process: Any) -> None:
+    async def _handle_hook_status(
+        self,
+        session_id: str,
+        params: Dict[str, Any],
+        msg_id: Optional[Any]
+    ) -> None:
+        """
+        Handle hook status query request.
+        
+        Args:
+            session_id: Session identifier
+            params: Request parameters (unused)
+            msg_id: Request ID for response correlation
+        """
+        session = await self.sessions.get_session(session_id)
+        if not session:
+            return
+            
+        try:
+            # Get hook status
+            if self.hooks:
+                status = self.hooks.get_hook_status()
+                
+                # Add Redis metrics if available
+                if self.redis_timer:
+                    try:
+                        import redis
+                        r = redis.Redis(decode_responses=True)
+                        
+                        # Get recent hook executions
+                        recent_hooks = r.lrange("hook:executions", 0, 9)
+                        status['recent_executions'] = [
+                            json.loads(h) for h in recent_hooks
+                        ] if recent_hooks else []
+                        
+                        # Get hook statistics
+                        stats = r.hgetall("hook:stats")
+                        status['statistics'] = stats if stats else {}
+                        
+                    except Exception as e:
+                        logger.debug(f"Could not get hook metrics: {e}")
+                        
+            else:
+                status = {
+                    'enabled': False,
+                    'message': 'Hook integration not initialized'
+                }
+                
+            # Send response
+            await self._send_response(
+                session.websocket,
+                status,
+                msg_id
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting hook status: {e}")
+            await self._send_error(
+                session.websocket,
+                ERROR_INTERNAL_ERROR,
+                str(e),
+                msg_id
+            )
+            
+    async def _stream_process_output(self, session_id: str, process: Any, command: str, timeout: Optional[int] = None) -> None:
         """
         Stream process output to WebSocket.
         
         Args:
             session_id: Session identifier
             process: Process to stream from
+            command: The command being executed
+            timeout: Optional timeout in seconds for the command
         """
         session = await self.sessions.get_session(session_id)
         if not session:
             return
             
-        async def send_output(stream_type: str, data: str):
-            """Send output line to client."""
-            # Log large outputs for debugging (but not every line)
-            if len(data) > 10000:
-                logger.info(f"[LARGE OUTPUT] {stream_type} sending {len(data):,} chars")
-            elif logger._core.min_level <= 10:  # DEBUG level
-                logger.debug(f"[OUTPUT] {stream_type} ({len(data)} chars): {data[:100]}...")
+        # Track execution start time for Redis history
+        execution_start = time.time()
+        
+        # Collect output for post-execution hook
+        collected_output = []
             
-            await self._send_notification(
-                session.websocket,
-                "process.output",
-                StreamOutput(
-                    type=stream_type,
-                    data=data,
-                    truncated=data.endswith("...\n")
-                ).dict()
-            )
+        async def send_output(stream_type: str, data: str):
+            """Send output line to client, chunking if necessary."""
+            # Collect output for hooks (limit to prevent memory issues)
+            if stream_type == "stdout" and len(collected_output) < 100:
+                collected_output.append(data[:1000])  # Limit each line
+                
+            # Check for token limit errors in the output
+            if stream_type == "stdout":
+                # Token limit detection patterns
+                if "Claude's response exceeded the" in data and "output token maximum" in data:
+                    # Extract token limit if possible
+                    limit_match = re.search(r'exceeded the (\d+) output token', data)
+                    token_limit = int(limit_match.group(1)) if limit_match else 32000
+                    
+                    logger.warning(f"[TOKEN LIMIT EXCEEDED] Detected token limit error: {token_limit} tokens")
+                    
+                    # Send special notification for token limit
+                    await self._send_notification(
+                        session.websocket,
+                        "error.token_limit_exceeded",
+                        {
+                            "session_id": session_id,
+                            "error_type": "token_limit",
+                            "limit": token_limit,
+                            "message": f"Claude's output exceeded {token_limit} token limit",
+                            "suggestion": "Retry with a more concise prompt or specify word/token limits",
+                            "error_text": data.strip(),
+                            "recoverable": True
+                        }
+                    )
+                
+                # Rate limit detection patterns
+                elif "Claude AI usage limit reached" in data:
+                    logger.warning("[RATE LIMIT] Detected usage limit error")
+                    
+                    # Extract reset time if available
+                    reset_match = re.search(r'resets at (\d+)', data)
+                    reset_timestamp = int(reset_match.group(1)) if reset_match else None
+                    
+                    await self._send_notification(
+                        session.websocket,
+                        "error.rate_limit_exceeded",
+                        {
+                            "session_id": session_id,
+                            "error_type": "usage_limit",
+                            "message": "Claude AI usage limit reached",
+                            "reset_timestamp": reset_timestamp,
+                            "error_text": data.strip(),
+                            "recoverable": False
+                        }
+                    )
+                
+                # HTTP 429 rate limit
+                elif "429" in data and ("rate limit" in data.lower() or "too many requests" in data.lower()):
+                    logger.warning("[RATE LIMIT] Detected HTTP 429 error")
+                    
+                    await self._send_notification(
+                        session.websocket,
+                        "error.rate_limit_exceeded",
+                        {
+                            "session_id": session_id,
+                            "error_type": "rate_limit_429",
+                            "message": "HTTP 429 Too Many Requests",
+                            "error_text": data.strip(),
+                            "recoverable": True,
+                            "retry_after": 60  # Default retry after 60 seconds
+                        }
+                    )
+            
+            # Chunk large messages to avoid WebSocket frame size limits
+            # Increased from 4KB to 64KB for better handling of large outputs like essays
+            MAX_CHUNK_SIZE = 65536  # 64KB chunks
+            
+            if len(data) <= MAX_CHUNK_SIZE:
+                # Small message, send as-is
+                if len(data) > 10000:
+                    logger.info(f"[LARGE OUTPUT] {stream_type} sending {len(data):,} chars")
+                elif logger._core.min_level <= 10:  # DEBUG level
+                    logger.debug(f"[OUTPUT] {stream_type} ({len(data)} chars): {data[:100]}...")
+                
+                await self._send_notification(
+                    session.websocket,
+                    "process.output",
+                    StreamOutput(
+                        type=stream_type,
+                        data=data,
+                        truncated=data.endswith("...\n")
+                    ).model_dump()
+                )
+            else:
+                # Large message, send in chunks
+                logger.info(f"[CHUNKED OUTPUT] {stream_type} sending {len(data):,} chars in {(len(data) + MAX_CHUNK_SIZE - 1) // MAX_CHUNK_SIZE} chunks")
+                
+                for i in range(0, len(data), MAX_CHUNK_SIZE):
+                    chunk = data[i:i + MAX_CHUNK_SIZE]
+                    is_last_chunk = (i + MAX_CHUNK_SIZE) >= len(data)
+                    
+                    await self._send_notification(
+                        session.websocket,
+                        "process.output",
+                        StreamOutput(
+                            type=stream_type,
+                            data=chunk,
+                            truncated=not is_last_chunk or data.endswith("...\n"),
+                            chunk_index=i // MAX_CHUNK_SIZE,
+                            total_chunks=(len(data) + MAX_CHUNK_SIZE - 1) // MAX_CHUNK_SIZE
+                        ).model_dump()
+                    )
             
         try:
-            # Stream output without timeout - let process complete naturally
+            # Stream output with dynamic timeout adjustment based on system load
             # The WebSocket ping/pong keeps the connection alive
-            logger.info(f"Streaming output (no timeout - process will complete naturally)")
             
-            await self.streamer.multiplex_streams(
-                process.stdout,
-                process.stderr,
-                send_output
-                # No timeout - wait indefinitely for process to complete
-            )
+            # Check if we should apply a timeout
+            # Use the timeout from the request if provided
+            if timeout:
+                stream_timeout = timeout
+                logger.info(f"Using requested timeout: {stream_timeout}s")
+            elif 'claude' in command:
+                # Default timeout for Claude commands if not specified
+                # Complex tasks should specify their own timeout
+                stream_timeout = 120  # 2 minutes default for Claude
+                logger.info(f"Using default Claude timeout: {stream_timeout}s")
+            elif os.environ.get('ENABLE_STREAM_TIMEOUT', 'false').lower() == 'true':
+                # Use STREAM_TIMEOUT from config with dynamic adjustment
+                base_timeout = STREAM_TIMEOUT
+                stream_timeout = adjust_timeout(base_timeout)
+                logger.info(f"Streaming output with {stream_timeout}s timeout (base: {base_timeout}s)")
+            else:
+                stream_timeout = None
+                logger.info(f"Streaming output (no timeout - process will complete naturally)")
             
-            # Wait for process completion
-            exit_code = await process.wait()
+            # FIX: Handle streaming with timeout gracefully
+            try:
+                await self.streamer.multiplex_streams(
+                    process.stdout,
+                    process.stderr,
+                    send_output,
+                    timeout=stream_timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"Stream timeout after {stream_timeout}s - likely Claude gave short response")
+                # Continue to process completion
+            
+            # Wait for process completion with timeout
+            try:
+                exit_code = await asyncio.wait_for(process.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning("Process wait timeout - checking exit code")
+                exit_code = process.returncode if process.returncode is not None else 0
             
             # Log completion details
             completion_status = "completed" if exit_code == 0 else "failed"
+            execution_time = time.time() - execution_start
             logger.info(f"[PROCESS COMPLETED] PID: {process.pid}, Exit code: {exit_code}, "
-                       f"Status: {completion_status}")
+                       f"Status: {completion_status}, Duration: {execution_time:.1f}s")
+            
+            # Update Redis history with execution results
+            if self.redis_timer and exit_code == 0:  # Only record successful executions
+                try:
+                    task_type = self.redis_timer.classify_command(command)
+                    expected_time = timeout if timeout else execution_time
+                    await self.redis_timer.update_history(
+                        task_type=task_type,
+                        elapsed=execution_time,
+                        success=True,
+                        expected=expected_time
+                    )
+                    logger.info(f"[REDIS HISTORY] Updated history for {task_type['category']}:{task_type['name']}")
+                except Exception as e:
+                    logger.warning(f"[REDIS HISTORY] Could not update history: {e}")
+                    
+            # Execute post-execution hook if available
+            if self.hooks and self.hooks.enabled:
+                try:
+                    # Join collected output
+                    full_output = '\n'.join(collected_output)
+                    
+                    hook_results = await self.hooks.post_execution_hook(
+                        command=command,
+                        exit_code=exit_code,
+                        duration=execution_time,
+                        output=full_output
+                    )
+                    
+                    if hook_results:
+                        logger.info(f"[HOOK POST-EXEC] Executed post-execution hooks: "
+                                  f"{list(hook_results.keys())}")
+                        
+                        # Check if any hooks suggested improvements
+                        for hook_name, result in hook_results.items():
+                            if result and result.get('stdout'):
+                                logger.debug(f"[HOOK {hook_name}] {result['stdout'][:200]}")
+                                
+                except Exception as e:
+                    logger.error(f"Post-execution hook error: {e}")
             
             # Notify completion
             await self._send_notification(
@@ -504,12 +857,17 @@ class WebSocketHandler:
                     pid=process.pid,
                     pgid=session.pgid,
                     exit_code=exit_code
-                ).dict()
+                ).model_dump()
 
             )
             
         except asyncio.CancelledError:
             logger.info(f"Streaming cancelled for {session_id}")
+            # CRITICAL: Properly terminate the process when task is cancelled
+            if process.returncode is None:
+                logger.info(f"Terminating process {process.pid} due to cancellation")
+                await self.processes.terminate_process(process, session.pgid)
+            raise  # Always re-raise CancelledError
         except Exception as e:
             logger.error(f"Streaming error: {e}")
             await self._send_notification(
@@ -568,7 +926,7 @@ class WebSocketHandler:
                 code=code,
                 message=message,
                 data=data
-            ).dict(),
+            ).model_dump(),
             id=msg_id
         )
         await websocket.send_json(response.dict(exclude_none=True))
@@ -606,7 +964,7 @@ if __name__ == "__main__":
     print("Starting server on ws://localhost:8004/ws")
     print()
     print("Test with Claude commands (MCP tools will be loaded if available):")
-    print('  claude -p --output-format stream-json --verbose --mcp-config .mcp.json \\')
+    print('  claude -p --mcp-config .mcp.json \\')
     print('    --allowedTools "mcp__perplexity-ask mcp__brave-search mcp__github mcp__ripgrep mcp__puppeteer" \\')
     print('    --dangerously-skip-permissions "What is 2+2?"')
     print()
@@ -648,7 +1006,8 @@ if __name__ == "__main__":
                 print(f"Warning: Could not load MCP config: {e}")
         
         # Build base command with MCP config
-        base_cmd = 'claude -p --output-format stream-json --verbose'
+        # CRITICAL: Include --output-format stream-json for proper handling of large outputs
+        base_cmd = 'claude -p --output-format stream-json'
         if mcp_servers:
             # Add MCP config and allowed tools
             allowed_tools = ' '.join([f'mcp__{server}' for server in mcp_servers])
@@ -663,11 +1022,11 @@ if __name__ == "__main__":
         
         # Add tool-free tests for diagnostics
         tests["--no-tools"] = (
-            'claude -p "What is 2+2?" --output-format stream-json --verbose',
+            'claude -p --output-format stream-json "What is 2+2?" --dangerously-skip-permissions',
             "Minimal tool-free test"
         )
         tests["--no-tools-long"] = (
-            'claude -p "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --output-format stream-json --verbose',
+            'claude -p --output-format stream-json "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --dangerously-skip-permissions',
             "Long story without tools"
         )
         

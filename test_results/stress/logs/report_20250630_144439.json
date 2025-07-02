@@ -1,0 +1,77 @@
+{
+  "total": 9,
+  "passed": 4,
+  "failed": 5,
+  "tests": [
+    {
+      "name": "Simple Prompt (2+2)",
+      "success": false,
+      "duration": 0.7069969177246094,
+      "exit_code": 1,
+      "output_size": 74
+    },
+    {
+      "name": "Large Output (5000 word essay)",
+      "success": false,
+      "duration": 0.6978938579559326,
+      "exit_code": 1,
+      "output_size": 74,
+      "word_count": 7
+    },
+    {
+      "name": "Self-Reflection Format",
+      "success": false,
+      "duration": 0.7033002376556396,
+      "exit_code": 1,
+      "output_size": 74,
+      "has_sections": false
+    },
+    {
+      "name": "JSON Streaming Validation",
+      "success": true,
+      "duration": 0.7160086631774902,
+      "valid_json_lines": 5,
+      "total_lines": 5,
+      "has_streaming": true
+    },
+    {
+      "name": "Timeout Recovery",
+      "success": false,
+      "duration": 0.6929666996002197,
+      "error": null,
+      "timed_out": false
+    },
+    {
+      "name": "Concurrent Requests",
+      "success": false,
+      "duration": 3.582202911376953,
+      "requests": 3,
+      "successful_requests": 0
+    },
+    {
+      "name": "Error Handling",
+      "success": true,
+      "duration": 0.017962932586669922,
+      "exit_code": 127,
+      "handled_error": true
+    },
+    {
+      "name": "Environment Validation",
+      "success": true,
+      "duration": 0.028606891632080078,
+      "exit_code": 0,
+      "has_pythonpath": true,
+      "has_working_dir": true,
+      "output": "PYTHONPATH: /home/graham/workspace/experiments/cc_executor/src\n\nWorking Dir: /home/graham/workspace/experiments/cc_executor/tests/stress\n"
+    },
+    {
+      "name": "Buffer Chunking",
+      "success": true,
+      "duration": 0.029960155487060547,
+      "exit_code": 0,
+      "expected_size": 100000,
+      "actual_size": 100000,
+      "chunks": 2
+    }
+  ]
+}

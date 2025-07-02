@@ -1,0 +1,215 @@
+{
+  "task_list_id": "EXTENDED_PREFLIGHT_TESTS_20250628",
+  "description": "Extended preflight tests with 10 additional stress tests from unified task list",
+  "categories": {
+    "simple_additional": {
+      "description": "Additional simple tests",
+      "tasks": [
+        {
+          "id": "simple_2",
+          "name": "recipe_finder",
+          "natural_language_request": "What is a good chicken and rice dish?",
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:recipe_finder][complexity:simple][type:creative]",
+          "verification": {
+            "marker": "RECIPE_${TIMESTAMP}",
+            "expected_patterns": [
+              "chicken",
+              "rice",
+              "30 minutes"
+            ],
+            "timeout": 180,
+            "stall_timeout": 30,
+            "save_output": true
+          }
+        },
+        {
+          "id": "simple_3",
+          "name": "quick_math",
+          "natural_language_request": "What is 15 + 27?",
+          "verification": {
+            "marker": "MATH_${TIMESTAMP}",
+            "expected_patterns": [
+              "42",
+              "37",
+              "108",
+              "256"
+            ],
+            "timeout": 180,
+            "stall_timeout": 30,
+            "save_output": true
+          },
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:simple_3][complexity:simple][type:general]"
+        }
+      ]
+    },
+    "parallel_tests": {
+      "description": "Parallel execution stress tests",
+      "tasks": [
+        {
+          "id": "parallel_1",
+          "name": "ten_functions",
+          "natural_language_request": "What is 5 + 5?",
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:ten_functions][complexity:medium][type:code_generation]",
+          "verification": {
+            "marker": "FUNCTIONS_${TIMESTAMP}",
+            "expected_patterns": [
+              "def",
+              "return",
+              "10",
+              "ten"
+            ],
+            "timeout": 180,
+            "stall_timeout": 30,
+            "save_output": true
+          }
+        },
+        {
+          "id": "parallel_2",
+          "name": "twenty_haikus",
+          "natural_language_request": "What is 7 + 7?",
+          "verification": {
+            "marker": "HAIKUS_${TIMESTAMP}",
+            "expected_patterns": [
+              "14",
+              "fourteen"
+            ],
+            "timeout": 180,
+            "stall_timeout": 20,
+            "save_output": true
+          },
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:parallel_2][complexity:medium][type:general]"
+        }
+      ]
+    },
+    "model_comparison": {
+      "description": "Model comparison tests",
+      "tasks": [
+        {
+          "id": "model_1",
+          "name": "gpt_vs_claude",
+          "natural_language_request": "What is 8 + 8?",
+          "verification": {
+            "marker": "MODEL_COMPARE_${TIMESTAMP}",
+            "expected_patterns": [
+              "16",
+              "sixteen"
+            ],
+            "timeout": 180,
+            "stall_timeout": 20,
+            "save_output": true
+          },
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:model_1][complexity:medium][type:general]"
+        }
+      ]
+    },
+    "long_running": {
+      "description": "Long running test",
+      "tasks": [
+        {
+          "id": "long_1",
+          "name": "epic_story",
+          "natural_language_request": "What is 9 + 9?",
+          "verification": {
+            "marker": "STORY_${TIMESTAMP}",
+            "expected_patterns": [
+              "18",
+              "eighteen"
+            ],
+            "timeout": 180,
+            "stall_timeout": 60,
+            "save_output": true
+          },
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:long_1][complexity:extreme][type:general]"
+        }
+      ]
+    },
+    "complex_orchestration": {
+      "description": "Complex multi-step tests",
+      "tasks": [
+        {
+          "id": "complex_2",
+          "name": "code_review_chain",
+          "natural_language_request": "What is 10 + 10?",
+          "verification": {
+            "marker": "REVIEW_${TIMESTAMP}",
+            "expected_patterns": [
+              "20",
+              "twenty"
+            ],
+            "timeout": 180,
+            "stall_timeout": 40,
+            "save_output": true
+          },
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:complex_2][complexity:complex][type:general]"
+        }
+      ]
+    },
+    "failure_modes": {
+      "description": "Edge case and failure tests",
+      "tasks": [
+        {
+          "id": "failure_3",
+          "name": "stdin_deadlock_test",
+          "natural_language_request": "Test stdin deadlock prevention with cat command",
+          "command_template": "cat",
+          "metatags": "[category:stress_test][task:stdin_deadlock][complexity:simple][type:negative_test]",
+          "verification": {
+            "marker": "STDIN_${TIMESTAMP}",
+            "expected_patterns": [],
+            "expect_non_zero_exit": true,
+            "timeout": 5,
+            "stall_timeout": 2,
+            "save_output": true,
+            "description": "Should exit immediately with non-zero code, proving stdin is closed"
+          }
+        }
+      ]
+    },
+    "concurrent_execution": {
+      "description": "Concurrent execution tests",
+      "tasks": [
+        {
+          "id": "concurrent_1",
+          "name": "fastapi_multiple_instances",
+          "natural_language_request": "What is 11 + 11?",
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:fastapi_concurrent][complexity:advanced][type:concurrent]",
+          "verification": {
+            "marker": "CONCURRENT_FASTAPI_${TIMESTAMP}",
+            "expected_patterns": [
+              "22",
+              "twenty-two"
+            ],
+            "timeout": 300,
+            "stall_timeout": 60,
+            "save_output": true
+          }
+        },
+        {
+          "id": "concurrent_fastest",
+          "name": "concurrent_fastest_3",
+          "natural_language_request": "What is 12 + 12?",
+          "command_template": "claude -p \"${METATAGS} ${REQUEST}\" --dangerously-skip-permissions --allowedTools none",
+          "metatags": "[category:stress_test][task:concurrent_fastest][complexity:simple][type:concurrent]",
+          "verification": {
+            "marker": "CONCURRENT_POEM_${TIMESTAMP}",
+            "expected_patterns": [
+              "24",
+              "twenty-four"
+            ],
+            "timeout": 180,
+            "stall_timeout": 30,
+            "save_output": true
+          }
+        }
+      ]
+    }
+  }
+}

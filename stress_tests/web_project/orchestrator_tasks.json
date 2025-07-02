@@ -1,0 +1,43 @@
+{
+  "task_list": {
+    "name": "Web Project Setup with cc_execute",
+    "description": "Tasks that instruct Claude to use cc_execute.md pattern",
+    "tasks": [
+      {
+        "id": "task_001",
+        "name": "Project Structure",
+        "prompt": "Read the file /home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/cc_execute.md and follow its execution pattern to complete this task:\n\nTask: Create a Python script that sets up a web project directory structure\nFolders needed: templates, static, src, tests\nSuccess criteria:\n1. Must use os.makedirs or Path.mkdir\n2. Creates all four directories\n3. Handles existing directories gracefully\n4. Includes executable main block\n\nUse the cc_execute workflow from that file including prompt evaluation, timeout determination, execution, and success evaluation.",
+        "timeout": null,
+        "category": "setup"
+      },
+      {
+        "id": "task_002",
+        "name": "FastAPI Health",
+        "prompt": "Read the file /home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/cc_execute.md and follow its execution pattern to complete this task:\n\nTask: Create a FastAPI application with health endpoint\nRequirements: /health endpoint returns {status: ok, timestamp: current_time}\nSuccess criteria:\n1. FastAPI import and app initialization\n2. GET /health endpoint defined\n3. Returns JSON with status and timestamp\n4. Includes uvicorn.run in main block\n\nUse the cc_execute workflow from that file, which includes using WebSocket connections to execute commands.",
+        "timeout": null,
+        "category": "api"
+      },
+      {
+        "id": "task_003",
+        "name": "Todo Model",
+        "prompt": "Read the file /home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/cc_execute.md and follow its execution pattern to complete this task:\n\nTask: Create SQLAlchemy Todo model\nFields: id (Integer PK), title (String 200), description (Text), completed (Boolean False), created_at (DateTime)\nSuccess criteria:\n1. All SQLAlchemy imports included\n2. Todo class inherits from Base\n3. All five fields with correct types\n4. Includes __repr__ method\n\nUse the cc_execute workflow including WebSocket execution via the standalone client.",
+        "timeout": null,
+        "category": "database"
+      },
+      {
+        "id": "task_004",
+        "name": "Docker Setup",
+        "prompt": "Read the file /home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/cc_execute.md and follow its execution pattern to complete this task:\n\nTask: Create Dockerfile for FastAPI application\nRequirements: Python 3.10, port 8000, production ready\nSuccess criteria:\n1. FROM python:3.10-slim\n2. COPY and pip install requirements\n3. EXPOSE 8000\n4. CMD with uvicorn\n5. Include docker-compose.yml\n\nExecute using the cc_execute pattern with WebSocket client as shown in the file.",
+        "timeout": null,
+        "category": "deployment"
+      },
+      {
+        "id": "task_005",
+        "name": "Unit Tests",
+        "prompt": "Read the file /home/graham/workspace/experiments/cc_executor/src/cc_executor/prompts/cc_execute.md and follow its execution pattern to complete this task:\n\nTask: Create pytest tests for todo API\nTest cases: GET /todos, POST /todos, GET /todos/{id}, DELETE /todos/{id}\nSuccess criteria:\n1. TestClient imported\n2. Test functions for each endpoint\n3. Proper status code assertions\n4. Test data setup\n\nImplement the full cc_execute workflow including WebSocket-based command execution.",
+        "timeout": null,
+        "category": "testing"
+      }
+    ]
+  }
+}

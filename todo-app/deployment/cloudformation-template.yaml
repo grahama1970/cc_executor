@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Todo Application Infrastructure'
+
+Parameters:
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Password for RDS database
+  
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 Key Pair for SSH access
+
+Resources:
+  # VPC Configuration
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: TodoVPC
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: \!Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: \!Select [0, \!GetAZs '']
+      MapPublicIpOnLaunch: true
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: \!Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: \!Select [1, \!GetAZs '']
+      MapPublicIpOnLaunch: true
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: \!Ref VPC
+      CidrBlock: 10.0.11.0/24
+      AvailabilityZone: \!Select [0, \!GetAZs '']
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: \!Ref VPC
+      CidrBlock: 10.0.12.0/24
+      AvailabilityZone: \!Select [1, \!GetAZs '']
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: \!Ref VPC
+      InternetGatewayId: \!Ref InternetGateway
+
+  # Security Groups
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ALB
+      VpcId: \!Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS tasks
+      VpcId: \!Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: \!Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: \!Ref ALBSecurityGroup
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS
+      VpcId: \!Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: \!Ref ECSSecurityGroup
+
+  # RDS Database
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - \!Ref PrivateSubnet1
+        - \!Ref PrivateSubnet2
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: todo-db
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: '15.4'
+      MasterUsername: todouser
+      MasterUserPassword: \!Ref DatabasePassword
+      AllocatedStorage: 20
+      DBSubnetGroupName: \!Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - \!Ref RDSSecurityGroup
+      BackupRetentionPeriod: 7
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: todo-cluster
+
+  # ECR Repositories
+  BackendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: todo-backend
+
+  FrontendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: todo-frontend
+
+  # Application Load Balancer
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: todo-alb
+      Subnets:
+        - \!Ref PublicSubnet1
+        - \!Ref PublicSubnet2
+      SecurityGroups:
+        - \!Ref ALBSecurityGroup
+
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: todo-backend-tg
+      Port: 8000
+      Protocol: HTTP
+      VpcId: \!Ref VPC
+      TargetType: ip
+      HealthCheckPath: /
+
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: todo-frontend-tg
+      Port: 80
+      Protocol: HTTP
+      VpcId: \!Ref VPC
+      TargetType: ip
+
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: \!Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: \!Ref FrontendTargetGroup
+
+  BackendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: \!Ref HTTPListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values: ['/api/*']
+      Actions:
+        - Type: forward
+          TargetGroupArn: \!Ref BackendTargetGroup
+
+Outputs:
+  LoadBalancerURL:
+    Description: URL of the load balancer
+    Value: \!GetAtt LoadBalancer.DNSName
+  
+  DatabaseEndpoint:
+    Description: RDS database endpoint
+    Value: \!GetAtt Database.Endpoint.Address
+  
+  BackendRepositoryURI:
+    Description: ECR repository URI for backend
+    Value: \!Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${BackendRepository}'
+  
+  FrontendRepositoryURI:
+    Description: ECR repository URI for frontend
+    Value: \!Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${FrontendRepository}'
+EOF < /dev/null

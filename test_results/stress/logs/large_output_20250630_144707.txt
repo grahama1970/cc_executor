@@ -1,0 +1,5 @@
+Test: Large Output (5000 word essay)
+Word count: 7
+Duration: 0.7s
+================================================================================
+Error: When using --print, --output-format=stream-json requires --verbose

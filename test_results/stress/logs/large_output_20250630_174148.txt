@@ -1,0 +1,7 @@
+Test: Large Output (5000 word essay)
+Word count: 15
+Duration: 35.0s
+================================================================================
+{"type":"system","subtype":"init","cwd":"/home/graham/workspace/experiments/cc_executor","session_id":"eac4f379-76ab-4855-b4ca-b6d58ab4c085","tools":["Task","Bash","Glob","Grep","LS","exit_plan_mode","Read","Edit","MultiEdit","Write","NotebookRead","NotebookEdit","WebFetch","TodoRead","TodoWrite","WebSearch"],"mcp_servers":[],"model":"claude-opus-4-20250514","permissionMode":"bypassPermissions","apiKeySource":"none"}
+
+{"type":"assistant","message":{"id":"msg_01T3xGTHyemWhYCo2dkYXgwH","type":"message","role":"assistant","model":"claude-opus-4-20250514","content":[{"type":"text","text":"I'll write a comprehensive 5000-word essay on the history and future of artificial intelligence."}],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":4,"cache_creation_input_tokens":5622,"cache_read_input_tokens":22209,"output_tokens":1,"service_tier":"standard"}},"parent_tool_use_id":null,"session_id":"eac4f379-76ab-4855-b4ca-b6d58ab4c085"}

@@ -1,5 +1,11 @@
 # [Component Name] — Self-Improving Prompt
 
+<!-- 
+IMPORTANT: This is the standard template for construction-focused prompts.
+For execution-focused prompts (test runners), see PROMPT_SYSTEM_GUIDELINES.md 
+for acceptable variants and deviation documentation requirements.
+-->
+
 ## 📊 TASK METRICS & HISTORY
 <!-- This section is updated by the Implementer (Claude) after every run -->
 - **Success/Failure Ratio**: 0:0 (Requires 10:1 to graduate)
@@ -98,6 +104,72 @@ Implementer: Paste the full, unedited output of the Verification Command here.
     *   [Auto-populated from Blueprint: A clear, high-level description of what the self-verification should do and what its output structure must be.]
     *   *Example:* "The block should create a new task via an HTTP POST and then immediately query its status, printing the final state. The output must be a JSON object containing a `task_id` and a `status` of 'RUNNING'."
 *   **Assertion:** The `if __name__ == "__main__"` block in the final code must contain `assert` statements that programmatically verify the prediction.
+
+---
+## 🔍 DEBUGGING BEST PRACTICES (Mandatory for All Prompts)
+<!-- This section contains critical debugging patterns that MUST be followed -->
+
+### Research Pattern (ALWAYS use both tools concurrently):
+When encountering technical issues or unexpected behavior:
+1. **Use perplexity-ask MCP tool** for real-time information and known bugs
+2. **Use gemini CLI (ask-gemini-cli.md)** for best practices and in-depth analysis
+3. Execute both queries concurrently using the Task tool for efficiency
+
+### Subprocess Management Pattern (CRITICAL for CLI tools):
+```python
+# CORRECT pattern for Node.js based CLIs (Claude, npm, etc):
+import os, signal, subprocess, asyncio
+
+# SYNCHRONOUS VERSION (prone to deadlock with large outputs):
+proc = subprocess.Popen(
+    cmd,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    preexec_fn=os.setsid  # Create new process group
+)
+
+try:
+    stdout, stderr = proc.communicate(timeout=60)
+except subprocess.TimeoutExpired:
+    # Kill entire process group to prevent zombies
+    pgid = os.getpgid(proc.pid)
+    os.killpg(pgid, signal.SIGTERM)
+    time.sleep(0.5)
+    os.killpg(pgid, signal.SIGKILL)
+    proc.wait()
+
+# ASYNC VERSION (prevents pipe buffer deadlock):
+async def _drain_stream(stream, prefix):
+    """Continuously drain a stream to prevent deadlock."""
+    while True:
+        line = await stream.readline()
+        if not line:
+            break
+        print(f"[{prefix}] {line.decode().strip()}", flush=True)
+
+proc = await asyncio.create_subprocess_exec(
+    *cmd,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE,
+    preexec_fn=os.setsid
+)
+
+# CRITICAL: Create tasks to drain streams IMMEDIATELY
+# This prevents pipe buffer from filling up and causing deadlock
+asyncio.create_task(_drain_stream(proc.stdout, 'STDOUT'))
+asyncio.create_task(_drain_stream(proc.stderr, 'STDERR'))
+
+# Now safe to wait for completion
+exit_code = await proc.wait()
+```
+
+### Known Issues:
+- **CRITICAL: Claude CLI uses -p NOT --print!** The --print flag does not exist and causes 20+ second hangs!
+  - ✅ CORRECT: `claude -p "prompt text"`
+  - ❌ WRONG: `claude --print "prompt text"`
+- Claude CLI bug #1285: Hangs with `-p` flag in sequential runs
+- Node.js CLIs spawn child processes that must be killed as a group
+- **CRITICAL: Subprocess pipe buffer deadlock** - If stdout/stderr pipes fill up (typically 64KB) and aren't being actively read, the subprocess will block forever waiting for buffer space. This is an OS-level constraint. Always drain streams actively or redirect to files.
 
 ---
 ## 🔬 DIAGNOSTICS & RECOVERY (Architect-Led)

@@ -29,10 +29,48 @@ from src.cc_executor.core.websocket_handler import WebSocketHandler
 from src.cc_executor.core.models import validate_command
 
 
+async def test_claude_auth():
+    """Test if Claude CLI is authenticated before running other tests."""
+    print("=== Claude CLI Authentication Check ===\n")
+    
+    import subprocess
+    try:
+        # Quick test with timeout
+        result = subprocess.run(
+            ['claude', '-p', 'echo test', '--output-format', 'json'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        if result.returncode == 0:
+            print("✅ Claude CLI is authenticated and working!")
+            return True
+        else:
+            print("❌ Claude CLI command failed!")
+            print(f"STDERR: {result.stderr}")
+            print("\nPlease authenticate first: claude -p test")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print("❌ Claude CLI timed out - not authenticated")
+        print("\nPlease authenticate first: claude -p test")
+        return False
+    except FileNotFoundError:
+        print("❌ Claude CLI not found!")
+        print("Install with: npm install -g @anthropic-ai/claude-cli")
+        return False
+
+
 async def test_websocket_client():
     """Test client that exercises all WebSocket handler functionality."""
     
     print("=== WebSocket Handler Test Client ===\n")
+    
+    # Check Claude auth first
+    if not await test_claude_auth():
+        print("\n⚠️  Skipping Claude tests due to authentication issues\n")
+        return False
     
     # Connect to test server
     uri = "ws://localhost:8003/ws/mcp"

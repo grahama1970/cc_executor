@@ -1,0 +1,140 @@
+{
+  "task_list": {
+    "name": "Web Project Setup Tasks",
+    "description": "Sequential tasks for setting up a web project using cc_execute with Claude Code instances",
+    "tasks": [
+      {
+        "id": "task_001",
+        "name": "Initialize Project Structure",
+        "prompt": "What is a Python script that creates a basic web project directory structure with folders for templates, static, and src? Include the script content that creates these directories and a simple README.md file.",
+        "success_criteria": [
+          "Must contain Python code with os.makedirs or Path.mkdir",
+          "Should create templates, static, and src directories",
+          "Must include README.md file creation",
+          "Should handle existing directories gracefully"
+        ],
+        "timeout": null,
+        "category": "project_setup"
+      },
+      {
+        "id": "task_002", 
+        "name": "Create FastAPI Application",
+        "prompt": "What is a FastAPI application with a health endpoint that returns {'status': 'healthy', 'timestamp': current_time}? Include the complete Python code with proper imports and a main block for running with uvicorn.",
+        "success_criteria": [
+          "Must contain FastAPI import and app initialization",
+          "Should implement GET /health endpoint",
+          "Must return JSON with status and timestamp",
+          "Should include if __name__ == '__main__' block with uvicorn"
+        ],
+        "timeout": null,
+        "category": "api_development"
+      },
+      {
+        "id": "task_003",
+        "name": "Create HTML Template", 
+        "prompt": "What is an HTML template for a todo list application? Include a complete HTML5 document with semantic structure, a form to add todos, and a list to display them. Use modern HTML5 elements and include basic CSS classes for styling hooks.",
+        "success_criteria": [
+          "Must contain valid HTML5 structure with DOCTYPE",
+          "Should include form with input and submit button",
+          "Must have ul or ol element for todo list",
+          "Should use semantic HTML5 elements like main, section, article"
+        ],
+        "timeout": null,
+        "category": "frontend"
+      },
+      {
+        "id": "task_004",
+        "name": "Create Database Models",
+        "prompt": "What is a SQLAlchemy model for a Todo item with fields: id (primary key), title (string), description (text), completed (boolean), created_at (datetime)? Include the complete Python code with proper imports and a base model setup.",
+        "success_criteria": [
+          "Must contain SQLAlchemy imports and Base declaration",
+          "Should define Todo model with all specified fields",
+          "Must include proper column types and constraints",
+          "Should have __repr__ or __str__ method for debugging"
+        ],
+        "timeout": null,
+        "category": "database"
+      },
+      {
+        "id": "task_005",
+        "name": "Create API Endpoints",
+        "prompt": "What are FastAPI endpoints for CRUD operations on todos? Include endpoints for: GET /todos (list all), POST /todos (create), GET /todos/{id} (get one), PUT /todos/{id} (update), DELETE /todos/{id} (delete). Show the complete code with Pydantic models for request/response.",
+        "success_criteria": [
+          "Must contain all 5 CRUD endpoints",
+          "Should include Pydantic models for TodoCreate and TodoResponse",
+          "Must have proper HTTP status codes",
+          "Should include error handling for not found cases"
+        ],
+        "timeout": null,
+        "category": "api_development"
+      },
+      {
+        "id": "task_006",
+        "name": "Create Docker Configuration",
+        "prompt": "What is a Dockerfile for a Python FastAPI application? Include a multi-stage build that: uses Python 3.10-slim, installs dependencies from requirements.txt, copies application code, exposes port 8000, and runs with uvicorn. Also show a basic docker-compose.yml.",
+        "success_criteria": [
+          "Must contain FROM python:3.10-slim",
+          "Should have COPY requirements.txt and RUN pip install",
+          "Must EXPOSE 8000",
+          "Should include CMD with uvicorn command",
+          "Must include docker-compose.yml content"
+        ],
+        "timeout": null,
+        "category": "deployment"
+      },
+      {
+        "id": "task_007",
+        "name": "Create Unit Tests",
+        "prompt": "What are pytest unit tests for the todo API endpoints? Include tests for: creating a todo, listing todos, getting a specific todo, updating a todo, and deleting a todo. Use TestClient from FastAPI and show proper test structure.",
+        "success_criteria": [
+          "Must import TestClient from fastapi.testclient",
+          "Should have test functions for all CRUD operations",
+          "Must use proper assertions",
+          "Should include test data setup/teardown"
+        ],
+        "timeout": null,
+        "category": "testing"
+      },
+      {
+        "id": "task_008",
+        "name": "Create Environment Configuration",
+        "prompt": "What is a Python configuration system using pydantic-settings for environment variables? Include settings for: database URL, API host/port, debug mode, and secret key. Show how to load from .env file and provide example .env content.",
+        "success_criteria": [
+          "Must use pydantic Settings class",
+          "Should define all specified configuration fields",
+          "Must show .env file loading",
+          "Should include example .env content"
+        ],
+        "timeout": null,
+        "category": "configuration"
+      },
+      {
+        "id": "task_009",
+        "name": "Create README Documentation",
+        "prompt": "What is a comprehensive README.md for a FastAPI todo application? Include sections for: project description, features, installation instructions, API documentation, running tests, deployment, and contributing guidelines. Use proper markdown formatting.",
+        "success_criteria": [
+          "Must contain all specified sections",
+          "Should use proper markdown headers and formatting",
+          "Must include code blocks for commands",
+          "Should have clear installation and usage instructions"
+        ],
+        "timeout": null,
+        "category": "documentation"
+      },
+      {
+        "id": "task_010",
+        "name": "Create GitHub Actions Workflow",
+        "prompt": "What is a GitHub Actions workflow for CI/CD of a Python FastAPI application? Include jobs for: running tests with pytest, linting with ruff, building Docker image, and deploying to staging. Use proper YAML syntax.",
+        "success_criteria": [
+          "Must use proper GitHub Actions YAML syntax",
+          "Should have test job with pytest",
+          "Must include linting step",
+          "Should have Docker build step",
+          "Must show deployment configuration"
+        ],
+        "timeout": null,
+        "category": "ci_cd"
+      }
+    ]
+  }
+}

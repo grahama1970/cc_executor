@@ -88,6 +88,8 @@ class StreamOutput(BaseModel):
     type: Literal["stdout", "stderr"]
     data: str
     truncated: bool = Field(False, description="Whether the line was truncated")
+    chunk_index: Optional[int] = Field(None, description="Index of this chunk (0-based) if message was chunked")
+    total_chunks: Optional[int] = Field(None, description="Total number of chunks if message was chunked")
 
 
 class ConnectionInfo(BaseModel):

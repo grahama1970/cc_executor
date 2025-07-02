@@ -1,0 +1,211 @@
+{
+  "task_list_id": "UNIFIED_STRESS_TESTS_20250630",
+  "description": "Complete unified stress test suite with all simple, medium, and complex tests",
+  "categories": {
+    "simple": {
+      "description": "Simple tests that complete quickly (5-30s)",
+      "timeout": 120,
+      "tests": [
+        {
+          "id": "simple_math",
+          "name": "Basic Math",
+          "command": "claude -p \"What is 2+2?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["4", "four"],
+          "description": "Basic arithmetic"
+        },
+        {
+          "id": "calculations",
+          "name": "Multiple Calculations",
+          "command": "claude -p \"What is the result of these calculations: 15+27, 83-46, 12*9, 144/12, 2^8?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["42", "37", "108", "12", "256"],
+          "description": "Multiple arithmetic operations"
+        },
+        {
+          "id": "fibonacci",
+          "name": "Fibonacci Number",
+          "command": "claude -p \"What is the 10th Fibonacci number?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["55", "fibonacci"],
+          "description": "Calculate Fibonacci sequence"
+        },
+        {
+          "id": "echo_test",
+          "name": "Echo Test",
+          "command": "echo \"Testing basic echo command\"",
+          "expected_patterns": ["Testing basic echo"],
+          "description": "Basic echo command"
+        },
+        {
+          "id": "date_test",
+          "name": "Date Command",
+          "command": "date",
+          "expected_patterns": ["202"],
+          "description": "System date command"
+        }
+      ]
+    },
+    "medium": {
+      "description": "Medium complexity tests (30-90s)",
+      "timeout": 180,
+      "tests": [
+        {
+          "id": "reverse_string",
+          "name": "String Reversal Function",
+          "command": "claude -p \"What is a Python function to reverse a string?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["def", "reverse", "[::-1]", "return"],
+          "description": "Generate string reversal code"
+        },
+        {
+          "id": "recursion",
+          "name": "Recursion Example",
+          "command": "claude -p \"What is recursion in programming with one simple Python example?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["def", "recursion", "base case", "recursive"],
+          "description": "Explain recursion with example"
+        },
+        {
+          "id": "five_functions",
+          "name": "Five Math Functions",
+          "command": "claude -p \"What is Python code for 5 functions: area of circle, celsius to fahrenheit, prime check, string reverse, and factorial?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["def", "area", "celsius", "prime", "factorial"],
+          "description": "Generate multiple function implementations"
+        },
+        {
+          "id": "ten_functions",
+          "name": "Ten Math Functions",
+          "command": "claude -p \"What is Python code for 10 basic math functions?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["def", "return", "math"],
+          "description": "Generate ten function implementations"
+        },
+        {
+          "id": "haikus",
+          "name": "Programming Haikus",
+          "command": "claude -p \"What is a collection of 5 haikus about programming: variables, loops, functions, debugging, and git?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["haiku", "syllable", "variable", "loop", "function"],
+          "description": "Creative writing - haikus"
+        },
+        {
+          "id": "recipe",
+          "name": "Quick Recipe",
+          "command": "claude -p \"What is a quick chicken and rice recipe that takes 30 minutes?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["chicken", "rice", "minutes", "ingredients"],
+          "description": "Recipe generation"
+        },
+        {
+          "id": "story_outline",
+          "name": "Story Outline",
+          "command": "claude -p \"What is a 500-word outline for a story about a programmer discovering sentient code?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["programmer", "sentient", "code", "story"],
+          "description": "Creative story outline"
+        }
+      ]
+    },
+    "complex": {
+      "description": "Complex tests requiring significant processing (90-300s)",
+      "timeout": 300,
+      "tests": [
+        {
+          "id": "python_checklist",
+          "name": "Python Best Practices",
+          "command": "claude -p \"What is a 500-word checklist for Python best practices in production?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["python", "production", "best practice", "testing"],
+          "description": "Comprehensive best practices guide"
+        },
+        {
+          "id": "todo_architecture",
+          "name": "Todo App Architecture",
+          "command": "claude -p \"What is the architecture for a todo app with database schema, REST API, and frontend overview?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["database", "API", "frontend", "schema", "REST"],
+          "description": "Complete application architecture"
+        },
+        {
+          "id": "hello_world_prod",
+          "name": "Production Hello World",
+          "command": "claude -p \"What is a production-ready hello world in Python with logging and error handling?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["logging", "error", "exception", "production"],
+          "description": "Production-ready code example"
+        },
+        {
+          "id": "large_essay",
+          "name": "Programming History Essay",
+          "command": "claude -p \"What is a 2000 word essay about the history of programming languages?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["programming", "language", "history", "evolution"],
+          "description": "Long-form essay generation"
+        },
+        {
+          "id": "comparison_table",
+          "name": "Language Comparison",
+          "command": "claude -p \"What is a detailed comparison table of Python vs JavaScript for web development?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["Python", "JavaScript", "comparison", "web"],
+          "description": "Detailed comparison analysis"
+        },
+        {
+          "id": "async_guide",
+          "name": "Async/Await Guide",
+          "command": "claude -p \"What is a comprehensive guide to async/await in Python with 5 examples?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["async", "await", "asyncio", "example"],
+          "description": "Technical guide with examples"
+        },
+        {
+          "id": "webdev_comparison",
+          "name": "Web Development Analysis",
+          "command": "claude -p \"What is a comprehensive comparison of Python vs JavaScript for web development including frameworks, performance, and use cases?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["framework", "performance", "Django", "React", "Node"],
+          "description": "In-depth technical comparison"
+        }
+      ]
+    },
+    "edge_cases": {
+      "description": "Edge cases and special scenarios",
+      "timeout": 120,
+      "tests": [
+        {
+          "id": "unicode_test",
+          "name": "Unicode Handling",
+          "command": "echo \"Unicode test: 🚀 émojis ñ spéçiål characters 中文\"",
+          "expected_patterns": ["🚀", "émojis", "中文"],
+          "description": "Test Unicode character handling"
+        },
+        {
+          "id": "empty_response",
+          "name": "Empty Response Test",
+          "command": "echo \"\"",
+          "expected_patterns": [],
+          "description": "Test empty response handling"
+        },
+        {
+          "id": "long_prompt",
+          "name": "Very Long Prompt",
+          "command": "claude -p \"What is the answer to: item1 and item2 and item3 and item4 and item5 and item6 and item7 and item8 and item9 and item10 and item11 and item12 and item13 and item14 and item15 and item16 and item17 and item18 and item19 and item20?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["item"],
+          "description": "Test long prompt handling"
+        }
+      ]
+    },
+    "stress": {
+      "description": "Heavy stress tests to push limits",
+      "timeout": 300,
+      "tests": [
+        {
+          "id": "concurrent_math",
+          "name": "Concurrent Math Problems",
+          "command": "claude -p \"What are the solutions to these 10 math problems: 1) 25*4, 2) 144/12, 3) 2^10, 4) sqrt(625), 5) 15% of 200, 6) 3! + 4!, 7) GCD(48,18), 8) LCM(12,15), 9) prime factors of 84, 10) fibonacci(15)?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["100", "12", "1024", "25", "30"],
+          "description": "Multiple concurrent calculations"
+        },
+        {
+          "id": "code_review",
+          "name": "Code Review Task",
+          "command": "claude -p \"What is a code review checklist for Python including style, performance, security, and testing considerations?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["style", "performance", "security", "testing", "review"],
+          "description": "Comprehensive code review guide"
+        },
+        {
+          "id": "system_design",
+          "name": "System Design",
+          "command": "claude -p \"What is a system design for a real-time chat application including architecture, database, scaling, and security?\" --output-format stream-json --verbose --dangerously-skip-permissions --allowedTools none",
+          "expected_patterns": ["architecture", "database", "scaling", "WebSocket", "security"],
+          "description": "Complex system design task"
+        }
+      ]
+    }
+  }
+}

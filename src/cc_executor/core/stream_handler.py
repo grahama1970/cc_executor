@@ -35,7 +35,7 @@ try:
     from .config import MAX_BUFFER_SIZE, STREAM_TIMEOUT
 except ImportError:
     # For standalone execution
-    MAX_BUFFER_SIZE = 1048576  # 1MB for large JSON outputs
+    MAX_BUFFER_SIZE = 8 * 1024 * 1024  # 8MB for large JSON outputs
     STREAM_TIMEOUT = 300
 
 try:
@@ -106,14 +106,15 @@ class StreamHandler:
                 # Track large lines for debugging
                 if line_bytes > 1024:
                     large_lines += 1
-                    logger.info(f"{stream_type}: Large line #{large_lines} - {line_bytes:,} bytes")
+                    # Use debug level for tight loop logging
+                    logger.debug(f"{stream_type}: Large line #{large_lines} - {line_bytes:,} bytes")
                 
-                # Log progress every 10 seconds or every 100KB
+                # Log progress every 10 seconds or every 100KB (debug level to reduce spam)
                 current_time = asyncio.get_event_loop().time()
                 if (current_time - last_log_time > 10) or (bytes_read - last_log_bytes > 102400):
                     elapsed = current_time - start_time
                     rate = (bytes_read - last_log_bytes) / (current_time - last_log_time) if current_time > last_log_time else 0
-                    logger.info(f"{stream_type} progress: {lines_read} lines, {bytes_read:,} bytes in {elapsed:.1f}s ({rate/1024:.1f} KB/s)")
+                    logger.debug(f"{stream_type} progress: {lines_read} lines, {bytes_read:,} bytes in {elapsed:.1f}s ({rate/1024:.1f} KB/s)")
                     last_log_time = current_time
                     last_log_bytes = bytes_read
                 
@@ -400,6 +401,8 @@ class StreamHandler:
             for task in [stdout_task, stderr_task]:
                 if not task.done():
                     task.cancel()
+            # Properly await the cancellation to avoid "Task was destroyed but it is pending" warnings
+            await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
             raise
 
 
