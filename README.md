@@ -1,28 +1,56 @@
 # CC Executor
 
-**WebSocket-based sequential task execution for Claude Code** - Execute complex, long-running multi-step workflows that would timeout with traditional HTTP requests.
+**WebSocket-based sequential task execution for Claude Code** - Solves Claude's inability to respect task order when spawning sub-instances.
 
-## The Main Purpose: Sequential Task Execution
+**Core Purpose**: Enable a Claude Orchestrator to spawn fresh Claude instances (each with 200K context) for each task, with WebSockets ensuring sequential execution.
 
-CC Executor uses WebSockets to enable **complex, long-running sequential task execution** - something impossible with simple request/response patterns. This allows Claude to:
+## The Main Purpose: Orchestrator-Controlled Sequential Execution
 
-1. **Execute task lists with dependencies** - Task 2 can use output from Task 1
-2. **Maintain context across steps** - Each step builds on previous results  
-3. **Stream progress in real-time** - See each step complete as it happens
-4. **Handle hours-long workflows** - Tasks that take 30+ minutes complete successfully
-5. **Complex multi-file operations** - Analyze entire codebases, refactor across modules
-6. **Iterative development** - Code, test, debug, refine in a single session
+**THE PROBLEM**: When a Claude orchestrator tries to manage multi-step tasks, it can't control execution order - tasks run in parallel, breaking dependencies.
 
-### Example: Multi-Step Workflow
+**THE SOLUTION**: CC Executor + `cc_execute.md` enables:
+- **Claude Orchestrator** manages the overall workflow
+- **Fresh Claude instances** (200K context each) handle individual tasks
+- **WebSockets** force the orchestrator to WAIT for each task before spawning the next
+
+This allows Claude to:
+
+1. **Orchestrate complex workflows** - Main Claude manages the task sequence
+2. **Fresh context per task** - Each task gets a full 200K context window
+3. **Guaranteed sequential execution** - Task 2 waits for Task 1 to complete
+4. **No context pollution** - Each Claude instance starts clean
+5. **Handle massive workflows** - 10+ hour workflows with 50+ sequential tasks
+6. **True task dependencies** - Task N can use outputs from Tasks 1 through N-1
+
+### The Orchestrator Pattern in Action
+
 ```bash
-cc-executor run "claude -p 'Analyze the codebase in /src:
-1. List all Python files and identify entry points
-2. Trace execution flow from each entry point
-3. Generate a dependency graph
-4. Suggest refactoring opportunities
-5. Create a migration plan
-Execute these sequentially, using each output for the next step.'"
+cc-executor run "claude -p 'You are the ORCHESTRATOR. Execute these tasks sequentially:
+
+1. SPAWN Claude Instance #1 via cc_execute.md:
+   - Task: Create a FastAPI app with user model and database setup
+   - Fresh 200K context for complex code generation
+   - WAIT for completion before proceeding
+   
+2. SPAWN Claude Instance #2 via cc_execute.md:  
+   - Task: Add authentication endpoints using the models from step 1
+   - Fresh 200K context - won't be polluted by step 1's generation
+   - Can read files created by Instance #1
+   - WAIT for completion before proceeding
+   
+3. SPAWN Claude Instance #3 via cc_execute.md:
+   - Task: Create comprehensive tests for the entire application
+   - Fresh 200K context for detailed test generation  
+   - Can see all files from previous instances
+   - WAIT for completion
+
+As the orchestrator, you coordinate but don't execute - each task gets its own Claude!'"
 ```
+
+**The Magic**: 
+- **Orchestrator Claude**: Manages workflow, tracks progress, handles errors
+- **Worker Claudes**: Fresh 200K context each, focused on single tasks
+- **WebSocket**: Forces orchestrator to wait between spawning instances
 
 ## Why This Exists
 
