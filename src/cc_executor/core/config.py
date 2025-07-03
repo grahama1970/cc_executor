@@ -88,111 +88,65 @@ TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
 if __name__ == "__main__":
     """Usage example demonstrating configuration loading and validation."""
-    import json
-    from pathlib import Path
-    from datetime import datetime
-    import io
-    import sys
+    from usage_helper import OutputCapture
     
-    # Create tmp/responses directory for saving output
-    responses_dir = Path(__file__).parent / "tmp" / "responses"
-    responses_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Capture all output
-    output_buffer = io.StringIO()
-    
-    # Create a custom print that writes to both stdout and buffer
-    def print_and_capture(*args, **kwargs):
-        # Print to stdout as normal
-        print(*args, **kwargs)
-        # Also print to buffer
-        print(*args, **kwargs, file=output_buffer)
-    
-    # Replace print for this block
-    _print = print
-    print = print_and_capture
-    
-    print("=== CC Executor Configuration ===")
-    print(f"Service: {SERVICE_NAME} v{SERVICE_VERSION}")
-    print(f"Default Port: {DEFAULT_PORT}")
-    print(f"WebSocket Path: {WS_PATH}")
-    print()
-    
-    print("=== Session Configuration ===")
-    print(f"Max Sessions: {MAX_SESSIONS}")
-    print(f"Session Timeout: {SESSION_TIMEOUT}s")
-    print()
-    
-    print("=== Process Configuration ===")
-    print(f"Max Buffer Size: {MAX_BUFFER_SIZE} bytes")
-    print(f"Stream Timeout: {STREAM_TIMEOUT}s")
-    print(f"Cleanup Timeout: {PROCESS_CLEANUP_TIMEOUT}s")
-    print()
-    
-    print("=== Security Configuration ===")
-    if ALLOWED_COMMANDS:
-        print(f"Allowed Commands: {', '.join(ALLOWED_COMMANDS)}")
-    else:
-        print("Allowed Commands: ALL (no restrictions)")
-    print()
-    
-    print("=== Logging Configuration ===")
-    print(f"Log Level: {LOG_LEVEL}")
-    print(f"Debug Mode: {DEBUG_MODE}")
-    print()
-    
-    # Test environment variable parsing
-    print("=== Testing Environment Variable Parsing ===")
-    
-    # Simulate environment variables
-    test_commands = "echo,ls,cat,grep"
-    parsed_commands = [cmd.strip() for cmd in test_commands.split(",")]
-    print(f"Input: ALLOWED_COMMANDS='{test_commands}'")
-    print(f"Parsed: {parsed_commands}")
-    
-    # Test log level parsing
-    test_level = "WARNING"
-    print(f"Input: LOG_LEVEL='{test_level}'")
-    print(f"Parsed: {test_level}")
-    
-    # Test boolean parsing
-    test_debug = "true"
-    parsed_debug = test_debug.lower() == "true"
-    print(f"Input: DEBUG='{test_debug}'")
-    print(f"Parsed: {parsed_debug}")
-    
-    # Verify error codes are unique
-    error_codes = {
-        ERROR_PARSE_ERROR, ERROR_INVALID_REQUEST, ERROR_METHOD_NOT_FOUND,
-        ERROR_INVALID_PARAMS, ERROR_INTERNAL_ERROR, ERROR_SERVER_ERROR,
-        ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED, ERROR_PROCESS_NOT_FOUND,
-        ERROR_STREAM_TIMEOUT
-    }
-    assert len(error_codes) == 10, "Error codes must be unique"
-    
-    print("\n✅ Configuration validation passed!")
-    
-    # Restore original print
-    print = _print
-    
-    # Save raw response as prettified JSON to prevent hallucination
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = Path(__file__).stem  # "config"
-    
-    # Get captured output
-    output_content = output_buffer.getvalue()
-    
-    # Save as prettified JSON for easy verification
-    response_file = responses_dir / f"{filename}_{timestamp}.json"
-    with open(response_file, 'w') as f:
-        json.dump({
-            'filename': filename,
-            'timestamp': timestamp,
-            'execution_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'module': 'cc_executor.core.config',
-            'output': output_content,
-            'line_count': len(output_content.strip().split('\n')),
-            'success': '✅' in output_content
-        }, f, indent=4)
-    
-    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")
+    with OutputCapture(__file__) as capture:
+        print("=== CC Executor Configuration ===")
+        print(f"Service: {SERVICE_NAME} v{SERVICE_VERSION}")
+        print(f"Default Port: {DEFAULT_PORT}")
+        print(f"WebSocket Path: {WS_PATH}")
+        print()
+        
+        print("=== Session Configuration ===")
+        print(f"Max Sessions: {MAX_SESSIONS}")
+        print(f"Session Timeout: {SESSION_TIMEOUT}s")
+        print()
+        
+        print("=== Process Configuration ===")
+        print(f"Max Buffer Size: {MAX_BUFFER_SIZE} bytes")
+        print(f"Stream Timeout: {STREAM_TIMEOUT}s")
+        print(f"Cleanup Timeout: {PROCESS_CLEANUP_TIMEOUT}s")
+        print()
+        
+        print("=== Security Configuration ===")
+        if ALLOWED_COMMANDS:
+            print(f"Allowed Commands: {', '.join(ALLOWED_COMMANDS)}")
+        else:
+            print("Allowed Commands: ALL (no restrictions)")
+        print()
+        
+        print("=== Logging Configuration ===")
+        print(f"Log Level: {LOG_LEVEL}")
+        print(f"Debug Mode: {DEBUG_MODE}")
+        print()
+        
+        # Test environment variable parsing
+        print("=== Testing Environment Variable Parsing ===")
+        
+        # Simulate environment variables
+        test_commands = "echo,ls,cat,grep"
+        parsed_commands = [cmd.strip() for cmd in test_commands.split(",")]
+        print(f"Input: ALLOWED_COMMANDS='{test_commands}'")
+        print(f"Parsed: {parsed_commands}")
+        
+        # Test log level parsing
+        test_level = "WARNING"
+        print(f"Input: LOG_LEVEL='{test_level}'")
+        print(f"Parsed: {test_level}")
+        
+        # Test boolean parsing
+        test_debug = "true"
+        parsed_debug = test_debug.lower() == "true"
+        print(f"Input: DEBUG='{test_debug}'")
+        print(f"Parsed: {parsed_debug}")
+        
+        # Verify error codes are unique
+        error_codes = {
+            ERROR_PARSE_ERROR, ERROR_INVALID_REQUEST, ERROR_METHOD_NOT_FOUND,
+            ERROR_INVALID_PARAMS, ERROR_INTERNAL_ERROR, ERROR_SERVER_ERROR,
+            ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED, ERROR_PROCESS_NOT_FOUND,
+            ERROR_STREAM_TIMEOUT
+        }
+        assert len(error_codes) == 10, "Error codes must be unique"
+        
+        print("\n✅ Configuration validation passed!")

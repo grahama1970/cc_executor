@@ -2,6 +2,8 @@
 
 This guide documents common issues, their root causes, and their solutions. It combines debugging techniques, known issues, and practical solutions based on the project's development history.
 
+> **Note**: This guide consolidates content from both the original troubleshooting guides to provide a single, comprehensive resource.
+
 ## Quick Start - VSCode Debugging
 
 The easiest way to debug is using VSCode with the included launch configurations.
@@ -145,16 +147,26 @@ proc = await asyncio.create_subprocess_exec(
 1. Check StreamHandler logs for "Starting stdout streaming"
 2. Look for "Read line" debug messages
 3. Verify MAX_BUFFER_SIZE is large enough
+4. Ensure PYTHONUNBUFFERED=1 is set for real-time output
+5. Check if the command requires stdin (should be DEVNULL)
 
 ### Problem: Connection drops at 112 seconds
-1. Check Uvicorn ping/pong settings
+1. Check Uvicorn ping/pong settings (should be ws_ping_interval=20)
 2. Verify WebSocket keepalive is working
 3. Look for proxy timeout issues
+4. Check for "PONG" frames in debug logs
 
 ### Problem: Large outputs truncated
-1. Check for "Line truncated at buffer boundary"
-2. Increase MAX_BUFFER_SIZE
+1. Check for "Line truncated at buffer boundary" messages
+2. Increase MAX_BUFFER_SIZE (default is 8MB)
 3. Look for "Completed reading large line" messages
+4. Verify WebSocket chunking is working (64KB chunks)
+
+### Problem: Shell-specific command failures
+1. Check which shell is being used (should be zsh by default)
+2. Verify CC_EXECUTOR_SHELL environment variable
+3. Test command directly in the same shell
+4. Check for shell-specific syntax issues
 
 ## Key Log Messages to Watch
 
@@ -184,14 +196,24 @@ Error streaming stdout after 10.1s: [error]          # Stream failure
 # Increase verbosity
 export LOG_LEVEL=DEBUG
 
+# Shell configuration (defaults to zsh)
+export CC_EXECUTOR_SHELL=zsh  # Options: zsh, bash, default
+
+# Ensure real-time output streaming
+export PYTHONUNBUFFERED=1
+
 # Increase buffer size for very large outputs
-export MAX_BUFFER_SIZE=10485760  # 10MB
+export MAX_BUFFER_SIZE=10485760  # 10MB (default: 8MB)
 
 # Add timeouts for testing
-export STREAM_TIMEOUT=30  # 30 seconds
+export STREAM_TIMEOUT=30  # 30 seconds (default: 600)
 
 # Limit sessions for testing
 export MAX_SESSIONS=1
+
+# WebSocket configuration
+export CC_EXECUTOR_PORT=8003
+export CC_EXECUTOR_HOST=0.0.0.0
 ```
 
 ## Testing Different Scenarios
@@ -235,11 +257,32 @@ timeout = 5  # Force timeout after 5 seconds
 4. **Watch WebSocket traffic**:
    Use browser DevTools or `websocat` to monitor raw WebSocket messages
 
+## Known Claude CLI Issues
+
+### The `-p` vs `--print` Flag
+The Claude CLI uses `-p` NOT `--print`:
+- ✅ CORRECT: `claude -p "prompt text"`
+- ❌ WRONG: `claude --print "prompt text"` (will hang)
+
+### API Key Requirements
+Claude CLI REQUIRES ANTHROPIC_API_KEY to be set:
+- The CLI needs the API key even with `--dangerously-skip-permissions`
+- Never unset ANTHROPIC_API_KEY when running Claude CLI
+- Add `--mcp-config .mcp.json` to avoid authentication issues
+
+### Claude Max Limitations
+- No API access (browser auth only)
+- Hooks are completely broken in the official implementation
+- The official SDK doesn't support Claude Max users
+- This is why cc_executor exists
+
 ## Additional Resources
 
 - See `guides/vscode_debugging.md` for advanced VSCode debugging techniques
 - See `technical/asyncio_timeout_guide.md` for timeout handling details
 - See `technical/environment_variables.md` for all configuration options
 - See `hooks/README.md` for debugging hook-based integrations
+- See `MEMORY_OPTIMIZATION.md` for buffer management details
+- See the main `README.md` for why this project exists
 
-Last updated: 2025-07-02
+Last updated: 2025-07-03

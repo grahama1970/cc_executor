@@ -411,115 +411,69 @@ if __name__ == "__main__":
     import subprocess
     import sys
     import time
-    import json
-    from pathlib import Path
-    from datetime import datetime
-    import io
+    from usage_helper import OutputCapture
     
-    # Create tmp/responses directory for saving output
-    responses_dir = Path(__file__).parent / "tmp" / "responses"
-    responses_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Capture all output
-    output_buffer = io.StringIO()
-    
-    # Create a custom print that writes to both stdout and buffer
-    def print_and_capture(*args, **kwargs):
-        # Print to stdout as normal
-        print(*args, **kwargs)
-        # Also print to buffer
-        print(*args, **kwargs, file=output_buffer)
-    
-    # Replace print for this block
-    _print = print
-    print = print_and_capture
-    
-    print("=== Stream Handler Usage Example ===\n")
-    
-    # Test 1: Basic subprocess streaming concept
-    print("--- Test 1: Basic Subprocess Streaming ---")
-    proc = subprocess.Popen(
-        ["python", "-c", "print('Line 1'); print('Line 2'); import sys; print('Error line', file=sys.stderr)"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    
-    stdout, stderr = proc.communicate()
-    print(f"[stdout] {stdout.strip()}")
-    print(f"[stderr] {stderr.strip()}")
-    print(f"Exit code: {proc.returncode}")
-    
-    # Test 2: Show StreamHandler capabilities
-    print("\n--- Test 2: StreamHandler Capabilities ---")
-    handler = StreamHandler(max_line_size=8192)
-    print(f"✓ Max line size: {handler.max_line_size:,} bytes")
-    print(f"✓ Default read buffer: 8,192 bytes")
-    print("✓ Handles stdout and stderr simultaneously")
-    print("✓ Supports streaming with timeouts")
-    print("✓ Prevents memory overflow with large outputs")
-    
-    # Test 3: Edge cases handled
-    print("\n--- Test 3: Edge Cases Handled ---")
-    edge_cases = [
-        ("Long lines", f"Lines over {handler.max_line_size:,} bytes are truncated with '...'"),
-        ("No newlines", "Partial lines at buffer boundaries handled correctly"),
-        ("Binary data", "Non-UTF8 data decoded with 'replace' error handler"),
-        ("Fast producers", "Back-pressure prevents memory overflow"),
-        ("Timeouts", "Clean cancellation after specified duration"),
-        ("Buffer overflow", "LimitOverrunError caught and handled gracefully")
-    ]
-    
-    for case, description in edge_cases:
-        print(f"• {case}: {description}")
-    
-    # Test 4: Quick demonstration of line handling
-    print("\n--- Test 4: Line Handling Demo ---")
-    
-    # Simulate long line truncation
-    long_line = "x" * 10000
-    truncated = long_line[:8192] + "..."
-    print(f"Long line ({len(long_line)} chars) → Truncated to {len(truncated)} chars")
-    
-    # Test 5: Show async streaming flow
-    print("\n--- Test 5: Async Streaming Flow ---")
-    print("1. Create subprocess with PIPE for stdout/stderr")
-    print("2. StreamHandler.multiplex_streams() handles both streams")
-    print("3. Callback receives: (stream_type, data)")
-    print("4. Data flows in real-time, not buffered until end")
-    print("5. Timeout cancels streaming if needed")
-    
-    # Test 6: Performance characteristics
-    print("\n--- Test 6: Performance Characteristics ---")
-    print("• Line reading: Efficient async I/O")
-    print("• Memory usage: Bounded by max_buffer_size")
-    print("• CPU usage: Minimal (async wait for data)")
-    print("• Cancellation: Clean shutdown on timeout")
-    
-    print("\n✅ Stream handling concepts demonstrated!")
-    
-    # Restore original print
-    print = _print
-    
-    # Save raw response to prevent hallucination
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = Path(__file__).stem  # "stream_handler"
-    
-    # Get captured output
-    output_content = output_buffer.getvalue()
-    
-    # Save as JSON
-    response_file = responses_dir / f"{filename}_{timestamp}.json"
-    with open(response_file, 'w') as f:
-        json.dump({
-            'filename': filename,
-            'timestamp': timestamp,
-            'output': output_content
-        }, f, indent=2)
-    
-    # Save as text
-    text_file = responses_dir / f"{filename}_{timestamp}.txt"
-    with open(text_file, 'w') as f:
-        f.write(output_content)
-    
-    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")
+    with OutputCapture(__file__) as capture:
+        print("=== Stream Handler Usage Example ===\n")
+        
+        # Test 1: Basic subprocess streaming concept
+        print("--- Test 1: Basic Subprocess Streaming ---")
+        proc = subprocess.Popen(
+            ["python", "-c", "print('Line 1'); print('Line 2'); import sys; print('Error line', file=sys.stderr)"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        stdout, stderr = proc.communicate()
+        print(f"[stdout] {stdout.strip()}")
+        print(f"[stderr] {stderr.strip()}")
+        print(f"Exit code: {proc.returncode}")
+        
+        # Test 2: Show StreamHandler capabilities
+        print("\n--- Test 2: StreamHandler Capabilities ---")
+        handler = StreamHandler(max_line_size=8192)
+        print(f"✓ Max line size: {handler.max_line_size:,} bytes")
+        print(f"✓ Default read buffer: 8,192 bytes")
+        print("✓ Handles stdout and stderr simultaneously")
+        print("✓ Supports streaming with timeouts")
+        print("✓ Prevents memory overflow with large outputs")
+        
+        # Test 3: Edge cases handled
+        print("\n--- Test 3: Edge Cases Handled ---")
+        edge_cases = [
+            ("Long lines", f"Lines over {handler.max_line_size:,} bytes are truncated with '...'"),
+            ("No newlines", "Partial lines at buffer boundaries handled correctly"),
+            ("Binary data", "Non-UTF8 data decoded with 'replace' error handler"),
+            ("Fast producers", "Back-pressure prevents memory overflow"),
+            ("Timeouts", "Clean cancellation after specified duration"),
+            ("Buffer overflow", "LimitOverrunError caught and handled gracefully")
+        ]
+        
+        for case, description in edge_cases:
+            print(f"• {case}: {description}")
+        
+        # Test 4: Quick demonstration of line handling
+        print("\n--- Test 4: Line Handling Demo ---")
+        
+        # Simulate long line truncation
+        long_line = "x" * 10000
+        truncated = long_line[:8192] + "..."
+        print(f"Long line ({len(long_line)} chars) → Truncated to {len(truncated)} chars")
+        
+        # Test 5: Show async streaming flow
+        print("\n--- Test 5: Async Streaming Flow ---")
+        print("1. Create subprocess with PIPE for stdout/stderr")
+        print("2. StreamHandler.multiplex_streams() handles both streams")
+        print("3. Callback receives: (stream_type, data)")
+        print("4. Data flows in real-time, not buffered until end")
+        print("5. Timeout cancels streaming if needed")
+        
+        # Test 6: Performance characteristics
+        print("\n--- Test 6: Performance Characteristics ---")
+        print("• Line reading: Efficient async I/O")
+        print("• Memory usage: Bounded by max_buffer_size")
+        print("• CPU usage: Minimal (async wait for data)")
+        print("• Cancellation: Clean shutdown on timeout")
+        
+        print("\n✅ Stream handling concepts demonstrated!")

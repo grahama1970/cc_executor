@@ -986,21 +986,75 @@ if __name__ == "__main__":
     """
     from fastapi import FastAPI
     import uvicorn
+    from usage_helper import OutputCapture
     
-    print("=" * 60)
-    print("WebSocket Handler Server")
-    print("=" * 60)
-    print("Starting server on ws://localhost:8004/ws")
-    print()
-    print("Test with Claude commands (MCP tools will be loaded if available):")
-    print('  claude -p --mcp-config .mcp.json \\')
-    print('    --allowedTools "mcp__perplexity-ask mcp__brave-search mcp__github mcp__ripgrep mcp__puppeteer" \\')
-    print('    --dangerously-skip-permissions "What is 2+2?"')
-    print()
-    print("Or run with --simple, --medium, or --long to test Claude directly")
-    print()
-    print("Press Ctrl+C to stop")
-    print("=" * 60)
+    # If running demo mode, use OutputCapture
+    demo_mode = "--demo" in sys.argv
+    
+    if demo_mode:
+        # Demo mode - show capabilities and save response
+        with OutputCapture(__file__) as capture:
+            print("=== WebSocket Handler Demo ===\n")
+            
+            print("--- Component Overview ---")
+            print("WebSocket Handler manages WebSocket connections for the MCP service:")
+            print("• JSON-RPC 2.0 protocol over WebSocket")
+            print("• Session management with concurrent limits")
+            print("• Process execution and streaming")
+            print("• Hook integration for Claude commands")
+            print("• Redis timer integration for metrics")
+            
+            print("\n--- Key Methods ---")
+            handler_methods = [
+                ("handle_connection", "Main WebSocket connection lifecycle"),
+                ("_handle_execute", "Execute commands with process management"),
+                ("_stream_process_output", "Stream stdout/stderr with chunking"),
+                ("_handle_signal", "Send signals to running processes"),
+                ("_handle_hook_status", "Query hook integration status")
+            ]
+            
+            for method, desc in handler_methods:
+                print(f"• {method}: {desc}")
+            
+            print("\n--- Protocol Messages ---")
+            print("Request format:")
+            print('  {"jsonrpc": "2.0", "method": "execute", "params": {...}, "id": 1}')
+            print("\nResponse types:")
+            print("• Result: {\"jsonrpc\": \"2.0\", \"result\": {...}, \"id\": 1}")
+            print("• Error: {\"jsonrpc\": \"2.0\", \"error\": {...}, \"id\": 1}")
+            print("• Stream: {\"type\": \"stream\", \"stream\": \"stdout\", \"data\": \"...\"}")
+            
+            print("\n--- Server Configuration ---")
+            print("Default port: 8004")
+            print("Endpoint: ws://localhost:8004/ws")
+            print("Ping interval: 20s")
+            print("Max sessions: 10 (configurable)")
+            
+            print("\n--- Test Commands ---")
+            print("Run with flags to test:")
+            print("• python websocket_handler.py --simple    # Quick 2+2 test")
+            print("• python websocket_handler.py --medium    # Stream 5 haikus")
+            print("• python websocket_handler.py --long      # Generate 5000 word story")
+            print("• python websocket_handler.py --no-tools  # Test without MCP tools")
+            
+            print("\n✅ WebSocket Handler demo complete!")
+            print("\nTo start the server, run without --demo flag.")
+    else:
+        # Normal server mode
+        print("=" * 60)
+        print("WebSocket Handler Server")
+        print("=" * 60)
+        print("Starting server on ws://localhost:8004/ws")
+        print()
+        print("Test with Claude commands (MCP tools will be loaded if available):")
+        print('  claude -p --mcp-config .mcp.json \\')
+        print('    --allowedTools "mcp__perplexity-ask mcp__brave-search mcp__github mcp__ripgrep mcp__puppeteer" \\')
+        print('    --dangerously-skip-permissions "What is 2+2?"')
+        print()
+        print("Or run with --simple, --medium, or --long to test Claude directly")
+        print()
+        print("Press Ctrl+C to stop")
+        print("=" * 60)
     
     # Create FastAPI app
     app = FastAPI()
@@ -1262,5 +1316,7 @@ if __name__ == "__main__":
         server = uvicorn.Server(config)
         await server.serve()
     
-    asyncio.run(main())
+    # Don't start server if in demo mode
+    if not demo_mode:
+        asyncio.run(main())
 

@@ -239,28 +239,7 @@ if __name__ == "__main__":
     """Usage example demonstrating session management with race condition prevention."""
     
     import uuid
-    import json
-    from pathlib import Path
-    from datetime import datetime
-    import io
-    
-    # Create tmp/responses directory for saving output
-    responses_dir = Path(__file__).parent / "tmp" / "responses"
-    responses_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Capture all output
-    output_buffer = io.StringIO()
-    
-    # Create a custom print that writes to both stdout and buffer
-    def print_and_capture(*args, **kwargs):
-        # Print to stdout as normal
-        print(*args, **kwargs)
-        # Also print to buffer
-        print(*args, **kwargs, file=output_buffer)
-    
-    # Replace print for this block
-    _print = print
-    print = print_and_capture
+    from usage_helper import OutputCapture
     
     async def simulate_websocket():
         """Simulate a WebSocket connection object."""
@@ -381,33 +360,7 @@ if __name__ == "__main__":
         print(f"\n✅ All operations completed without race conditions")
         print(f"✅ Session limits enforced correctly")
         print(f"✅ Cleanup mechanisms working")
-        
-        # Restore original print
-        global _print, print
-        print = _print
-        
-        # Save raw response to prevent hallucination
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = Path(__file__).stem  # "session_manager"
-        
-        # Get captured output
-        output_content = output_buffer.getvalue()
-        
-        # Save as JSON
-        response_file = responses_dir / f"{filename}_{timestamp}.json"
-        with open(response_file, 'w') as f:
-            json.dump({
-                'filename': filename,
-                'timestamp': timestamp,
-                'output': output_content
-            }, f, indent=2)
-        
-        # Save as text
-        text_file = responses_dir / f"{filename}_{timestamp}.txt"
-        with open(text_file, 'w') as f:
-            f.write(output_content)
-        
-        print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")
     
-    # Run the example
-    asyncio.run(main())
+    # Run the example with OutputCapture
+    with OutputCapture(__file__) as capture:
+        asyncio.run(main())

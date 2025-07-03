@@ -1,1 +1,0 @@
-Testing if hooks are now enforced after settings configuration

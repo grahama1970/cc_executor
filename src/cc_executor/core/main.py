@@ -210,102 +210,16 @@ if __name__ == "__main__":
     """
     import json
     import os
-    from pathlib import Path
-    from datetime import datetime
+    from usage_helper import OutputCapture
     
     # Check if being run with --server flag to start actual server
     if len(sys.argv) > 1 and "--server" in sys.argv:
         main()
     else:
-        # Create local tmp/responses directory for saving output
-        responses_dir = Path(__file__).parent / "tmp" / "responses"
-        responses_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Collect output
-        output_lines = []
-        
-        # Run usage demonstration
-        output_lines.append("=== CC Executor Main Service Usage ===\n")
-        
-        # Test 1: Service configuration
-        print("--- Test 1: Service Configuration ---")
-        print(f"Service: {SERVICE_NAME} v{SERVICE_VERSION}")
-        print(f"Default port: {DEFAULT_PORT}")
-        print(f"Debug mode: {DEBUG_MODE}")
-        print(f"Log level: {LOG_LEVEL}")
-        print("✓ Configuration loaded successfully")
-        
-        # Test 2: Component initialization
-        print("\n--- Test 2: Component Initialization ---")
-        
-        # Initialize components
-        test_session_manager = SessionManager()
-        print(f"✓ SessionManager initialized (max sessions: {test_session_manager.max_sessions})")
-        
-        test_process_manager = ProcessManager()
-        print("✓ ProcessManager initialized")
-        
-        test_stream_handler = StreamHandler()
-        print(f"✓ StreamHandler initialized (max buffer: {test_stream_handler.max_line_size:,} bytes)")
-        
-        test_websocket_handler = WebSocketHandler(
-            test_session_manager,
-            test_process_manager,
-            test_stream_handler
-        )
-        print("✓ WebSocketHandler initialized")
-        
-        # Test 3: FastAPI application endpoints
-        print("\n--- Test 3: FastAPI Application Endpoints ---")
-        print("Available endpoints:")
-        for route in app.routes:
-            if hasattr(route, 'path'):
-                print(f"  {route.path} - {route.methods if hasattr(route, 'methods') else 'N/A'}")
-        
-        # Test 4: Health check data structure
-        print("\n--- Test 4: Health Check Response Structure ---")
-        stats = test_session_manager.get_stats()
-        health_response = {
-            "status": "healthy",
-            "service": SERVICE_NAME,
-            "version": SERVICE_VERSION,
-            "active_sessions": stats["active_sessions"],
-            "max_sessions": stats["max_sessions"],
-            "uptime_seconds": stats["uptime_seconds"]
-        }
-        print(f"Health response: {json.dumps(health_response, indent=2)}")
-        
-        # Test 5: WebSocket protocol info
-        print("\n--- Test 5: WebSocket Protocol Info ---")
-        print("WebSocket endpoint: /ws/mcp")
-        print("Protocol: JSON-RPC 2.0 over WebSocket")
-        print("Supported methods:")
-        print("  - execute: Run commands with streaming output")
-        print("  - control: Process control (PAUSE/RESUME/CANCEL)")
-        print("Environment variables:")
-        print(f"  - WS_PING_INTERVAL: {os.environ.get('WS_PING_INTERVAL', '20.0')}s")
-        print(f"  - WS_PING_TIMEOUT: {os.environ.get('WS_PING_TIMEOUT', '30.0')}s")
-        print(f"  - WS_MAX_SIZE: {int(os.environ.get('WS_MAX_SIZE', str(10 * 1024 * 1024))):,} bytes")
-        
-        # Result
-        print("\n✅ All main service components verified!")
-        print("\nTo start the service:")
-        print("  python main.py --server --port 8003")
-        print("\nFor full integration tests:")
-        print("  python examples/test_websocket_handler.py")
-        
-        # Save raw response to prevent AI hallucination
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = Path(__file__).stem
-        
-        # Capture all printed output
-        import io
-        from contextlib import redirect_stdout
-        
-        buffer = io.StringIO()
-        with redirect_stdout(buffer):
-            # Re-run all the prints to capture output
+        with OutputCapture(__file__) as capture:
             print("=== CC Executor Main Service Usage ===\n")
+            
+            # Test 1: Service configuration
             print("--- Test 1: Service Configuration ---")
             print(f"Service: {SERVICE_NAME} v{SERVICE_VERSION}")
             print(f"Default port: {DEFAULT_PORT}")
@@ -313,21 +227,47 @@ if __name__ == "__main__":
             print(f"Log level: {LOG_LEVEL}")
             print("✓ Configuration loaded successfully")
             
+            # Test 2: Component initialization
             print("\n--- Test 2: Component Initialization ---")
+            
+            # Initialize components
+            test_session_manager = SessionManager()
             print(f"✓ SessionManager initialized (max sessions: {test_session_manager.max_sessions})")
+            
+            test_process_manager = ProcessManager()
             print("✓ ProcessManager initialized")
+            
+            test_stream_handler = StreamHandler()
             print(f"✓ StreamHandler initialized (max buffer: {test_stream_handler.max_line_size:,} bytes)")
+            
+            test_websocket_handler = WebSocketHandler(
+                test_session_manager,
+                test_process_manager,
+                test_stream_handler
+            )
             print("✓ WebSocketHandler initialized")
             
+            # Test 3: FastAPI application endpoints
             print("\n--- Test 3: FastAPI Application Endpoints ---")
             print("Available endpoints:")
             for route in app.routes:
                 if hasattr(route, 'path'):
                     print(f"  {route.path} - {route.methods if hasattr(route, 'methods') else 'N/A'}")
             
+            # Test 4: Health check data structure
             print("\n--- Test 4: Health Check Response Structure ---")
+            stats = test_session_manager.get_stats()
+            health_response = {
+                "status": "healthy",
+                "service": SERVICE_NAME,
+                "version": SERVICE_VERSION,
+                "active_sessions": stats["active_sessions"],
+                "max_sessions": stats["max_sessions"],
+                "uptime_seconds": stats["uptime_seconds"]
+            }
             print(f"Health response: {json.dumps(health_response, indent=2)}")
             
+            # Test 5: WebSocket protocol info
             print("\n--- Test 5: WebSocket Protocol Info ---")
             print("WebSocket endpoint: /ws/mcp")
             print("Protocol: JSON-RPC 2.0 over WebSocket")
@@ -339,27 +279,9 @@ if __name__ == "__main__":
             print(f"  - WS_PING_TIMEOUT: {os.environ.get('WS_PING_TIMEOUT', '30.0')}s")
             print(f"  - WS_MAX_SIZE: {int(os.environ.get('WS_MAX_SIZE', str(10 * 1024 * 1024))):,} bytes")
             
+            # Result
             print("\n✅ All main service components verified!")
             print("\nTo start the service:")
             print("  python main.py --server --port 8003")
             print("\nFor full integration tests:")
             print("  python examples/test_websocket_handler.py")
-        
-        captured_output = buffer.getvalue()
-        
-        # Save as JSON
-        response_file = responses_dir / f"{filename}_{timestamp}.json"
-        with open(response_file, 'w') as f:
-            json.dump({
-                'filename': filename,
-                'timestamp': timestamp,
-                'output': captured_output,
-                'result': health_response
-            }, f, indent=2)
-        
-        # Save as text
-        text_file = responses_dir / f"{filename}_{timestamp}.txt"
-        with open(text_file, 'w') as f:
-            f.write(captured_output)
-        
-        print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")

@@ -17,7 +17,7 @@
 - The hooks are EXECUTABLE SCRIPTS - RUN THEM!
 
 ## 📊 TASK METRICS & HISTORY
-- **Success/Failure Ratio**: 8:1 (v8 failed - missing Claude's assessments)
+- **Success/Failure Ratio**: 9:2 (v8 & v9 failed - different issues)
 - **Last Updated**: 2025-07-03
 - **Evolution History**:
   | Version | Change & Reason                                     | Result |
@@ -30,6 +30,7 @@
   | v6      | Manual testing with proper venv activation | ✅ SUCCESS - 19/20 components passed (95% success rate) |
   | v7      | Restructured core/ to contain only essential files | ✅ SUCCESS - 8/8 components passed (100% success rate) |
   | v8      | Failed to include MY reasonableness assessments in report | ❌ FAIL - Report missing Claude's analysis of outputs |
+  | v9      | Added Claude's assessments but TRUNCATED outputs in report | ❌ FAIL - Report contained "[truncated]" outputs instead of complete data |
 
 ---
 ## 🏛️ ASSESSMENT PRINCIPLES (Immutable)
@@ -63,10 +64,12 @@ For each usage function output, check if it's reasonable by looking for:
 - Reasonable ranges for numeric values
 - No obvious errors or stack traces (unless testing error handling)
 
-## 🎯 EXECUTION TEMPLATE
-**Execute this Python script to run the assessment:**
+## 🎯 EXECUTION PROCESS
 
-```python
+### Step 1: Run the Automated Assessment
+**Execute this Python script to generate the base report:**
+
+```bash
 python /home/graham/workspace/experiments/cc_executor/src/cc_executor/core/prompts/scripts/assess_all_core_usage.py
 ```
 
@@ -74,16 +77,28 @@ This script:
 1. Automatically finds all Python files in core/ with usage functions
 2. Runs setup hooks before execution
 3. Captures raw output without arbitrary timeouts
-4. Assesses reasonableness of outputs
-5. Generates a comprehensive report in prompts/reports/
+4. Performs automated pass/fail assessment
+5. Generates a base report in prompts/reports/
+
+### Step 2: Add Claude's Analysis
+**YOU must then:**
+1. Read the generated report
+2. Analyze each component's output
+3. Add your reasonableness assessment following the template
+4. Create a new report with your analysis included
 
 ## 📝 REPORT REQUIREMENTS
+**CRITICAL**: Reports MUST follow the template at `/home/graham/workspace/experiments/cc_executor/docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md`
+
 The generated report must include:
 - Summary of pass/fail for each component
 - Raw output samples for verification
-- Specific indicators of reasonable output
+- **CLAUDE'S REASONABLENESS ASSESSMENT for EACH component**
+- Specific analysis of why each output is reasonable (or not)
 - WebSocket handler status (CRITICAL component)
-- Recommendations for any failures
+- Recommendations based on actual output analysis
+
+**YOU (Claude) must add your assessment to each component section!**
 
 ## 🔄 CONTINUOUS IMPROVEMENT
 After each run:
@@ -106,5 +121,11 @@ After each run:
   - Specific analysis of numbers, formats, expected values
   - Judgment on whether it truly demonstrates the component works
   - Clear REASONABLE/UNREASONABLE verdict with reasoning
-- **Report Format Change:** Add "Claude's Assessment" section for each component
+- **Report Format:** Follow `/home/graham/workspace/experiments/cc_executor/docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md`
 - **Success Criteria:** Report must show MY thinking, not just script output
+
+### Implementation Guide
+1. Run the Python script: `assess_all_core_usage.py`
+2. Read the generated report in `prompts/reports/`
+3. For each component, add Claude's Reasonableness Assessment section
+4. Save as new report with "-WITH-CLAUDE-ANALYSIS" suffix

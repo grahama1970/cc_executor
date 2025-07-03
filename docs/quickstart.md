@@ -5,38 +5,53 @@ Get up and running with CC Executor in 5 minutes.
 ## Prerequisites
 
 - Python 3.8 or higher
-- `uv` package manager
+- `uv` package manager ([install guide](https://github.com/astral-sh/uv))
 - Claude CLI installed and configured
-- Active virtual environment
+- Claude Max subscription ($200/month) - API keys don't work with Claude Max
+- Redis (optional, for session management)
 
 ## Installation
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/grahama1970/cc_executor.git
    cd cc_executor
    ```
 
-2. **Create and activate virtual environment**:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
+2. **Install with uv**:
    ```bash
    uv sync
+   uv pip install -e .
    ```
 
-4. **Set up environment**:
+3. **Set up environment**:
    ```bash
    cp .env.example .env
-   # Edit .env to set PYTHONPATH=./src
+   # Edit .env with your settings:
+   # - ANTHROPIC_API_KEY (required for Claude CLI)
+   # - CC_EXECUTOR_SHELL=zsh (optional, defaults to zsh)
+   # - PYTHONUNBUFFERED=1 (recommended)
    ```
 
 ## Quick Test
 
-### 1. Start the WebSocket Server
+### Using the CLI (Recommended)
+
+```bash
+# Initialize environment
+cc-executor init
+
+# Start the server
+cc-executor server start
+
+# Run a simple test
+cc-executor run "echo Hello, World!"
+
+# Run a Claude command
+cc-executor run "claude -p 'What is 2+2?'"
+```
+
+### Using the WebSocket Server Directly
 
 ```bash
 cd src/cc_executor
@@ -45,110 +60,139 @@ python core/websocket_handler.py --serve --auto-demo --test-case simple
 
 This runs a simple "2+2" test to verify everything is working.
 
-### 2. Run Your First Command
-
-In a new terminal:
-```bash
-cd src/cc_executor
-python examples/websocket_client_usage.py
-```
-
-### 3. Try Different Test Cases
+### Try Different Test Cases
 
 ```bash
 # Medium complexity test (JSON output)
-python core/websocket_handler.py --serve --auto-demo --test-case medium
+cc-executor run 'claude -p "Generate a JSON object with 5 items"'
 
 # Large output test (5000-word story, takes 3-5 minutes)
-python core/websocket_handler.py --serve --auto-demo --test-case large
+cc-executor run 'claude -p "Write a 5000 word story"'
+
+# Test with hooks
+cc-executor run 'claude -p "List Python files"' --hook pre_execution_hooks
 ```
 
 ## Basic Usage
 
-### Starting the Server
+### CLI Commands
 
 ```bash
-# Start server on default port (8004)
-python core/websocket_handler.py --serve
+# Server management
+cc-executor server start    # Start the WebSocket server
+cc-executor server stop     # Stop the server
+cc-executor server status   # Check if server is running
 
-# Start on custom port
-python core/websocket_handler.py --serve --port 8005
+# Execute commands
+cc-executor run "your command here"
+cc-executor run "claude -p 'your prompt'" --timeout 300
+
+# View history
+cc-executor history list
+cc-executor history show <session_id>
+
+# Run assessments
+cc-executor test assess core
+cc-executor test assess cli
+cc-executor test assess hooks
 ```
 
-### Using the Client
+### Programmatic Usage
 
 ```python
+from cc_executor.core.client import WebSocketClient
 import asyncio
-import websockets
-import json
 
-async def run_command():
-    async with websockets.connect("ws://localhost:8004") as websocket:
-        # Send execute command
-        await websocket.send(json.dumps({
-            "jsonrpc": "2.0",
-            "method": "execute",
-            "params": {
-                "command": 'claude -p "What is 2+2?"'
-            },
-            "id": "1"
-        }))
-        
-        # Read responses
-        async for message in websocket:
-            data = json.loads(message)
-            if data.get("method") == "process.output":
-                print(data["params"]["data"], end="")
-            elif data.get("method") == "process.completed":
-                break
+async def main():
+    client = WebSocketClient()
+    
+    # Execute a command
+    result = await client.execute_command(
+        command='claude -p "What is 2+2?"',
+        timeout=30
+    )
+    
+    if result["success"]:
+        print(f"Output: {result['output_data']}")
+    else:
+        print(f"Error: {result['error']}")
 
-asyncio.run(run_command())
+asyncio.run(main())
 ```
 
+### Environment Variables
+
+```bash
+# Core settings
+export ANTHROPIC_API_KEY=your_key_here
+export CC_EXECUTOR_SHELL=zsh           # Use zsh for Claude consistency
+export PYTHONUNBUFFERED=1              # Real-time output streaming
+
+# Optional settings
+export CC_EXECUTOR_PORT=8003           # WebSocket port
+export LOG_LEVEL=INFO                  # Logging verbosity
+export MAX_BUFFER_SIZE=8388608         # 8MB buffer limit
+export STREAM_TIMEOUT=600              # 10 minute timeout
 ## Common Commands
 
 ### Health Check
 ```bash
-# Check if server is running
-curl http://localhost:8004/health
+# Check server status
+cc-executor server status
+
+# Manual health check
+curl http://localhost:8003/health
 ```
 
 ### Enable Debug Logging
 ```bash
-LOG_LEVEL=DEBUG python core/websocket_handler.py --serve
+LOG_LEVEL=DEBUG cc-executor server start
 ```
 
-### Run with Timeout
+### Run with Custom Timeout
 ```bash
-STREAM_TIMEOUT=60 python core/websocket_handler.py --serve
+cc-executor run "claude -p 'complex task'" --timeout 600
 ```
 
 ## Next Steps
 
-1. **Learn about the architecture**: Read [How Claude Sees Code](architecture/how_claude_sees_code.md)
-2. **Understand the protocol**: See [WebSocket MCP Protocol](architecture/websocket_mcp_protocol.md)
-3. **Debug issues**: Check [Troubleshooting Guide](guides/troubleshooting.md)
-4. **Deploy to production**: Follow [Operating the Service](guides/OPERATING_THE_SERVICE.md)
+1. **Why this exists**: Read the [Main README](../README.md) to understand Claude Max limitations
+2. **Learn about the architecture**: Read [How Claude Sees Code](architecture/how_claude_sees_code.md)
+3. **Understand the protocol**: See [WebSocket MCP Protocol](architecture/websocket_mcp_protocol.md)
+4. **Debug issues**: Check [Troubleshooting Guide](guides/troubleshooting.md)
+5. **Deploy to production**: Follow [Operating the Service](guides/OPERATING_THE_SERVICE.md)
 
 ## Quick Troubleshooting
 
 ### Server won't start
-- Check if port 8004 is already in use: `lsof -i:8004`
-- Kill existing process: `kill $(lsof -t -i:8004)`
+- Check if port is already in use: `lsof -i:8003`
+- Kill existing process: `cc-executor server stop`
+- Try a different port: `CC_EXECUTOR_PORT=8005 cc-executor server start`
 
 ### No output from Claude
 - Verify Claude CLI works: `claude -p "test"`
-- Check environment variables: `echo $ANTHROPIC_API_KEY`
-- Enable debug logging to see detailed errors
+- Check API key: `echo $ANTHROPIC_API_KEY`
+- Remember: Use `-p` NOT `--print` (common mistake)
+- Enable debug logging: `LOG_LEVEL=DEBUG cc-executor run "claude -p 'test'"`
 
 ### Connection drops
-- This is usually a timeout issue
-- See [Timeout Management](technical/timeout_management.md) for solutions
+- Usually a timeout issue with long-running prompts
+- Increase timeout: `STREAM_TIMEOUT=1200 cc-executor server start`
+- Check WebSocket keepalive is working (see logs for PING/PONG)
 
 ## Getting Help
 
-- Check [Known Issues](KNOWN_ISSUES.md) for common problems
-- Read [Lessons Learned](LESSONS_LEARNED.md) for operational insights
-- See [Troubleshooting Guide](guides/troubleshooting.md) for debugging
+- **Common issues**: Check [Troubleshooting Guide](guides/troubleshooting.md)
+- **Known problems**: See [Known Issues](KNOWN_ISSUES.md)
+- **Architecture details**: Read [Lessons Learned](LESSONS_LEARNED.md)
+- **Memory concerns**: See [Memory Optimization](MEMORY_OPTIMIZATION.md)
+- **Why this exists**: Understand [Claude Max limitations](../README.md#why-this-exists)
 
-Last updated: 2025-07-02
+## Important Notes
+
+- This is an **unofficial** workaround for Claude Max users
+- Claude Max ($200/month) doesn't support API keys in the traditional sense
+- Hooks are broken in the official Claude implementation
+- This project aims to fill the gap until Anthropic provides official support
+
+Last updated: 2025-07-03

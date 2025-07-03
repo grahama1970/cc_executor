@@ -2,7 +2,53 @@
 
 CC Executor MCP WebSocket Service for remote command execution with Claude Code.
 
+## Why This Exists
+
+This project aims to provide a reliable Claude Code SDK that:
+- **Actually runs hooks reliably** (hooks are completely broken in the official implementation)
+- **Works with Claude Max** ($200/month Claude Max subscribers)
+- **Allows Claude Code to be called programmatically** without hanging
+- **Provides consistent subprocess execution** that doesn't mysteriously fail
+- **Works around known Claude CLI limitations** (like the missing `--print` flag bug)
+
+The official SDK currently focuses on API-key workflows and does not support browser-authenticated Claude Max users, so they can't:
+- Use the API (Claude Max uses browser auth, not API keys)
+- Run hooks reliably (they simply don't work)
+- Integrate Claude into any automated workflow
+
+After extensive testing with these limitations, this WebSocket-based approach emerged as a reliable way to integrate Claude Code.
+
+**I hope Anthropic will eventually provide full official support for Claude Max subscribers, making this community workaround unnecessary.** Until then, this project aims to fill the gap.
+
+*— A Claude Max user*
+
 ## Overview
+
+CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Max users.
+
+## Core Features
+
+- **WebSocket JSON-RPC server** (`src/cc_executor/core/websocket_handler.py`) – reliable streaming command execution.
+- **Async Python client SDK** (`src/cc_executor/client/client.py`) – programmatic access for Python scripts.
+- **Extensible pre/post hooks** (`src/cc_executor/hooks/hook_integration.py` & modules in `src/cc_executor/hooks/`) – virtual-env setup, validation, metrics.
+- **Token-limit detection & adaptive retry** (logic in `websocket_handler.py`).
+- **Redis-backed session state & execution history** (`src/cc_executor/core/session_manager.py`).
+- **Shell consistency with Claude Code** (default shell configured in `src/cc_executor/core/config.py`).
+
+### Comparison with Official Anthropic SDK
+
+| Capability | CC Executor (Unofficial SDK) | Official Anthropic SDK |
+|------------|------------------------------|------------------------|
+| Works with Claude Max (browser-auth) | ✅ | ❌ |
+| Python async client & CLI | ✅ `client/client.py`, `cli/main.py` | ❌ (API only) |
+| WebSocket streaming JSON-RPC | ✅ `core/websocket_handler.py` | ❌ |
+| Pre / post execution hooks | ✅ `hooks/` | ❌ (hooks broken) |
+| Token-limit detection & adaptive retry | ✅ | ❌ |
+| Redis-backed session & history | ✅ `core/session_manager.py` | ❌ |
+| Shell consistency (`zsh`) | ✅ | N/A |
+
+
+
 
 CC Executor provides a WebSocket-based Model Context Protocol (MCP) service that enables secure remote command execution. It's designed to work seamlessly with Claude Code and other AI assistants, providing reliable command execution with features like token limit detection, adaptive retry strategies, and comprehensive hook support.
 
@@ -96,6 +142,12 @@ asyncio.run(main())
 
 ## Key Features
 
+### Shell Consistency with Claude Code
+- **Configurable shell preference** (zsh, bash, or system default)
+- **Defaults to zsh** for consistency with Claude Code execution
+- Ensures command parsing and environment behavior matches Claude's environment
+- Eliminates shell-specific edge cases and improves reliability
+
 ### Token Limit Detection
 - Automatically detects when Claude hits output token limits
 - Provides adaptive retry strategies with more concise prompts
@@ -115,9 +167,16 @@ asyncio.run(main())
 
 ### WebSocket Protocol
 - JSON-RPC 2.0 based communication
-- Streaming output support
+- Streaming output support with 64KB chunking for large outputs
 - Bidirectional error notifications
 - Session management with Redis
+- Proper subprocess buffer management (8MB limit)
+
+### Memory-Efficient Streaming
+- `PYTHONUNBUFFERED=1` for real-time output streaming
+- Async streaming prevents memory accumulation
+- Chunked WebSocket transmission for large outputs
+- Configurable buffer limits and timeouts
 
 ## Configuration
 
@@ -134,6 +193,15 @@ REDIS_URL=redis://localhost:6379
 CC_EXECUTOR_PORT=8003
 CC_EXECUTOR_HOST=0.0.0.0
 LOG_LEVEL=INFO
+
+# Shell Configuration (optional)
+CC_EXECUTOR_SHELL=zsh  # Options: zsh, bash, default
+# Defaults to zsh for Claude Code consistency
+
+# Process Configuration (optional)
+PYTHONUNBUFFERED=1  # Ensures real-time output streaming
+STREAM_TIMEOUT=600  # Stream timeout in seconds (default: 10 minutes)
+MAX_BUFFER_SIZE=8388608  # Max buffer size in bytes (default: 8MB)
 ```
 
 ## Development
@@ -170,6 +238,42 @@ HOOKS = {
 }
 ```
 
+## Problems This Solves
+
+### Claude Max ($200/month) Limitations
+- **No API access**: Claude Max uses browser auth, API keys don't work
+- **Broken hooks**: The hook system is completely non-functional
+- **No SDK support**: The official SDK ignores Claude Max users entirely
+- **Can't automate**: No way to integrate into workflows despite paying premium
+
+### Claude CLI Issues
+- **The `-p` flag confusion**: Claude CLI uses `-p` not `--print`, but this isn't documented
+- **Subprocess hanging**: Direct subprocess calls to Claude often hang indefinitely
+- **Hook execution failures**: Hooks don't run reliably when called programmatically
+- **No real SDK**: No official Python SDK for Claude Code exists
+
+### Our Solution
+- **WebSocket-based architecture**: Reliable bidirectional communication
+- **Proper subprocess management**: Process groups, timeouts, and graceful termination
+- **Hook integration that works**: Pre/post execution hooks run consistently
+- **Real streaming**: Output streams in real-time, not after completion
+- **Claude Max compatible**: Works with browser-authenticated Claude sessions
+
+## Recent Improvements (2025-07-03)
+
+### Core Enhancements
+- **Zsh Shell Support**: Now uses zsh by default for consistency with Claude Code
+- **Configurable Shell**: Environment variable `CC_EXECUTOR_SHELL` for shell preference
+- **Memory Optimization**: Improved streaming with proper buffer management
+- **Better Error Detection**: Enhanced token limit and rate limit detection
+- **Project Cleanup**: Reorganized ~400+ files for better maintainability
+
+### Technical Improvements
+- Subprocess execution now uses `asyncio.create_subprocess_exec` with explicit shell
+- 8MB buffer limits prevent memory issues with large outputs
+- 64KB WebSocket chunking for reliable transmission
+- `PYTHONUNBUFFERED=1` ensures real-time output visibility
+
 ## Architecture Principles
 
 1. **Self-Contained Directories**: Each directory has all its dependencies
@@ -177,6 +281,7 @@ HOOKS = {
 3. **No Cross-Cutting Dependencies**: Components don't reach across directories
 4. **Behavioral Testing**: Tests verify behavior, not implementation details
 5. **Raw Output Saving**: All components save outputs to prevent hallucination
+6. **Shell Consistency**: Use the same shell as Claude Code for reliability
 
 ## Contributing
 
