@@ -1,10 +1,32 @@
 # CC Executor
 
-CC Executor MCP WebSocket Service for remote command execution with Claude Code.
+**WebSocket-based sequential task execution for Claude Code** - Execute complex, long-running multi-step workflows that would timeout with traditional HTTP requests.
+
+## The Main Purpose: Sequential Task Execution
+
+CC Executor uses WebSockets to enable **complex, long-running sequential task execution** - something impossible with simple request/response patterns. This allows Claude to:
+
+1. **Execute task lists with dependencies** - Task 2 can use output from Task 1
+2. **Maintain context across steps** - Each step builds on previous results  
+3. **Stream progress in real-time** - See each step complete as it happens
+4. **Handle hours-long workflows** - Tasks that take 30+ minutes complete successfully
+5. **Complex multi-file operations** - Analyze entire codebases, refactor across modules
+6. **Iterative development** - Code, test, debug, refine in a single session
+
+### Example: Multi-Step Workflow
+```bash
+cc-executor run "claude -p 'Analyze the codebase in /src:
+1. List all Python files and identify entry points
+2. Trace execution flow from each entry point
+3. Generate a dependency graph
+4. Suggest refactoring opportunities
+5. Create a migration plan
+Execute these sequentially, using each output for the next step.'"
+```
 
 ## Why This Exists
 
-This project aims to provide a reliable Claude Code SDK that:
+Beyond sequential execution, this project provides a reliable Claude Code SDK that:
 - **Actually runs hooks reliably** (hooks are completely broken in the official implementation)
 - **Works with Claude Max** ($200/month Claude Max subscribers)
 - **Allows Claude Code to be called programmatically** without hanging
@@ -28,6 +50,7 @@ CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Ma
 
 ## Core Features
 
+- **Sequential task execution** - WebSockets maintain persistent connections for multi-step workflows
 - **WebSocket JSON-RPC server** (`src/cc_executor/core/websocket_handler.py`) – reliable streaming command execution.
 - **Async Python client SDK** (`src/cc_executor/client/client.py`) – programmatic access for Python scripts.
 - **Extensible pre/post hooks** (`src/cc_executor/hooks/hook_integration.py` & modules in `src/cc_executor/hooks/`) – virtual-env setup, validation, metrics.
@@ -39,6 +62,7 @@ CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Ma
 
 | Capability | CC Executor (Unofficial SDK) | Official Anthropic SDK |
 |------------|------------------------------|------------------------|
+| Sequential multi-step task execution | ✅ (via persistent WebSocket) | ❌ |
 | Works with Claude Max (browser-auth) | ✅ | ❌ |
 | Python async client & CLI | ✅ `client/client.py`, `cli/main.py` | ❌ (API only) |
 | WebSocket streaming JSON-RPC | ✅ `core/websocket_handler.py` | ❌ |
