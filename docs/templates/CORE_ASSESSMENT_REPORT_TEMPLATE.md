@@ -64,10 +64,18 @@ Each component MUST include both automated results AND Claude's analysis:
 
 **Conclusion**: {1-2 sentences on whether this proves the component works}
 
-#### Output Sample
+#### Complete JSON Response File
+```json
+{entire_json_file_content_with_line_numbers}
 ```
-{output}
+**CRITICAL: Show the ENTIRE JSON file with line numbers from the Read tool - this proves you actually read it!**
+
+#### Key Output (from "output" field)
 ```
+{extracted_output_for_readability}
+```
+
+Showing the full JSON prevents hallucination - it's harder to fake the entire file structure with timestamps, metadata, etc.
 ```
 
 ### 4. Overall System Assessment
@@ -171,6 +179,11 @@ Based on the outputs, I assess the cc_executor core system as: [HEALTHY/DEGRADED
 3. **Explain reasoning** - Why does this output prove functionality?
 4. **Check the numbers** - Validate all numerical outputs
 5. **Consider the context** - What is this component's role in the system?
+6. **READ THE JSON FILES** - Do NOT use truncated output from the assessment script
+   - JSON files are in: `/src/cc_executor/core/tmp/responses/`
+   - Each file contains the COMPLETE output in the "output" field
+   - NEVER include "[truncated]" text in the report
 
 ## Version History
 - v1.0 (2025-07-03): Initial template addressing v8 failure - requires Claude's reasonableness assessments
+- v1.1 (2025-07-03): Updated to address v9 failure - MUST include complete outputs from JSON files, no truncation allowed

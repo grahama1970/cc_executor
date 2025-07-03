@@ -47,11 +47,6 @@ CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Ma
 | Redis-backed session & history | ✅ `core/session_manager.py` | ❌ |
 | Shell consistency (`zsh`) | ✅ | N/A |
 
-
-
-
-CC Executor provides a WebSocket-based Model Context Protocol (MCP) service that enables secure remote command execution. It's designed to work seamlessly with Claude Code and other AI assistants, providing reliable command execution with features like token limit detection, adaptive retry strategies, and comprehensive hook support.
-
 ## Architecture
 
 The project follows a clean, self-contained directory structure:
@@ -71,8 +66,27 @@ src/cc_executor/
 │   ├── post_execution_hooks.py # Post-execution processing
 │   └── error_hooks.py         # Error handling hooks
 └── templates/      # Self-improving prompt templates
-
 ```
+
+### How It Works
+
+```mermaid
+flowchart LR
+    A[Client] -->|WebSocket| B[Handler]
+    B --> C[Hooks]
+    B --> D[Process]
+    B --> E[(Redis)]
+    D -->|output| B
+    B -->|stream| A
+```
+
+**Execution Flow:**
+1. Client connects via WebSocket and sends command
+2. Pre-execution hooks validate and wrap the command  
+3. Redis provides timeout estimates from historical data
+4. ProcessManager spawns subprocess with proper isolation
+5. Output streams in real-time to client
+6. Post-execution hooks update metrics in Redis
 
 ## Installation
 
@@ -86,6 +100,60 @@ uv sync
 
 # Install for development
 uv pip install -e .
+```
+
+## Advanced Workflow Examples
+
+### 1. Claude + Perplexity Research
+
+Prompt Claude to use the perplexity-ask MCP tool for fact-checking:
+
+```bash
+cc-executor run "claude -p --mcp-config .mcp.json --allowedTools 'mcp__perplexity-ask' \
+  'Explain quantum entanglement in simple terms. Then use the perplexity-ask mcp tool to \
+  research recent breakthroughs in quantum entanglement from 2024-2025 and update your explanation.'"
+```
+
+### 2. Using Prompt Files with External Models
+
+Reference prompt files to have Claude use specific models:
+
+```bash
+cc-executor run "claude -p \
+  'Write a Python implementation of quicksort. Then follow the instructions in \
+  ./prompts/ask-litellm.md using the gemini-2.0-flash-exp model to critique the \
+  code for efficiency and suggest optimizations.'"
+```
+
+Or for a more complex review:
+
+```bash
+cc-executor run "claude -p \
+  'Create a FastAPI application with user authentication. After implementation, \
+  use ./prompts/ask-litellm.md with gemini-2.0-flash-exp to review for security \
+  vulnerabilities and best practices.'"  
+```
+
+### 3. Parallel Task Execution
+
+Prompt Claude to spawn multiple task instances for comparison:
+
+```bash
+cc-executor run "claude -p \
+  'I need you to write a haiku about programming. Use your task spawning capabilities to \
+  create 5 different variations in parallel, then compare them and select the most creative one. \
+  Show me all 5 variations and explain why you chose the winner.'"
+```
+
+For more complex parallel tasks:
+
+```bash
+cc-executor run "claude -p \
+  'Implement a binary search algorithm in Python. Spawn 3 parallel tasks: \
+  Task 1: Write an iterative implementation \
+  Task 2: Write a recursive implementation \
+  Task 3: Write a generic implementation that works with any comparable type \
+  Then compare all three for readability, performance, and versatility.'"
 ```
 
 ## Usage

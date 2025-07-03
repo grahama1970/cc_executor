@@ -92,13 +92,17 @@ This script:
 
 The generated report must include:
 - Summary of pass/fail for each component
-- Raw output samples for verification
+- **COMPLETE RAW JSON FILES with line numbers from Read tool**
 - **CLAUDE'S REASONABLENESS ASSESSMENT for EACH component**
 - Specific analysis of why each output is reasonable (or not)
 - WebSocket handler status (CRITICAL component)
 - Recommendations based on actual output analysis
 
-**YOU (Claude) must add your assessment to each component section!**
+**CRITICAL ANTI-HALLUCINATION REQUIREMENTS:**
+1. MUST show complete JSON file content with line numbers using Read tool
+2. MUST NOT show just extracted "output" field (too easy to fake)
+3. MUST include ALL metadata (timestamp, duration, success, etc.)
+4. Line numbers prove you actually read the file
 
 ## 🔄 CONTINUOUS IMPROVEMENT
 After each run:
@@ -109,23 +113,39 @@ After each run:
 
 ## 🔬 DIAGNOSTICS & RECOVERY
 
-### Failure Report (2025-07-03) - v8
-- **Failed Version:** v8
+### Failure Report (2025-07-03) - v8 & v9
+
+#### v8 Failure
 - **What Failed:** Generated report missing Claude's reasonableness assessments
 - **Root Cause:** Misunderstood role - acted as passive script runner instead of active assessor
 - **Evidence:** Report only contained automated script results, no Claude analysis
 
-### Recovery Plan for v9
-- **Action Required:** For EACH component output, add a section with:
+#### v9 Failure  
+- **What Failed:** Report contained TRUNCATED outputs with "[truncated]" text
+- **Root Cause:** Used the assessment script's truncated output instead of reading actual JSON files
+- **Evidence:** Output samples ended with "...[truncated]" instead of complete data
+- **Critical Learning:** MUST read the JSON response files in tmp/responses/ for COMPLETE outputs
+
+### Recovery Plan for v10
+- **Action Required:** For EACH component output:
   - MY assessment of why the output is reasonable (or not)
   - Specific analysis of numbers, formats, expected values
   - Judgment on whether it truly demonstrates the component works
   - Clear REASONABLE/UNREASONABLE verdict with reasoning
+  - **CRITICAL: Include COMPLETE outputs from JSON files - NO TRUNCATION!**
 - **Report Format:** Follow `/home/graham/workspace/experiments/cc_executor/docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md`
-- **Success Criteria:** Report must show MY thinking, not just script output
+- **Success Criteria:** 
+  - Report must show MY thinking, not just script output
+  - **MUST read actual JSON response files in tmp/responses/**
+  - **MUST include COMPLETE outputs - no "[truncated]" text allowed**
 
 ### Implementation Guide
 1. Run the Python script: `assess_all_core_usage.py`
 2. Read the generated report in `prompts/reports/`
-3. For each component, add Claude's Reasonableness Assessment section
-4. Save as new report with "-WITH-CLAUDE-ANALYSIS" suffix
+3. **Use Read tool on EACH JSON file in tmp/responses/ to get FULL content with line numbers**
+4. For each component:
+   - Show the COMPLETE JSON file content (with line numbers)
+   - Add Claude's Reasonableness Assessment based on the JSON data
+   - Analyze the metadata (duration, success, line_count, etc.)
+5. **NEVER extract just the "output" field - show the WHOLE JSON**
+6. Save as new report with "-COMPLETE-JSON-WITH-CLAUDE-ANALYSIS" suffix
