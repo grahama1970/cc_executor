@@ -411,6 +411,28 @@ if __name__ == "__main__":
     import subprocess
     import sys
     import time
+    import json
+    from pathlib import Path
+    from datetime import datetime
+    import io
+    
+    # Create tmp/responses directory for saving output
+    responses_dir = Path(__file__).parent / "tmp" / "responses"
+    responses_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Capture all output
+    output_buffer = io.StringIO()
+    
+    # Create a custom print that writes to both stdout and buffer
+    def print_and_capture(*args, **kwargs):
+        # Print to stdout as normal
+        print(*args, **kwargs)
+        # Also print to buffer
+        print(*args, **kwargs, file=output_buffer)
+    
+    # Replace print for this block
+    _print = print
+    print = print_and_capture
     
     print("=== Stream Handler Usage Example ===\n")
     
@@ -475,3 +497,29 @@ if __name__ == "__main__":
     print("• Cancellation: Clean shutdown on timeout")
     
     print("\n✅ Stream handling concepts demonstrated!")
+    
+    # Restore original print
+    print = _print
+    
+    # Save raw response to prevent hallucination
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = Path(__file__).stem  # "stream_handler"
+    
+    # Get captured output
+    output_content = output_buffer.getvalue()
+    
+    # Save as JSON
+    response_file = responses_dir / f"{filename}_{timestamp}.json"
+    with open(response_file, 'w') as f:
+        json.dump({
+            'filename': filename,
+            'timestamp': timestamp,
+            'output': output_content
+        }, f, indent=2)
+    
+    # Save as text
+    text_file = responses_dir / f"{filename}_{timestamp}.txt"
+    with open(text_file, 'w') as f:
+        f.write(output_content)
+    
+    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")

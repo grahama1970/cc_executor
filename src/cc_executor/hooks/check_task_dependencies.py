@@ -12,6 +12,11 @@ import re
 from typing import List, Dict, Optional
 from loguru import logger
 
+# TEST MARKER - Write timestamp when hook is called
+with open('/tmp/hook_was_called.txt', 'a') as f:
+    from datetime import datetime
+    f.write(f"check_task_dependencies called at {datetime.now().isoformat()}\n")
+
 # --- Dependency extraction helpers ---
 PKG_PATTERN = re.compile(r"(?:uv\s+pip\s+install\s+)([a-zA-Z0-9_\-]+)|(?:import\s+([a-zA-Z0-9_]+))")
 

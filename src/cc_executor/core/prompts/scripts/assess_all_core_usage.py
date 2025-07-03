@@ -16,8 +16,8 @@ from datetime import datetime
 
 # CRITICAL: Add parent directory to path BEFORE any imports
 current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir.parent))
-sys.path.insert(0, str(current_dir.parent.parent))
+# Need to go up to src/ directory for imports
+sys.path.insert(0, str(current_dir.parent.parent.parent.parent))
 
 # Now we can import hooks
 try:

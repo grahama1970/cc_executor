@@ -158,95 +158,95 @@ def validate_command(command: str, allowed_commands: Optional[list[str]] = None)
 
 if __name__ == "__main__":
     """Usage example demonstrating model validation and JSON-RPC parsing."""
+    from usage_helper import OutputCapture
     
-    import json
-    
-    print("=== Testing ExecuteRequest Model ===")
-    
-    # Valid request
-    valid_request = ExecuteRequest(command="echo 'Hello World'", id=123)
-    print(f"Valid request: {valid_request}")
-    print(f"Command: {valid_request.command}")
-    print(f"ID: {valid_request.id}")
-    
-    # Test validation
-    try:
-        invalid_request = ExecuteRequest(command="", id=456)
-    except Exception as e:
-        print(f"Empty command validation: Would fail in validate_command()")
-    
-    print("\n=== Testing ControlRequest Model ===")
-    
-    control_requests = [
-        ControlRequest(type="PAUSE", id=1),
-        ControlRequest(type="RESUME", id=2),
-        ControlRequest(type="CANCEL", id=3)
-    ]
-    
-    for req in control_requests:
-        print(f"Control: {req.type} (id={req.id})")
-    
-    print("\n=== Testing JSON-RPC Models ===")
-    
-    # Create a JSON-RPC request
-    jsonrpc_req = JSONRPCRequest(
-        jsonrpc="2.0",
-        method="execute",
-        params={"command": "ls -la"},
-        id=42
-    )
-    
-    print(f"JSON-RPC Request: {jsonrpc_req.model_dump_json(indent=2)}")
-    
-    # Create a success response
-    success_response = JSONRPCResponse(
-        jsonrpc="2.0",
-        result={"status": "started", "pid": 12345},
-        id=42
-    )
-    
-    print(f"\nSuccess Response: {success_response.model_dump_json(indent=2, exclude_none=True)}")
-    
-    # Create an error response
-    error_response = JSONRPCResponse(
-        jsonrpc="2.0",
-        error=JSONRPCError(
-            code=-32602,
-            message="Invalid params",
-            data="Command cannot be empty"
-        ).model_dump(),
-        id=42
-    )
-    
-    print(f"\nError Response: {error_response.model_dump_json(indent=2, exclude_none=True)}")
-    
-    print("\n=== Testing Command Validation ===")
-    
-    # Test allowed commands
-    test_cases = [
-        ("echo test", None, True),
-        ("echo test", ["echo", "ls"], True),
-        ("rm -rf /", ["echo", "ls"], False),
-        ("", None, False),
-        ("ls -la", ["echo", "ls"], True)
-    ]
-    
-    for command, allowed, expected in test_cases:
-        valid, msg = validate_command(command, allowed)
-        status = "✓" if valid == expected else "✗"
-        print(f"{status} Command: '{command}' | Allowed: {allowed} | Valid: {valid}")
-        if msg:
-            print(f"   Message: {msg}")
-    
-    print("\n=== Testing Stream Output Model ===")
-    
-    outputs = [
-        StreamOutput(type="stdout", data="Hello World\n", truncated=False),
-        StreamOutput(type="stderr", data="Error: File not found...\n", truncated=True)
-    ]
-    
-    for output in outputs:
-        truncated = " (truncated)" if output.truncated else ""
-        print(f"{output.type}: {output.data.strip()}{truncated}")
-    
-    print("\n✅ All model tests completed!")
+    with OutputCapture(__file__) as capture:
+        print("=== Testing ExecuteRequest Model ===")
+        
+        # Valid request
+        valid_request = ExecuteRequest(command="echo 'Hello World'", id=123)
+        print(f"Valid request: {valid_request}")
+        print(f"Command: {valid_request.command}")
+        print(f"ID: {valid_request.id}")
+        
+        # Test validation
+        try:
+            invalid_request = ExecuteRequest(command="", id=456)
+        except Exception as e:
+            print(f"Empty command validation: Would fail in validate_command()")
+        
+        print("\n=== Testing ControlRequest Model ===")
+        
+        control_requests = [
+            ControlRequest(type="PAUSE", id=1),
+            ControlRequest(type="RESUME", id=2),
+            ControlRequest(type="CANCEL", id=3)
+        ]
+        
+        for req in control_requests:
+            print(f"Control: {req.type} (id={req.id})")
+        
+        print("\n=== Testing JSON-RPC Models ===")
+        
+        # Create a JSON-RPC request
+        jsonrpc_req = JSONRPCRequest(
+            jsonrpc="2.0",
+            method="execute",
+            params={"command": "ls -la"},
+            id=42
+        )
+        
+        print(f"JSON-RPC Request: {jsonrpc_req.model_dump_json(indent=2)}")
+        
+        # Create a success response
+        success_response = JSONRPCResponse(
+            jsonrpc="2.0",
+            result={"status": "started", "pid": 12345},
+            id=42
+        )
+        
+        print(f"\nSuccess Response: {success_response.model_dump_json(indent=2, exclude_none=True)}")
+        
+        # Create an error response
+        error_response = JSONRPCResponse(
+            jsonrpc="2.0",
+            error=JSONRPCError(
+                code=-32602,
+                message="Invalid params",
+                data="Command cannot be empty"
+            ).model_dump(),
+            id=42
+        )
+        
+        print(f"\nError Response: {error_response.model_dump_json(indent=2, exclude_none=True)}")
+        
+        print("\n=== Testing Command Validation ===")
+        
+        # Test allowed commands
+        test_cases = [
+            ("echo test", None, True),
+            ("echo test", ["echo", "ls"], True),
+            ("rm -rf /", ["echo", "ls"], False),
+            ("", None, False),
+            ("ls -la", ["echo", "ls"], True)
+        ]
+        
+        for command, allowed, expected in test_cases:
+            valid, msg = validate_command(command, allowed)
+            status = "✓" if valid == expected else "✗"
+            print(f"{status} Command: '{command}' | Allowed: {allowed} | Valid: {valid}")
+            if msg:
+                print(f"   Message: {msg}")
+        
+        print("\n=== Testing Stream Output Model ===")
+        
+        outputs = [
+            StreamOutput(type="stdout", data="Hello World\n", truncated=False),
+            StreamOutput(type="stderr", data="Error: File not found...\n", truncated=True)
+        ]
+        
+        for output in outputs:
+            truncated = " (truncated)" if output.truncated else ""
+            print(f"{output.type}: {output.data.strip()}{truncated}")
+        
+        print("\n✅ All model tests completed!")

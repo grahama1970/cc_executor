@@ -94,54 +94,57 @@ def adjust_timeout(base_timeout: float, threshold: float = 14.0) -> float:
 
 if __name__ == "__main__":
     # AI-friendly usage example - quick non-blocking demonstration
-    print("=== Resource Monitor Usage Example ===\n")
+    from usage_helper import OutputCapture
     
-    # Test 1: Get instant CPU usage (no interval)
-    print("--- Test 1: Instant CPU Check ---")
-    cpu_instant = psutil.cpu_percent(interval=0)  # Non-blocking
-    print(f"CPU Usage (instant): {cpu_instant:.1f}%")
-    
-    # Test 2: Get GPU usage if available
-    print("\n--- Test 2: GPU Check ---")
-    gpu = get_gpu_usage()
-    if gpu is not None:
-        print(f"GPU Usage: {gpu:.1f}%")
-    else:
-        print("GPU: Not available (nvidia-smi not found)")
-    
-    # Test 3: Test timeout calculation with various scenarios
-    print("\n--- Test 3: Timeout Multiplier Scenarios ---")
-    
-    # Simulate different load scenarios
-    scenarios = [
-        (10.0, "Low load"),
-        (14.0, "At threshold"),
-        (15.0, "Above threshold"),
-        (50.0, "High load")
-    ]
-    
-    for cpu_val, desc in scenarios:
-        # Mock the CPU value for testing
-        import unittest.mock
-        with unittest.mock.patch('psutil.cpu_percent', return_value=cpu_val):
-            multiplier = calculate_timeout_multiplier(threshold=14.0)
-            base = 30
-            adjusted = base * multiplier
-            print(f"{desc} (CPU={cpu_val}%): {base}s → {adjusted}s (x{multiplier})")
-    
-    # Test 4: Show actual current system state
-    print("\n--- Test 4: Current System State ---")
-    cpu_actual, gpu_actual = get_system_load()
-    print(f"Actual CPU: {cpu_actual:.1f}%")
-    if gpu_actual is not None:
-        print(f"Actual GPU: {gpu_actual:.1f}%")
-    
-    current_multiplier = calculate_timeout_multiplier()
-    print(f"Current timeout multiplier: {current_multiplier}x")
-    
-    # Test example timeout adjustment
-    test_timeout = 60
-    adjusted_timeout = adjust_timeout(test_timeout)
-    print(f"Example: {test_timeout}s timeout → {adjusted_timeout}s")
-    
-    print("\n✅ Resource monitor functioning correctly!")
+    with OutputCapture(__file__) as capture:
+        print("=== Resource Monitor Usage Example ===\n")
+        
+        # Test 1: Get instant CPU usage (no interval)
+        print("--- Test 1: Instant CPU Check ---")
+        cpu_instant = psutil.cpu_percent(interval=0)  # Non-blocking
+        print(f"CPU Usage (instant): {cpu_instant:.1f}%")
+        
+        # Test 2: Get GPU usage if available
+        print("\n--- Test 2: GPU Check ---")
+        gpu = get_gpu_usage()
+        if gpu is not None:
+            print(f"GPU Usage: {gpu:.1f}%")
+        else:
+            print("GPU: Not available (nvidia-smi not found)")
+        
+        # Test 3: Test timeout calculation with various scenarios
+        print("\n--- Test 3: Timeout Multiplier Scenarios ---")
+        
+        # Simulate different load scenarios
+        scenarios = [
+            (10.0, "Low load"),
+            (14.0, "At threshold"),
+            (15.0, "Above threshold"),
+            (50.0, "High load")
+        ]
+        
+        for cpu_val, desc in scenarios:
+            # Mock the CPU value for testing
+            import unittest.mock
+            with unittest.mock.patch('psutil.cpu_percent', return_value=cpu_val):
+                multiplier = calculate_timeout_multiplier(threshold=14.0)
+                base = 30
+                adjusted = base * multiplier
+                print(f"{desc} (CPU={cpu_val}%): {base}s → {adjusted}s (x{multiplier})")
+        
+        # Test 4: Show actual current system state
+        print("\n--- Test 4: Current System State ---")
+        cpu_actual, gpu_actual = get_system_load()
+        print(f"Actual CPU: {cpu_actual:.1f}%")
+        if gpu_actual is not None:
+            print(f"Actual GPU: {gpu_actual:.1f}%")
+        
+        current_multiplier = calculate_timeout_multiplier()
+        print(f"Current timeout multiplier: {current_multiplier}x")
+        
+        # Test example timeout adjustment
+        test_timeout = 60
+        adjusted_timeout = adjust_timeout(test_timeout)
+        print(f"Example: {test_timeout}s timeout → {adjusted_timeout}s")
+        
+        print("\n✅ Resource monitor functioning correctly!")

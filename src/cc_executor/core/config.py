@@ -45,6 +45,13 @@ MAX_BUFFER_SIZE = int(os.getenv("MAX_BUFFER_SIZE", "8388608"))  # Maximum line s
 STREAM_TIMEOUT = int(os.getenv("STREAM_TIMEOUT", "600"))  # Stream read timeout in seconds (default 10 minutes)
 PROCESS_CLEANUP_TIMEOUT = int(os.getenv("PROCESS_CLEANUP_TIMEOUT", "10"))  # Timeout for process cleanup operations
 
+# Shell configuration
+PREFERRED_SHELL = os.environ.get('CC_EXECUTOR_SHELL', 'zsh')  # 'zsh', 'bash', or 'default'
+SHELL_PATHS = {
+    'zsh': ['/bin/zsh', '/usr/bin/zsh', '/usr/local/bin/zsh'],
+    'bash': ['/bin/bash', '/usr/bin/bash', '/usr/local/bin/bash']
+}
+
 # Security configuration
 ALLOWED_COMMANDS: Optional[List[str]] = None
 if os.getenv("ALLOWED_COMMANDS"):
@@ -81,6 +88,29 @@ TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
 if __name__ == "__main__":
     """Usage example demonstrating configuration loading and validation."""
+    import json
+    from pathlib import Path
+    from datetime import datetime
+    import io
+    import sys
+    
+    # Create tmp/responses directory for saving output
+    responses_dir = Path(__file__).parent / "tmp" / "responses"
+    responses_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Capture all output
+    output_buffer = io.StringIO()
+    
+    # Create a custom print that writes to both stdout and buffer
+    def print_and_capture(*args, **kwargs):
+        # Print to stdout as normal
+        print(*args, **kwargs)
+        # Also print to buffer
+        print(*args, **kwargs, file=output_buffer)
+    
+    # Replace print for this block
+    _print = print
+    print = print_and_capture
     
     print("=== CC Executor Configuration ===")
     print(f"Service: {SERVICE_NAME} v{SERVICE_VERSION}")
@@ -141,3 +171,28 @@ if __name__ == "__main__":
     assert len(error_codes) == 10, "Error codes must be unique"
     
     print("\n✅ Configuration validation passed!")
+    
+    # Restore original print
+    print = _print
+    
+    # Save raw response as prettified JSON to prevent hallucination
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = Path(__file__).stem  # "config"
+    
+    # Get captured output
+    output_content = output_buffer.getvalue()
+    
+    # Save as prettified JSON for easy verification
+    response_file = responses_dir / f"{filename}_{timestamp}.json"
+    with open(response_file, 'w') as f:
+        json.dump({
+            'filename': filename,
+            'timestamp': timestamp,
+            'execution_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'module': 'cc_executor.core.config',
+            'output': output_content,
+            'line_count': len(output_content.strip().split('\n')),
+            'success': '✅' in output_content
+        }, f, indent=4)
+    
+    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")

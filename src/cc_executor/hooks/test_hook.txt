@@ -1,0 +1,2 @@
+This is a test file to trigger Claude's Edit tool and see if hooks fire.
+EDITED: Testing if Edit tool triggers hooks.

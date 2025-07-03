@@ -1,0 +1,1 @@
+Testing Write tool to see if pre-tool hook triggers

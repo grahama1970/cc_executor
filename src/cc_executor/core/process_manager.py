@@ -33,14 +33,14 @@ from typing import Optional, Callable, Any
 from loguru import logger
 
 try:
-    from .config import PROCESS_CLEANUP_TIMEOUT
+    from .config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
     from ..hooks.hook_integration import get_hook_integration, ensure_hooks
 except ImportError:
     # For standalone execution
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from config import PROCESS_CLEANUP_TIMEOUT
+    from config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
     try:
         from ..hooks.hook_integration import get_hook_integration, ensure_hooks
     except ImportError:
@@ -124,15 +124,47 @@ class ProcessManager:
                     logger.info(f"Wrapping {tool} command with stdbuf for unbuffered output")
                     break
         
-        process = await asyncio.create_subprocess_shell(
-            command,
-            stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env,  # Pass the modified environment
-            preexec_fn=os.setsid,  # CRITICAL: Creates a new process group
-            limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
-        )
+        # Determine which shell to use
+        shell_path = None
+        
+        if PREFERRED_SHELL != 'default':
+            # Try to find the preferred shell
+            shell_paths = SHELL_PATHS.get(PREFERRED_SHELL, [])
+            for path in shell_paths:
+                if os.path.exists(path):
+                    shell_path = path
+                    break
+            
+            if not shell_path and PREFERRED_SHELL == 'zsh':
+                # For Claude Code consistency, warn if zsh not found
+                logger.warning(f"{PREFERRED_SHELL} not found, falling back to default shell. "
+                             "This may cause inconsistencies with Claude Code execution.")
+        
+        if shell_path:
+            # Use the specified shell for better consistency with Claude Code
+            logger.info(f"Using {PREFERRED_SHELL} shell: {shell_path}")
+            process = await asyncio.create_subprocess_exec(
+                shell_path, "-c", command,
+                stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,  # Pass the modified environment
+                preexec_fn=os.setsid,  # CRITICAL: Creates a new process group
+                limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
+            )
+        else:
+            # Fall back to default shell (usually /bin/sh)
+            if PREFERRED_SHELL != 'default':
+                logger.info("Using system default shell")
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,  # Pass the modified environment
+                preexec_fn=os.setsid,  # CRITICAL: Creates a new process group
+                limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
+            )
         return process
 
     def get_process_group_id(self, process: Any) -> Optional[int]:
@@ -294,83 +326,85 @@ if __name__ == "__main__":
     """AI-friendly usage example demonstrating process control operations."""
     import subprocess
     import time
+    from usage_helper import OutputCapture
     
-    print("=== Process Manager Usage Example ===\n")
-    
-    # Test 1: Basic synchronous demonstration (no async complexity)
-    print("--- Test 1: Process Control Concepts ---")
-    print("ProcessManager provides:")
-    print("- Process execution with new process groups (PGID)")
-    print("- Process control: PAUSE (SIGSTOP), RESUME (SIGCONT), CANCEL (SIGTERM)")
-    print("- Proper cleanup of process groups")
-    print("- Timeout handling and graceful termination")
-    
-    # Test 2: Demonstrate PGID concepts with simple subprocess
-    print("\n--- Test 2: Process Group ID (PGID) Demo ---")
-    # Start a simple process
-    proc = subprocess.Popen(
-        ["python", "-c", "import os, time; print(f'PID={os.getpid()}, PGID={os.getpgid(0)}'); time.sleep(0.5)"],
-        preexec_fn=os.setsid  # Create new process group
-    )
-    
-    print(f"Started process: PID={proc.pid}")
-    proc.wait()
-    print("✓ Process completed")
-    
-    # Test 3: Show signal handling
-    print("\n--- Test 3: Signal Handling Demo ---")
-    signals_map = {
-        "PAUSE": signal.SIGSTOP,
-        "RESUME": signal.SIGCONT,
-        "CANCEL": signal.SIGTERM
-    }
-    
-    for control, sig in signals_map.items():
-        print(f"{control} → Signal {sig} ({signal.Signals(sig).name})")
-    
-    # Test 4: Quick process lifecycle
-    print("\n--- Test 4: Quick Process Lifecycle ---")
-    
-    # Create a short-lived process
-    start_time = time.time()
-    proc = subprocess.Popen(
-        ["python", "-c", "print('Process started'); import time; time.sleep(0.1); print('Process finished')"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        preexec_fn=os.setsid
-    )
-    
-    # Wait for completion
-    stdout, stderr = proc.communicate()
-    duration = time.time() - start_time
-    
-    print(f"Process output:\n{stdout.decode()}")
-    print(f"Exit code: {proc.returncode}")
-    print(f"Duration: {duration:.3f}s")
-    
-    # Test 5: Error handling scenarios
-    print("\n--- Test 5: Error Handling Scenarios ---")
-    
-    # ProcessNotFoundError scenario
-    try:
-        # Try to send signal to non-existent process
-        os.kill(99999, 0)
-    except ProcessLookupError:
-        print("✓ ProcessNotFoundError: Process 99999 not found (expected)")
-    
-    # Invalid control type
-    valid_controls = ["PAUSE", "RESUME", "CANCEL"]
-    invalid_control = "INVALID"
-    if invalid_control not in valid_controls:
-        print(f"✓ ValueError: Invalid control type '{invalid_control}' (expected)")
-    
-    # Test 6: ProcessManager capabilities summary
-    print("\n--- Test 6: ProcessManager Capabilities ---")
-    print("✓ Execute commands in new process groups")
-    print("✓ Control running processes (pause/resume/cancel)")
-    print("✓ Monitor process status")
-    print("✓ Clean up entire process groups")
-    print("✓ Handle timeouts gracefully")
-    print("✓ Prevent zombie processes")
-    
-    print("\n✅ Process management concepts demonstrated!")
+    with OutputCapture(__file__) as capture:
+        print("=== Process Manager Usage Example ===\n")
+        
+        # Test 1: Basic synchronous demonstration (no async complexity)
+        print("--- Test 1: Process Control Concepts ---")
+        print("ProcessManager provides:")
+        print("- Process execution with new process groups (PGID)")
+        print("- Process control: PAUSE (SIGSTOP), RESUME (SIGCONT), CANCEL (SIGTERM)")
+        print("- Proper cleanup of process groups")
+        print("- Timeout handling and graceful termination")
+        
+        # Test 2: Demonstrate PGID concepts with simple subprocess
+        print("\n--- Test 2: Process Group ID (PGID) Demo ---")
+        # Start a simple process
+        proc = subprocess.Popen(
+            ["python", "-c", "import os, time; print(f'PID={os.getpid()}, PGID={os.getpgid(0)}'); time.sleep(0.5)"],
+            preexec_fn=os.setsid  # Create new process group
+        )
+        
+        print(f"Started process: PID={proc.pid}")
+        proc.wait()
+        print("✓ Process completed")
+        
+        # Test 3: Show signal handling
+        print("\n--- Test 3: Signal Handling Demo ---")
+        signals_map = {
+            "PAUSE": signal.SIGSTOP,
+            "RESUME": signal.SIGCONT,
+            "CANCEL": signal.SIGTERM
+        }
+        
+        for control, sig in signals_map.items():
+            print(f"{control} → Signal {sig} ({signal.Signals(sig).name})")
+        
+        # Test 4: Quick process lifecycle
+        print("\n--- Test 4: Quick Process Lifecycle ---")
+        
+        # Create a short-lived process
+        start_time = time.time()
+        proc = subprocess.Popen(
+            ["python", "-c", "print('Process started'); import time; time.sleep(0.1); print('Process finished')"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            preexec_fn=os.setsid
+        )
+        
+        # Wait for completion
+        stdout, stderr = proc.communicate()
+        duration = time.time() - start_time
+        
+        print(f"Process output:\n{stdout.decode()}")
+        print(f"Exit code: {proc.returncode}")
+        print(f"Duration: {duration:.3f}s")
+        
+        # Test 5: Error handling scenarios
+        print("\n--- Test 5: Error Handling Scenarios ---")
+        
+        # ProcessNotFoundError scenario
+        try:
+            # Try to send signal to non-existent process
+            os.kill(99999, 0)
+        except ProcessLookupError:
+            print("✓ ProcessNotFoundError: Process 99999 not found (expected)")
+        
+        # Invalid control type
+        valid_controls = ["PAUSE", "RESUME", "CANCEL"]
+        invalid_control = "INVALID"
+        if invalid_control not in valid_controls:
+            print(f"✓ ValueError: Invalid control type '{invalid_control}' (expected)")
+        
+        # Test 6: ProcessManager capabilities summary
+        print("\n--- Test 6: ProcessManager Capabilities ---")
+        print("✓ Execute commands in new process groups")
+        print("✓ Control running processes (pause/resume/cancel)")
+        print("✓ Monitor process status")
+        print("✓ Clean up entire process groups")
+        print("✓ Handle timeouts gracefully")
+        print("✓ Prevent zombie processes")
+        
+        print("\n✅ Process management concepts demonstrated!")
