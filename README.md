@@ -13,7 +13,7 @@ This project aims to provide a reliable Claude Code SDK that:
 
 The official SDK currently focuses on API-key workflows and does not support browser-authenticated Claude Max users, so they can't:
 - Use the API (Claude Max uses browser auth, not API keys)
-- Run hooks reliably (they simply don't work)
+- Run hooks reliably (they simply don't seem to work)
 - Integrate Claude into any automated workflow
 
 After extensive testing with these limitations, this WebSocket-based approach emerged as a reliable way to integrate Claude Code.
@@ -42,7 +42,7 @@ CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Ma
 | Works with Claude Max (browser-auth) | ✅ | ❌ |
 | Python async client & CLI | ✅ `client/client.py`, `cli/main.py` | ❌ (API only) |
 | WebSocket streaming JSON-RPC | ✅ `core/websocket_handler.py` | ❌ |
-| Pre / post execution hooks | ✅ `hooks/` | ❌ (hooks broken) |
+| Pre / post execution hooks | ✅ `hooks/` | ❌ (hooks in alpha state?) |
 | Token-limit detection & adaptive retry | ✅ | ❌ |
 | Redis-backed session & history | ✅ `core/session_manager.py` | ❌ |
 | Shell consistency (`zsh`) | ✅ | N/A |
