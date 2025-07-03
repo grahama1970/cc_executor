@@ -20,7 +20,7 @@ After extensive testing with these limitations, this WebSocket-based approach em
 
 **I hope Anthropic will eventually provide full official support for Claude Max subscribers, making this community workaround unnecessary.** Until then, this project aims to fill the gap.
 
-*— A Claude Max user*
+*— A Claude Max user (ok, it's me)*
 
 ## Overview
 
