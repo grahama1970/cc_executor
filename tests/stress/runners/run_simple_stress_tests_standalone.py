@@ -16,7 +16,7 @@ from pathlib import Path
 # Import the standalone WebSocket client (doesn't manage its own server)
 project_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(project_root / "src"))
-from cc_executor.client.websocket_client_standalone import WebSocketClient
+from cc_executor.core.client import WebSocketClient
 
 # Configuration
 CONFIG_PATH = Path("/home/graham/workspace/experiments/cc_executor/tests/stress/configs/simple_stress_tests.json")

@@ -1,5 +1,81 @@
 # Lessons Learned
 
+## Critical Performance and Quality Insights (2025-07-02)
+
+Based on comprehensive stress testing with 17+ test cases, here are critical findings not covered elsewhere:
+
+### Key Discovery: Self-Reflection Provides Minimal Quality Gains
+
+- **Reality**: Average quality improvement is only 5.4% despite complex formatting
+- **Impact**: The elaborate self-reflection patterns add complexity without proportional benefit
+- **Action**: Use self-reflection only for completeness validation, not quality enhancement
+
+### Performance Insights
+
+1. **Startup overhead is unpredictable**: 4-60 seconds for identical prompts
+2. **System load matters**: >10 load = 2-3x slower responses
+3. **Recovery overhead compounds**: Each retry multiplies timeout (1x → 1.5x → 2.25x)
+4. **Full test suites can timeout**: 17 sequential tests = 40+ minutes potential
+
+### Format Control Realities
+
+- **Word limits are ignored**: "10 words max" → 50+ word responses
+- **Structure beats length**: Format constraints work, word counts don't
+- **Contradictions get rationalized**: Claude chooses reasonable interpretation
+- **Checkbox variants matter**: Must handle □, ☑, ☐, • patterns
+
+### Patterns That Always Fail
+
+- "Generate [large number] word essay"
+- "Create comprehensive guide covering [many topics]"
+- "Step-by-step with [many steps]"
+
+### Production Recommendations
+
+1. **Timeouts**: 120s minimum + 30s reflection + 60s complex output
+2. **Recovery**: Max 2 attempts with aggressive simplification
+3. **Design**: Simple prompts > complex self-reflection
+4. **Testing**: Always test under realistic load conditions
+
+**Bottom Line**: Simplicity and reliability beat elaborate quality-improvement mechanisms.
+
+## Client Directory Architecture Mistake (2025-07-02)
+
+A critical architectural lesson about maintaining clean, self-contained directory structures.
+
+### The Problem: Cross-Directory Dependencies
+
+* **Initial Design**: Created a `/client` directory with two WebSocket client files
+* **The Mistake**: The "fat" client (`websocket_client.py`) reached into `/core` to start server processes
+* **The Confusion**: Two files with 90% duplicate code, unclear naming, maintenance nightmare
+
+### Why This Was Terrible Architecture
+
+1. **Violated Self-Containment**: Client directory wasn't self-contained - it needed files from `/core`
+2. **Duplicate Code**: 636 lines of code where 90% was duplicated between two files
+3. **Unclear Purpose**: Users confused about which client to use
+4. **Cross-Directory Dependencies**: Client starting servers by reaching into `/core` = unmaintainable
+
+### The Solution: Remove Client Directory
+
+* **Action Taken**: Moved the simple WebSocket client to `/core/client.py`
+* **Removed**: Entire `/client` directory and its duplicate files
+* **Result**: Clean architecture where client is part of core functionality
+
+### Key Lessons
+
+1. **Directories Must Be Self-Contained**: If you have a `/client` directory, it needs ALL its dependencies
+2. **Don't Create Unnecessary Abstractions**: We didn't need a separate client directory
+3. **Avoid Duplicate Code**: Two nearly identical files = bad design
+4. **Keep It Simple**: Client functionality belongs in `/core` with other core features
+
+### Architectural Principles
+
+* **Self-Containment**: Each directory should have everything it needs to function
+* **Clear Purpose**: Each directory should have one clear responsibility
+* **No Cross-Cutting**: Don't reach across directories for dependencies
+* **DRY Principle**: Don't Repeat Yourself - avoid duplicate implementations
+
 ## Token Limit Detection and Adaptive Retry (2025-06-30)
 
 From our session on implementing bidirectional token limit detection and adaptive retry strategies.

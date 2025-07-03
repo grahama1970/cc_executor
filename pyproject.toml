@@ -38,6 +38,8 @@ dependencies = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
+    "typer>=0.16.0",
+    "rich>=14.0.0",
 ]
 
 [project.optional-dependencies]
@@ -60,8 +62,8 @@ stress = [
 Repository = "https://github.com/grahama1970/cc_executor"
 
 [project.scripts]
-# Main service entry point
-cc-executor = "cc_executor.core.main:main"
+# Main CLI entry point
+cc-executor = "cc_executor.cli.main:app"
 
 # Utility scripts
 check-file-rules = "cc_executor.prompts.commands.check_file_rules:main"

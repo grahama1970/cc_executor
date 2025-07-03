@@ -81,11 +81,15 @@ class HookUsageAssessor:
         self.hooks_dir = Path(__file__).parent
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Create local tmp directory if it doesn't exist
+        # Create reports directory next to the prompt
+        self.reports_dir = self.hooks_dir / "reports"
+        self.reports_dir.mkdir(exist_ok=True)
+        
+        self.report_path = self.reports_dir / f"HOOKS_USAGE_REPORT_{self.timestamp}.md"
+        
+        # Still use tmp for temporary execution artifacts
         self.tmp_dir = self.hooks_dir / "tmp"
         self.tmp_dir.mkdir(exist_ok=True)
-        
-        self.report_path = self.tmp_dir / f"HOOKS_USAGE_REPORT_{self.timestamp}.md"
         self.results = []
         self.start_time = time.time()
         self.redis_client = self._init_redis()
@@ -116,6 +120,17 @@ class HookUsageAssessor:
         pre_hook_results = {}
         
         if not HOOKS_AVAILABLE:
+            return pre_hook_results
+        
+        # Skip actual hook execution during assessment to prevent subprocess spawning
+        if os.environ.get('SKIP_HOOK_EXECUTION', '').lower() == 'true':
+            # Just check that hooks exist
+            hooks_to_check = ['setup_environment.py', 'check_task_dependencies.py', 'analyze_task_complexity.py']
+            for hook in hooks_to_check:
+                hook_path = self.hooks_dir / hook
+                if hook_path.exists():
+                    pre_hook_results[hook] = 'exists'
+                    self.hooks_used['pre'].append(hook)
             return pre_hook_results
         
         # 1. Setup environment (venv activation)
@@ -206,6 +221,18 @@ class HookUsageAssessor:
         post_hook_results = {}
         
         if not HOOKS_AVAILABLE:
+            return post_hook_results
+        
+        # Skip actual hook execution during assessment to prevent subprocess spawning
+        if os.environ.get('SKIP_HOOK_EXECUTION', '').lower() == 'true':
+            # Just check that hooks exist
+            hooks_to_check = ['truncate_logs.py', 'record_execution_metrics.py', 
+                             'claude_response_validator.py', 'update_task_status.py']
+            for hook in hooks_to_check:
+                hook_path = self.hooks_dir / hook
+                if hook_path.exists():
+                    post_hook_results[hook] = 'exists'
+                    self.hooks_used['post'].append(hook)
             return post_hook_results
         
         # 1. Truncate logs if needed
@@ -552,7 +579,35 @@ class HookUsageAssessor:
         # Run post-hooks
         post_hook_results = self.run_post_hooks(file_path.name, output, env, duration)
         
+        # Save raw response to prevent hallucination
+        self.save_raw_response(file_path.name, output)
+        
         return output, pre_hook_results, post_hook_results, redis_delta, duration
+    
+    def save_raw_response(self, filename: str, output: Dict[str, Any]):
+        """Save raw response to tmp/responses/ directory for future reference."""
+        responses_dir = self.tmp_dir / "responses"
+        responses_dir.mkdir(exist_ok=True)
+        
+        # Save as JSON for easy loading
+        response_file = responses_dir / f"{filename}_{self.timestamp}.json"
+        with open(response_file, 'w') as f:
+            json.dump({
+                'filename': filename,
+                'timestamp': self.timestamp,
+                'output': output
+            }, f, indent=2)
+        
+        # Also save raw text for easy reading
+        text_file = responses_dir / f"{filename}_{self.timestamp}.txt"
+        with open(text_file, 'w') as f:
+            f.write(f"=== Raw Response: {filename} ===\n")
+            f.write(f"Timestamp: {self.timestamp}\n")
+            f.write(f"Exit Code: {output['exit_code']}\n")
+            f.write("\n--- STDOUT ---\n")
+            f.write(output['stdout'])
+            f.write("\n\n--- STDERR ---\n")
+            f.write(output['stderr'])
     
     def assess_hook_output(self, filename: str, output: Dict[str, Any],
                           expectations: Dict[str, Any], redis_delta: Dict[str, int],
@@ -688,6 +743,7 @@ class HookUsageAssessor:
             f"\n**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"\n**Report Location**: {self.report_path}",
             f"**Temp Directory**: {self.temp_dir}",
+            f"**Raw Responses Saved**: {self.tmp_dir}/responses/",
             f"\n**Total Hooks Tested**: {len(self.results)}",
             f"**Redis Available**: {'Yes' if self.redis_client else 'No'}",
             f"**Hooks Available**: {'Yes' if HOOKS_AVAILABLE else 'No'}",

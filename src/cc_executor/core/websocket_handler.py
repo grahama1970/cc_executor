@@ -56,6 +56,8 @@ import time
 import os
 import sys
 import re
+import subprocess
+from pathlib import Path
 from typing import Optional, Dict, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -172,7 +174,7 @@ class WebSocketHandler:
             
         # Initialize hook integration
         try:
-            from .hook_integration import HookIntegration
+            from ..hooks.hook_integration import HookIntegration
             self.hooks = HookIntegration()
             if self.hooks.enabled:
                 logger.info(f"Hook integration enabled with {len(self.hooks.config.get('hooks', {}))} hooks configured")
@@ -440,7 +442,34 @@ class WebSocketHandler:
             # Record start time for metrics
             start_time = time.time()
             
-            process = await self.processes.execute_command(req.command, cwd=cwd)
+            # For Claude commands, run hooks and setup environment
+            if "claude" in req.command.lower():
+                logger.info("[HOOKS] Setting up environment for Claude command")
+                
+                # 1. Run hook scripts first
+                hooks_dir = Path(__file__).parent.parent / "hooks"
+                for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
+                    hook_path = hooks_dir / hook
+                    if hook_path.exists():
+                        try:
+                            subprocess.run([sys.executable, str(hook_path)], check=True)
+                            logger.info(f"[HOOKS] {hook} completed")
+                        except subprocess.CalledProcessError as e:
+                            logger.warning(f"[HOOKS] {hook} failed: {e}")
+                
+                # 2. Setup environment variables for subprocess
+                venv_path = Path(__file__).parent.parent.parent / ".venv"
+                env = os.environ.copy()
+                if venv_path.exists():
+                    env["VIRTUAL_ENV"] = str(venv_path)
+                    env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
+                    env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent / "src")
+                    logger.info("[HOOKS] Virtual environment configured")
+                
+                # Pass environment to process manager
+                req.env = env
+            
+            process = await self.processes.execute_command(req.command, cwd=cwd, env=getattr(req, 'env', None))
             pgid = self.processes.get_process_group_id(process)
             
             # Update session
@@ -1007,7 +1036,8 @@ if __name__ == "__main__":
         
         # Build base command with MCP config
         # CRITICAL: Include --output-format stream-json for proper handling of large outputs
-        base_cmd = 'claude -p --output-format stream-json'
+        # CRITICAL: Must include --verbose when using -p with --output-format stream-json
+        base_cmd = 'claude -p --output-format stream-json --verbose'
         if mcp_servers:
             # Add MCP config and allowed tools
             allowed_tools = ' '.join([f'mcp__{server}' for server in mcp_servers])
@@ -1022,11 +1052,11 @@ if __name__ == "__main__":
         
         # Add tool-free tests for diagnostics
         tests["--no-tools"] = (
-            'claude -p --output-format stream-json "What is 2+2?" --dangerously-skip-permissions',
+            'claude -p --output-format stream-json --verbose "What is 2+2?" --dangerously-skip-permissions',
             "Minimal tool-free test"
         )
         tests["--no-tools-long"] = (
-            'claude -p --output-format stream-json "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --dangerously-skip-permissions',
+            'claude -p --output-format stream-json --verbose "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --dangerously-skip-permissions',
             "Long story without tools"
         )
         
@@ -1064,7 +1094,32 @@ if __name__ == "__main__":
             cwd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             print(f"Working directory: {cwd}")
             print(f".mcp.json exists: {os.path.exists(os.path.join(cwd, '.mcp.json'))}")
-            process = await test_process_manager.execute_command(command, cwd=cwd)
+            # Setup environment for Claude test commands
+            env = None
+            if "claude" in command.lower():
+                logger.info("[TEST] Setting up environment for Claude test")
+                
+                # Run hooks
+                hooks_dir = Path(__file__).parent.parent / "hooks"
+                for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
+                    hook_path = hooks_dir / hook
+                    if hook_path.exists():
+                        try:
+                            subprocess.run([sys.executable, str(hook_path)], check=True, cwd=cwd)
+                            logger.info(f"[TEST] {hook} completed")
+                        except subprocess.CalledProcessError as e:
+                            logger.warning(f"[TEST] {hook} failed: {e}")
+                
+                # Setup environment
+                venv_path = Path(cwd) / ".venv"
+                env = os.environ.copy()
+                if venv_path.exists():
+                    env["VIRTUAL_ENV"] = str(venv_path)
+                    env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
+                    env["PYTHONPATH"] = str(Path(cwd) / "src")
+                    logger.info("[TEST] Virtual environment configured")
+            
+            process = await test_process_manager.execute_command(command, cwd=cwd, env=env)
             
             # Collect output
             output_lines = []
@@ -1090,6 +1145,44 @@ if __name__ == "__main__":
             
             exit_code = await process.wait()
             elapsed = time.time() - start_time
+            
+            # Run post-execution hooks for Claude commands
+            if "claude" in command.lower():
+                logger.info("[TEST] Running post-execution hooks")
+                hooks_dir = Path(__file__).parent.parent / "hooks"
+                
+                # Run post-execution hooks
+                for hook in ["record_execution_metrics.py", "claude_response_validator.py"]:
+                    hook_path = hooks_dir / hook
+                    if hook_path.exists():
+                        try:
+                            # Prepare context for hooks
+                            hook_env = os.environ.copy()
+                            hook_env["EXIT_CODE"] = str(exit_code)
+                            hook_env["DURATION"] = str(elapsed)
+                            hook_env["OUTPUT_LINES"] = str(len(output_lines))
+                            
+                            # Prepare command based on hook requirements
+                            if "record_execution_metrics" in hook:
+                                # This hook expects: <output> <duration> <tokens>
+                                output_text = '\n'.join(output_lines)[:1000]  # First 1000 chars
+                                cmd = [sys.executable, str(hook_path), output_text, str(elapsed), "0"]
+                            else:
+                                cmd = [sys.executable, str(hook_path)]
+                            
+                            result = subprocess.run(
+                                cmd,
+                                env=hook_env,
+                                capture_output=True,
+                                text=True,
+                                timeout=10
+                            )
+                            if result.returncode == 0:
+                                logger.info(f"[TEST] Post-hook {hook} completed")
+                            else:
+                                logger.warning(f"[TEST] Post-hook {hook} failed: {result.stderr}")
+                        except Exception as e:
+                            logger.error(f"[TEST] Failed to run post-hook {hook}: {e}")
             
             print(f"\nCompleted in {elapsed:.1f}s")
             print(f"Exit code: {exit_code}")

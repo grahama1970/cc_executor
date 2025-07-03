@@ -10,7 +10,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.cc_executor.client.websocket_client import WebSocketClient
+from cc_executor.core.client import WebSocketClient
 from loguru import logger
 
 async def production_example():

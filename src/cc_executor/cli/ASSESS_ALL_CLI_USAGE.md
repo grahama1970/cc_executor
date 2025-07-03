@@ -81,11 +81,15 @@ class CLIUsageAssessor:
         self.cli_dir = Path(__file__).parent
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Create local tmp directory if it doesn't exist
+        # Create reports directory next to the prompt
+        self.reports_dir = self.cli_dir / "reports"
+        self.reports_dir.mkdir(exist_ok=True)
+        
+        self.report_path = self.reports_dir / f"CLI_USAGE_REPORT_{self.timestamp}.md"
+        
+        # Still use tmp for temporary execution artifacts
         self.tmp_dir = self.cli_dir / "tmp"
         self.tmp_dir.mkdir(exist_ok=True)
-        
-        self.report_path = self.tmp_dir / f"CLI_USAGE_REPORT_{self.timestamp}.md"
         self.results = []
         self.start_time = time.time()
         self.redis_available = self._check_redis()
@@ -230,7 +234,35 @@ class CLIUsageAssessor:
             except:
                 pass
         
+        # Save raw response to prevent hallucination
+        self.save_raw_response(file_path.name, output)
+        
         return output
+    
+    def save_raw_response(self, filename: str, output: Dict[str, Any]):
+        """Save raw response to tmp/responses/ directory for future reference."""
+        responses_dir = self.tmp_dir / "responses"
+        responses_dir.mkdir(exist_ok=True)
+        
+        # Save as JSON for easy loading
+        response_file = responses_dir / f"{filename}_{self.timestamp}.json"
+        with open(response_file, 'w') as f:
+            json.dump({
+                'filename': filename,
+                'timestamp': self.timestamp,
+                'output': output
+            }, f, indent=2)
+        
+        # Also save raw text for easy reading
+        text_file = responses_dir / f"{filename}_{self.timestamp}.txt"
+        with open(text_file, 'w') as f:
+            f.write(f"=== Raw Response: {filename} ===\n")
+            f.write(f"Timestamp: {self.timestamp}\n")
+            f.write(f"Exit Code: {output['exit_code']}\n")
+            f.write("\n--- STDOUT ---\n")
+            f.write(output['stdout'])
+            f.write("\n\n--- STDERR ---\n")
+            f.write(output['stderr'])
     
     def assess_output(self, filename: str, output: Dict[str, Any], 
                      expectations: Dict[str, Any]) -> Dict[str, Any]:
@@ -348,6 +380,7 @@ class CLIUsageAssessor:
             f"\n**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"\n**Report Location**: {self.report_path}",
             f"**Temp Directory**: {self.temp_dir}",
+            f"**Raw Responses Saved**: {self.tmp_dir}/responses/",
             f"\n**Total Files Tested**: {len(self.results)}",
             f"**Redis Available**: {'Yes' if self.redis_available else 'No'}",
             f"**Hooks Available**: {'Yes' if HOOKS_AVAILABLE else 'No'}",

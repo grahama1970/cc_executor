@@ -72,6 +72,36 @@ def check_venv_status() -> dict:
         
     return status
 
+def kill_existing_websocket_servers():
+    """Kill any existing websocket servers to prevent port conflicts."""
+    # Kill processes on common websocket ports
+    ports = [8003, 8004]  # Add other ports as needed
+    
+    for port in ports:
+        try:
+            # Find processes using the port
+            result = subprocess.run(
+                ['lsof', '-ti', f':{port}'],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        subprocess.run(['kill', '-9', pid], check=True)
+                        logger.info(f"Killed process {pid} on port {port}")
+                    except subprocess.CalledProcessError:
+                        logger.warning(f"Could not kill process {pid}")
+        except FileNotFoundError:
+            # lsof not available, try alternative
+            try:
+                subprocess.run(['pkill', '-f', 'websocket_handler.py'], check=False)
+                logger.info("Killed websocket_handler.py processes")
+            except FileNotFoundError:
+                logger.warning("Neither lsof nor pkill available for cleanup")
+
 def setup_environment_vars(venv_path: str) -> dict:
     """Setup environment variables for virtual environment."""
     env_updates = {}
@@ -135,6 +165,9 @@ def create_activation_wrapper(command: str, venv_path: str) -> str:
 
 def main():
     """Main hook entry point."""
+    # Kill any existing websocket servers first
+    kill_existing_websocket_servers()
+    
     # Get command from environment
     command = os.environ.get('CLAUDE_COMMAND', '')
     context = os.environ.get('CLAUDE_CONTEXT', '')

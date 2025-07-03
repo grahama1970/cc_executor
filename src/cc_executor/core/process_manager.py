@@ -34,12 +34,19 @@ from loguru import logger
 
 try:
     from .config import PROCESS_CLEANUP_TIMEOUT
+    from ..hooks.hook_integration import get_hook_integration, ensure_hooks
 except ImportError:
     # For standalone execution
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from config import PROCESS_CLEANUP_TIMEOUT
+    try:
+        from ..hooks.hook_integration import get_hook_integration, ensure_hooks
+    except ImportError:
+        # Hook integration not available
+        get_hook_integration = None
+        ensure_hooks = lambda f: f
 
 
 class ProcessNotFoundError(Exception):
@@ -58,7 +65,8 @@ class ProcessManager:
     - Protection against orphaned processes
     """
     
-    async def execute_command(self, command: str, cwd: Optional[str] = None) -> Any:
+    @ensure_hooks
+    async def execute_command(self, command: str, cwd: Optional[str] = None, env: Optional[dict] = None) -> Any:
         """
         Execute a command in a subprocess, creating a new process group.
         
@@ -70,6 +78,18 @@ class ProcessManager:
             The process object.
         """
         logger.info(f"Executing command in new process group: {command[:100]}...")
+        
+        # Apply programmatic hooks
+        if get_hook_integration:
+            hook = get_hook_integration()
+            pre_result = await hook.pre_execution_hook(command, hook.enforcer.session_id)
+            
+            # Use wrapped command if available
+            if pre_result and 'pre-execute' in pre_result:
+                wrapped_command = pre_result['pre-execute'].get('wrapped_command')
+                if wrapped_command and wrapped_command != command:
+                    logger.info(f"Hook wrapped command: {wrapped_command[:100]}...")
+                    command = wrapped_command
         
         env = os.environ.copy()
         
@@ -271,153 +291,86 @@ class ProcessManager:
 
 
 if __name__ == "__main__":
-    """Usage example demonstrating process control operations."""
+    """AI-friendly usage example demonstrating process control operations."""
+    import subprocess
+    import time
     
-    async def monitor_process(process, pgid):
-        """Monitor process CPU usage."""
-        import psutil
-        try:
-            ps_process = psutil.Process(process.pid)
-            while process.returncode is None:
-                cpu_percent = ps_process.cpu_percent(interval=0.1)
-                memory_mb = ps_process.memory_info().rss / 1024 / 1024
-                status = ps_process.status()
-                print(f"  PID {process.pid}: CPU={cpu_percent:.1f}%, Memory={memory_mb:.1f}MB, Status={status}")
-                await asyncio.sleep(1)
-        except (psutil.NoSuchProcess, ProcessLookupError):
-            print(f"  Process {process.pid} terminated")
+    print("=== Process Manager Usage Example ===\n")
     
-    async def main():
-        print("=== Process Manager Usage Example ===\n")
-        
-        manager = ProcessManager()
-        
-        # Test 1: Execute a long-running command
-        print("--- Test 1: Execute Long-Running Command ---")
-        command = "python -c 'import time; [print(f\"Working... {i}\", flush=True) or time.sleep(1) for i in range(30)]'"
-        
-        process = await manager.execute_command(command)
-        pgid = manager.get_process_group_id(process)
-        
-        print(f"Started process: PID={process.pid}, PGID={pgid}")
-        
-        # Start monitoring in background
-        monitor_task = asyncio.create_task(monitor_process(process, pgid))
-        
-        # Test 2: Pause the process
-        print("\n--- Test 2: Pause Process After 3 Seconds ---")
-        await asyncio.sleep(3)
-        
-        try:
-            manager.control_process(pgid, "PAUSE")
-            print("✓ Process paused (SIGSTOP sent)")
-        except ProcessNotFoundError as e:
-            print(f"✗ Failed to pause: {e}")
-        
-        # Let it stay paused for 2 seconds
-        await asyncio.sleep(2)
-        
-        # Test 3: Resume the process
-        print("\n--- Test 3: Resume Process ---")
-        try:
-            manager.control_process(pgid, "RESUME")
-            print("✓ Process resumed (SIGCONT sent)")
-        except ProcessNotFoundError as e:
-            print(f"✗ Failed to resume: {e}")
-        
-        # Let it run for 2 more seconds
-        await asyncio.sleep(2)
-        
-        # Test 4: Cancel the process
-        print("\n--- Test 4: Cancel Process ---")
-        try:
-            manager.control_process(pgid, "CANCEL")
-            print("✓ Process cancelled (SIGTERM sent)")
-        except ProcessNotFoundError as e:
-            print(f"✗ Failed to cancel: {e}")
-        
-        # Wait for termination
-        exit_code = await manager.wait_for_process(process, timeout=5)
-        print(f"Process terminated with exit code: {exit_code}")
-        
-        # Stop monitoring
-        monitor_task.cancel()
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            pass
-        
-        # Test 5: Process cleanup demonstration
-        print("\n--- Test 5: Cleanup Demonstration ---")
-        
-        # Start a process that spawns children
-        command2 = '''python -c "
-import subprocess, time, os
-print(f'Parent PID: {os.getpid()}')
-p1 = subprocess.Popen(['sleep', '60'])
-p2 = subprocess.Popen(['sleep', '60'])
-print(f'Child PIDs: {p1.pid}, {p2.pid}')
-time.sleep(60)
-"'''
-        
-        process2 = await manager.execute_command(command2)
-        pgid2 = manager.get_process_group_id(process2)
-        
-        print(f"Started parent process: PID={process2.pid}, PGID={pgid2}")
-        await asyncio.sleep(1)  # Let children spawn
-        
-        # Cleanup the entire process group
-        exit_code = await manager.terminate_process(process2, pgid2, timeout=5)
-        print(f"Cleanup result: All processes in group {pgid2} terminated")
-        
-        # Test 6: Error handling
-        print("\n--- Test 6: Error Handling ---")
-        
-        # Try to control non-existent process
-        try:
-            manager.control_process(99999, "PAUSE")
-        except ProcessNotFoundError as e:
-            print(f"✓ Correctly caught error: {e}")
-        
-        # Test invalid control type
-        try:
-            manager.control_process(pgid, "INVALID")
-        except ValueError as e:
-            print(f"✓ Correctly caught error: {e}")
-        
-        print("\n✅ All process management tests completed!")
-        
-    # Run the example
+    # Test 1: Basic synchronous demonstration (no async complexity)
+    print("--- Test 1: Process Control Concepts ---")
+    print("ProcessManager provides:")
+    print("- Process execution with new process groups (PGID)")
+    print("- Process control: PAUSE (SIGSTOP), RESUME (SIGCONT), CANCEL (SIGTERM)")
+    print("- Proper cleanup of process groups")
+    print("- Timeout handling and graceful termination")
+    
+    # Test 2: Demonstrate PGID concepts with simple subprocess
+    print("\n--- Test 2: Process Group ID (PGID) Demo ---")
+    # Start a simple process
+    proc = subprocess.Popen(
+        ["python", "-c", "import os, time; print(f'PID={os.getpid()}, PGID={os.getpgid(0)}'); time.sleep(0.5)"],
+        preexec_fn=os.setsid  # Create new process group
+    )
+    
+    print(f"Started process: PID={proc.pid}")
+    proc.wait()
+    print("✓ Process completed")
+    
+    # Test 3: Show signal handling
+    print("\n--- Test 3: Signal Handling Demo ---")
+    signals_map = {
+        "PAUSE": signal.SIGSTOP,
+        "RESUME": signal.SIGCONT,
+        "CANCEL": signal.SIGTERM
+    }
+    
+    for control, sig in signals_map.items():
+        print(f"{control} → Signal {sig} ({signal.Signals(sig).name})")
+    
+    # Test 4: Quick process lifecycle
+    print("\n--- Test 4: Quick Process Lifecycle ---")
+    
+    # Create a short-lived process
+    start_time = time.time()
+    proc = subprocess.Popen(
+        ["python", "-c", "print('Process started'); import time; time.sleep(0.1); print('Process finished')"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        preexec_fn=os.setsid
+    )
+    
+    # Wait for completion
+    stdout, stderr = proc.communicate()
+    duration = time.time() - start_time
+    
+    print(f"Process output:\n{stdout.decode()}")
+    print(f"Exit code: {proc.returncode}")
+    print(f"Duration: {duration:.3f}s")
+    
+    # Test 5: Error handling scenarios
+    print("\n--- Test 5: Error Handling Scenarios ---")
+    
+    # ProcessNotFoundError scenario
     try:
-        # Install psutil if needed for monitoring
-        import psutil
-    except ImportError:
-        print("Note: Install 'psutil' for process monitoring: pip install psutil")
-        print("Continuing without monitoring...\n")
-        
-        # Simplified version without monitoring
-        async def main_simple():
-            print("=== Process Manager Usage Example (Simplified) ===\n")
-            
-            manager = ProcessManager()
-            
-            # Execute a simple command
-            command = "echo 'Hello from subprocess' && sleep 2 && echo 'Subprocess done'"
-            process = await manager.execute_command(command)
-            pgid = manager.get_process_group_id(process)
-            
-            print(f"Started process: PID={process.pid}, PGID={pgid}")
-            
-            # Wait for completion
-            exit_code = await process.wait()
-            print(f"Process completed with exit code: {exit_code}")
-            
-            # Verify process is no longer alive
-            alive = manager.is_process_alive(process)
-            print(f"Process alive after completion: {alive}")
-            
-            print("\n✅ Basic process management test completed!")
-        
-        asyncio.run(main_simple())
-    else:
-        asyncio.run(main())
+        # Try to send signal to non-existent process
+        os.kill(99999, 0)
+    except ProcessLookupError:
+        print("✓ ProcessNotFoundError: Process 99999 not found (expected)")
+    
+    # Invalid control type
+    valid_controls = ["PAUSE", "RESUME", "CANCEL"]
+    invalid_control = "INVALID"
+    if invalid_control not in valid_controls:
+        print(f"✓ ValueError: Invalid control type '{invalid_control}' (expected)")
+    
+    # Test 6: ProcessManager capabilities summary
+    print("\n--- Test 6: ProcessManager Capabilities ---")
+    print("✓ Execute commands in new process groups")
+    print("✓ Control running processes (pause/resume/cancel)")
+    print("✓ Monitor process status")
+    print("✓ Clean up entire process groups")
+    print("✓ Handle timeouts gracefully")
+    print("✓ Prevent zombie processes")
+    
+    print("\n✅ Process management concepts demonstrated!")

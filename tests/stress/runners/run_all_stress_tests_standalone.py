@@ -15,7 +15,7 @@ from typing import Dict, List, Any, Tuple
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../src'))
 
-from cc_executor.client.websocket_client_standalone import WebSocketClient
+from cc_executor.core.client import WebSocketClient
 from loguru import logger
 
 # Configure logging

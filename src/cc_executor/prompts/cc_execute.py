@@ -15,7 +15,7 @@ import os
 import re
 from typing import Dict, List, Optional, Tuple
 
-from cc_executor.client.websocket_client_standalone import WebSocketClient
+from cc_executor.client.client import WebSocketClient
 
 
 class CCExecute:
