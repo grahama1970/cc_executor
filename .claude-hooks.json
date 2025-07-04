@@ -1,4 +1,6 @@
 {
+  "_comment": "This file is for reference only. Claude CLI hooks are broken in the official implementation.",
+  "_note": "CC Executor provides working hook functionality - see src/cc_executor/hooks/",
   "hooks": {
     "PreToolUse": [
       {

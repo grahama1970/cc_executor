@@ -217,6 +217,49 @@ flowchart LR
 
 ## Installation
 
+CC Executor can be installed locally or deployed via Docker. Choose the method that best suits your needs.
+
+### Option 1: Docker Deployment (Experimental)
+
+**⚠️ EXPERIMENTAL**: Docker support is newly added and still being tested. Use for evaluation purposes.
+
+Docker provides isolation, easier deployment, and better security for running CC Executor as a service.
+
+```bash
+# Clone the repository
+git clone https://github.com/grahama1970/cc_executor.git
+cd cc_executor/deployment
+
+# IMPORTANT: Authenticate Claude on your host machine first
+# Claude Code uses web authentication, not API keys
+claude /login  # Follow the browser authentication flow
+
+# Start services with Docker Compose
+docker compose up -d
+
+# Verify services are running
+docker compose ps
+
+# Test the deployment
+curl http://localhost:8001/health | jq .
+```
+
+**Docker Features:**
+- **Isolated execution environment** - Commands run in containers
+- **FastAPI REST wrapper** - HTTP endpoints at port 8001
+- **Redis for session state** - Port 6380 (to avoid conflicts)
+- **Health checks** - Automatic container monitoring
+- **Volume mounts** - Persists logs and Claude authentication
+
+**Docker Endpoints:**
+- `http://localhost:8001` - REST API (FastAPI)
+- `ws://localhost:8003/ws` - WebSocket (direct)
+- `http://localhost:6380` - Redis (if needed)
+
+### Option 2: Local Installation (Recommended)
+
+Install CC Executor directly in your Python environment. This is the most tested and reliable method.
+
 ```bash
 # Clone the repository
 git clone https://github.com/grahama1970/cc_executor.git
@@ -227,6 +270,135 @@ uv sync
 
 # Install for development
 uv pip install -e .
+
+# Start the WebSocket server
+cc-executor server start
+```
+
+### Option 3: Add to Your Project (pyproject.toml)
+
+Include CC Executor as a dependency in your own project:
+
+```toml
+# In your pyproject.toml
+[project]
+dependencies = [
+    "cc-executor @ git+https://github.com/grahama1970/cc_executor.git",
+    # ... other dependencies
+]
+
+# Or install directly
+pip install git+https://github.com/grahama1970/cc_executor.git
+```
+
+Then use programmatically:
+
+```python
+from cc_executor import cc_execute_task_list
+
+# Use in your code
+results = cc_execute_task_list([
+    "Task 1: Create API endpoints",
+    "Task 2: Add authentication",
+    "Task 3: Write tests"
+])
+```
+
+### Quick Comparison
+
+| Feature | Docker Deployment | Local Installation |
+|---------|------------------|-------------------|
+| Isolation | ✅ Full container isolation | ❌ Runs in your environment |
+| Setup complexity | Medium (needs Docker) | Simple (just Python) |
+| Resource usage | Higher (containers) | Lower (native) |
+| Port management | Managed by Docker | Manual configuration |
+| Production ready | ⚠️ Experimental | ⚠️ Development only |
+| REST API wrapper | ✅ Included (port 8001) | ❌ WebSocket only |
+| Auto-restart | ✅ Via restart policies | ❌ Manual |
+
+### Docker Requirements
+
+- **Claude authentication**: Must authenticate Claude on host first (`claude /login`)
+- **Docker & Docker Compose**: Version 20.10+ recommended
+- **Ports**: 8001 (API), 8003 (WebSocket), 6380 (Redis)
+- **Volume**: `~/.claude` directory mounted for authentication
+
+### Authentication for New Users
+
+**⚠️ IMPORTANT**: Claude Code requires web browser authentication. There is NO programmatic way to authenticate.
+
+**For Docker Users:**
+1. **You MUST authenticate on your host machine first:**
+   ```bash
+   # On your host machine (not in Docker)
+   claude /login
+   # This opens a browser for authentication
+   ```
+
+2. **The Docker container reuses your host authentication** by mounting `~/.claude`:
+   ```yaml
+   volumes:
+     - ~/.claude:/home/appuser/.claude
+   ```
+
+3. **No API endpoint for authentication exists** because Claude /login requires interactive browser access
+
+**For New Users Without Claude CLI:**
+1. Install Claude Code on your host first:
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   ```
+
+2. Authenticate once:
+   ```bash
+   claude /login
+   ```
+
+3. Then use Docker or local installation
+
+**Note**: The `/auth/claude` API endpoint exists but doesn't work because Claude's authentication cannot be done programmatically. This is a limitation of Claude Code's web-based authentication system.
+
+### Docker Troubleshooting
+
+**Authentication Issues:**
+```bash
+# If Claude commands fail with authentication errors:
+# 1. Ensure you're authenticated on the host
+claude /login  # Complete browser auth
+
+# 2. Verify credentials exist
+ls -la ~/.claude/.credentials.json
+
+# 3. Check volume mount in container
+docker exec cc_executor_websocket ls -la /home/appuser/.claude/
+```
+
+**Port Conflicts:**
+```bash
+# If ports are already in use, modify docker-compose.yml:
+# Change: "8001:8000" to "8081:8000" for API
+# Change: "8003:8003" to "8013:8003" for WebSocket
+# Change: "6380:6379" to "6381:6379" for Redis
+```
+
+**View Logs:**
+```bash
+# Check all services
+docker compose logs -f
+
+# Check specific service
+docker compose logs websocket -f
+docker compose logs api -f
+```
+
+**Restart Services:**
+```bash
+# Full restart
+docker compose down
+docker compose up -d
+
+# Restart specific service
+docker compose restart websocket
 ```
 
 ## When to Use cc_execute vs Direct Execution
@@ -332,7 +504,51 @@ with benchmarks and real-world examples.'"
 
 ## Usage
 
-### Command Line Interface
+### Docker Usage (REST API) - Experimental
+
+**⚠️ EXPERIMENTAL**: Docker deployment is still being tested and refined.
+
+When using Docker deployment, interact via the FastAPI REST endpoints:
+
+```bash
+# Health check
+curl http://localhost:8001/health | jq .
+
+# Check authentication status (NEW!)
+curl http://localhost:8001/auth/status | jq .
+# Returns either:
+# - {"status": "authenticated", "message": "Claude Code is authenticated and ready to use"}
+# - {"status": "not_authenticated", ...} with setup instructions
+
+# Execute a task list
+curl -X POST http://localhost:8001/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tasks": [
+      "Create a Python function to calculate fibonacci numbers",
+      "Add comprehensive tests for the function",
+      "Optimize the function for performance"
+    ],
+    "timeout_per_task": 60
+  }' | jq .
+
+# Check execution status
+curl http://localhost:8001/executions/{execution_id}/status | jq .
+
+# Get full results
+curl http://localhost:8001/executions/{execution_id}/results | jq .
+```
+
+**Docker API Endpoints:**
+- `POST /execute` - Execute a task list
+- `GET /executions/{id}/status` - Check execution status
+- `GET /executions/{id}/results` - Get execution results
+- `DELETE /executions/{id}` - Cancel execution
+- `GET /health` - Health check
+- `GET /auth/status` - Check authentication status and get setup instructions
+- `POST /auth/claude` - ⚠️ Deprecated (authentication requires host browser)
+
+### Command Line Interface (Local Installation)
 
 CC Executor provides a comprehensive CLI with the following commands:
 
@@ -361,16 +577,20 @@ cc-executor init
 
 ### Programmatic Usage
 
+For both Docker and local installations, you can use the Python client:
+
 ```python
-from cc_executor.core.client import WebSocketClient
+from cc_executor.client.client import WebSocketClient
 import asyncio
 
 async def main():
-    client = WebSocketClient()
+    # For Docker: use host="localhost" (default)
+    # For local: use host="localhost" (default)
+    client = WebSocketClient(host="localhost", port=8003)
     
     # Execute a command
     result = await client.execute_command(
-        command='echo "Hello from Python!"',
+        command='claude -p "What is 2+2?"',
         timeout=30
     )
     
@@ -380,6 +600,19 @@ async def main():
         print(f"Error: {result['error']}")
 
 asyncio.run(main())
+```
+
+### Docker vs Local Client Connection
+
+```python
+# Docker deployment (through internal network)
+client = WebSocketClient(host="websocket", port=8003)  # If inside Docker network
+
+# Docker deployment (from host)
+client = WebSocketClient(host="localhost", port=8003)  # Default
+
+# Local installation
+client = WebSocketClient(host="localhost", port=8003)  # Same as Docker from host
 ```
 
 ## Orchestration and Tool Integration

@@ -79,16 +79,22 @@ logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <leve
 # Navigate from websocket_handler.py -> core -> cc_executor -> src -> experiments -> cc_executor root
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 log_dir = os.path.join(project_root, "logs")
-os.makedirs(log_dir, exist_ok=True)  # Ensure log directory exists
-logger.add(
-    f"{log_dir}/websocket_handler_{{time}}.log",
-    level="DEBUG",
-    rotation="10 MB",
-    retention=5,  # Keep 5 rotated files
-    enqueue=True,  # Make logging non-blocking
-    backtrace=True,
-    diagnose=True
-)
+
+# Try to create log directory and add file handler
+# If permission denied (e.g., in Docker), skip file logging
+try:
+    os.makedirs(log_dir, exist_ok=True)  # Ensure log directory exists
+    logger.add(
+        f"{log_dir}/websocket_handler_{{time}}.log",
+        level="DEBUG",
+        rotation="10 MB",
+        retention=5,  # Keep 5 rotated files
+        enqueue=True,  # Make logging non-blocking
+        backtrace=True,
+        diagnose=True
+    )
+except (PermissionError, OSError) as e:
+    logger.warning(f"Cannot create log file in {log_dir}: {e}. File logging disabled.")
 
 try:
     from .config import (
@@ -477,11 +483,10 @@ class WebSocketHandler:
                     env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
                     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent / "src")
                     logger.info("[HOOKS] Virtual environment configured")
-                
-                # Pass environment to process manager
-                req.env = env
+            else:
+                env = None
             
-            process = await self.processes.execute_command(req.command, cwd=cwd, env=getattr(req, 'env', None))
+            process = await self.processes.execute_command(req.command, cwd=cwd, env=env)
             pgid = self.processes.get_process_group_id(process)
             
             # Update session
@@ -1005,6 +1010,12 @@ process_manager = ProcessManager()
 stream_handler = StreamHandler()
 handler = WebSocketHandler(session_manager, process_manager, stream_handler)
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker/Kubernetes."""
+    return {"status": "healthy", "service": "cc-executor-websocket"}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     session_id = str(uuid.uuid4())
@@ -1200,7 +1211,7 @@ if __name__ == "__main__":
     VSCode Debug:
         1. Set breakpoints anywhere in this file
         2. Press F5 (or Run > Start Debugging)
-        3. The server will start on ws://localhost:8004/ws
+        3. The server will start on ws://localhost:8003/ws (or DEFAULT_PORT if set)
     """
     # Add the parent directory to sys.path to enable imports
     import sys
@@ -1261,8 +1272,9 @@ if __name__ == "__main__":
             print("• Stream: {\"type\": \"stream\", \"stream\": \"stdout\", \"data\": \"...\"}")
             
             print("\n--- Server Configuration ---")
-            print("Default port: 8004")
-            print("Endpoint: ws://localhost:8004/ws")
+            port = int(os.environ.get('DEFAULT_PORT', 8003))
+            print(f"Default port: {port}")
+            print(f"Endpoint: ws://localhost:{port}/ws")
             print("Ping interval: 20s")
             print("Max sessions: 10 (configurable)")
             
@@ -1280,7 +1292,8 @@ if __name__ == "__main__":
         print("=" * 60)
         print("WebSocket Handler Server")
         print("=" * 60)
-        print("Starting server on ws://localhost:8004/ws")
+        port = int(os.environ.get('DEFAULT_PORT', 8003))
+        print(f"Starting server on ws://localhost:{port}/ws")
         print()
         print("Test with Claude commands (MCP tools will be loaded if available):")
         print('  claude -p --mcp-config .mcp.json \\')
@@ -1358,7 +1371,7 @@ if __name__ == "__main__":
         config = uvicorn.Config(
             app,
             host="0.0.0.0",
-            port=8004,
+            port=int(os.environ.get('DEFAULT_PORT', 8003)),
             log_level=os.environ.get('LOG_LEVEL', 'info').lower(),
             ws_ping_interval=20,
             ws_ping_timeout=20,

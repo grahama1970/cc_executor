@@ -1,0 +1,32 @@
+# FastAPI wrapper for CC Executor
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal dependencies for API
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY pyproject.toml setup.py MANIFEST.in README.md ./
+COPY src/ ./src/
+
+# Install CC Executor and API dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir fastapi uvicorn httpx
+
+# Create non-root user
+RUN useradd -m -u 1000 apiuser
+USER apiuser
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run API server
+CMD ["python", "-m", "cc_executor.api.main"]

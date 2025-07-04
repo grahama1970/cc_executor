@@ -1,0 +1,102 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cc_executor_redis
+    ports:
+    - 6379:6379
+    volumes:
+    - redis_data:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+  websocket:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: cc_executor_websocket
+    ports:
+    - 8003:8003
+    environment:
+      LOG_LEVEL: DEBUG
+      DEFAULT_PORT: '8003'
+      MAX_SESSIONS: ${MAX_SESSIONS:-100}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-3600}
+      STREAM_TIMEOUT: ${STREAM_TIMEOUT:-600}
+      CC_EXECUTOR_SHELL: ${CC_EXECUTOR_SHELL:-bash}
+      PYTHONUNBUFFERED: '1'
+      MAX_BUFFER_SIZE: ${MAX_BUFFER_SIZE:-1048576}
+      MAX_BUFFER_LINES: ${MAX_BUFFER_LINES:-10000}
+      ALLOWED_COMMANDS: ${ALLOWED_COMMANDS:-bash,claude,claude-code,python,node,npm,git,ls,cat,echo,pwd}
+      REDIS_URL: redis://redis:6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      DEBUG: 'true'
+    volumes:
+    - ./logs:/app/logs
+    - ./data:/app/data
+    - ~/.claude:/home/appuser/.claude:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:8003/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.api
+    container_name: cc_executor_api
+    depends_on:
+      websocket:
+        condition: service_healthy
+    ports:
+    - 8000:8000
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      WEBSOCKET_URL: ws://websocket:8003/ws/mcp
+    restart: unless-stopped
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:8000/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+networks:
+  default:
+    name: cc_executor_network
+volumes:
+  redis_data:
+    driver: local
