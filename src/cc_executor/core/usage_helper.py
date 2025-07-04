@@ -82,7 +82,26 @@ class OutputCapture:
         with open(response_file, 'w') as f:
             json.dump(response_data, f, indent=4, ensure_ascii=False)
         
-        print(f"\n💾 Response saved: {response_file.relative_to(Path.cwd())}")
+        # Standardize path display: try project-relative, then cwd-relative, then absolute
+        try:
+            # First try to find project root (where .git or pyproject.toml exists)
+            current = response_file.parent
+            project_root = None
+            while current != current.parent:
+                if (current / '.git').exists() or (current / 'pyproject.toml').exists():
+                    project_root = current
+                    break
+                current = current.parent
+            
+            if project_root:
+                display_path = response_file.relative_to(project_root)
+            else:
+                display_path = response_file.relative_to(Path.cwd())
+        except ValueError:
+            # If not relative to project or cwd, show absolute path
+            display_path = response_file
+        
+        print(f"\n💾 Response saved: {display_path}")
     
     def get_output(self) -> str:
         """Get the captured output so far."""

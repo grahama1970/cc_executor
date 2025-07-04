@@ -34,6 +34,45 @@ if TYPE_CHECKING:
     import asyncio
 
 
+# Error Types
+
+class TimeoutError(Exception):
+    """Raised when an operation times out."""
+    def __init__(self, message: str, duration: Optional[float] = None):
+        super().__init__(message)
+        self.duration = duration
+
+
+class RateLimitError(Exception):
+    """Raised when rate limit is exceeded."""
+    def __init__(self, message: str, retry_after: Optional[int] = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class ProcessNotFoundError(Exception):
+    """Raised when a process cannot be found."""
+    def __init__(self, message: str, pid: Optional[int] = None, pgid: Optional[int] = None):
+        super().__init__(message)
+        self.pid = pid
+        self.pgid = pgid
+
+
+class CommandNotAllowedError(Exception):
+    """Raised when a command is not allowed by security policy."""
+    def __init__(self, message: str, command: Optional[str] = None):
+        super().__init__(message)
+        self.command = command
+
+
+class SessionLimitError(Exception):
+    """Raised when session limit is exceeded."""
+    def __init__(self, message: str, current_sessions: Optional[int] = None, max_sessions: Optional[int] = None):
+        super().__init__(message)
+        self.current_sessions = current_sessions
+        self.max_sessions = max_sessions
+
+
 # Request Models
 
 class JSONRPCRequest(BaseModel):
@@ -250,3 +289,37 @@ if __name__ == "__main__":
             print(f"{output.type}: {output.data.strip()}{truncated}")
         
         print("\n✅ All model tests completed!")
+        
+        print("\n=== Testing Structured Error Types ===")
+        
+        # Test TimeoutError
+        try:
+            raise TimeoutError("Operation timed out after 30 seconds", duration=30.0)
+        except TimeoutError as e:
+            print(f"TimeoutError: {e}, duration={e.duration}s")
+        
+        # Test RateLimitError
+        try:
+            raise RateLimitError("Rate limit exceeded", retry_after=60)
+        except RateLimitError as e:
+            print(f"RateLimitError: {e}, retry_after={e.retry_after}s")
+        
+        # Test ProcessNotFoundError
+        try:
+            raise ProcessNotFoundError("Process not found", pid=12345, pgid=67890)
+        except ProcessNotFoundError as e:
+            print(f"ProcessNotFoundError: {e}, pid={e.pid}, pgid={e.pgid}")
+        
+        # Test CommandNotAllowedError
+        try:
+            raise CommandNotAllowedError("Command not allowed", command="rm -rf /")
+        except CommandNotAllowedError as e:
+            print(f"CommandNotAllowedError: {e}, command='{e.command}'")
+        
+        # Test SessionLimitError
+        try:
+            raise SessionLimitError("Too many sessions", current_sessions=10, max_sessions=10)
+        except SessionLimitError as e:
+            print(f"SessionLimitError: {e}, current={e.current_sessions}, max={e.max_sessions}")
+        
+        print("\n✅ All error type tests completed!")

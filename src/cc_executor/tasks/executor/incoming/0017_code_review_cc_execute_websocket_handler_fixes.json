@@ -1,0 +1,53 @@
+{
+  "title": "Fixes derived from code review of cc_execute & websocket_handler integration (018)",
+  "tasks": [
+    {
+      "id": "17-01",
+      "description": "Implement retry logic for transient WebSocket or subprocess failures in websocket_handler._handle_execute and execute_task_via_websocket, using exponential backoff (max 3 attempts)",
+      "component": "websocket_handler.py",
+      "priority": "high"
+    },
+    {
+      "id": "17-02",
+      "description": "Add rate-limit handling for Claude API calls in cc_execute_utils.execute_task_via_websocket: detect 429 responses and wait/retry respecting Retry-After header",
+      "component": "cc_execute_utils.py",
+      "priority": "high"
+    },
+    {
+      "id": "17-03",
+      "description": "Make execution timeout configurable in core/config.py and allow override via CLI flag and cc_execute_utils parameter",
+      "component": "config.py",
+      "priority": "medium"
+    },
+    {
+      "id": "17-04",
+      "description": "Evaluate connection pooling: prototype reusable ProcessManager/WebSocket session to reduce subprocess overhead for high task volumes",
+      "component": "process_manager.py",
+      "priority": "low"
+    },
+    {
+      "id": "17-05",
+      "description": "Clean up or suppress import-related runtime warnings when executing modules directly by refining __main__ guards or logging filters",
+      "component": "multiple",
+      "priority": "medium"
+    },
+    {
+      "id": "17-06",
+      "description": "Introduce structured error types (e.g., TimeoutError, RateLimitError) in models.py and propagate them through JSON-RPC responses",
+      "component": "models.py",
+      "priority": "medium"
+    },
+    {
+      "id": "17-07",
+      "description": "Add integration test covering cc_execute_utils → websocket_handler full flow with mocked Claude subprocess to ensure end-to-end reliability",
+      "component": "tests/integration",
+      "priority": "high"
+    },
+    {
+      "id": "17-08",
+      "description": "Document default tool selection strategy and add sensible fallbacks in cc_execute_utils when no tools list provided",
+      "component": "cc_execute_utils.py",
+      "priority": "low"
+    }
+  ]
+}

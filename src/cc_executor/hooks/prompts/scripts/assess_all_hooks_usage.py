@@ -37,11 +37,12 @@ class HookUsageAssessor:
     """Run and assess all hook usage functions with full hook chain."""
     
     def __init__(self):
-        self.hooks_dir = Path(__file__).parent
+        # Hooks directory is at src/cc_executor/hooks
+        self.hooks_dir = Path(__file__).parent.parent.parent  # Go up to hooks/
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Create reports directory next to the prompt
-        self.reports_dir = self.hooks_dir / "reports"
+        # Create reports directory in prompts/reports
+        self.reports_dir = Path(__file__).parent.parent / "reports"
         self.reports_dir.mkdir(exist_ok=True)
         
         self.report_path = self.reports_dir / f"HOOKS_USAGE_REPORT_{self.timestamp}.md"

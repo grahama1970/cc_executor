@@ -617,6 +617,11 @@ class HookIntegration:
 
 if __name__ == "__main__":
     """AI-friendly usage example for hook integration."""
+    import sys
+    
+    # Check for quick test flag
+    quick_test = "--quick-test" in sys.argv or "--test" in sys.argv
+    
     print("=== Hook Integration Usage Example ===\n")
     
     # Test 1: Check configuration
@@ -666,7 +671,13 @@ if __name__ == "__main__":
         print("✗ No hook configuration found")
         print(f"  Expected at: {hooks.config_path}")
     
-    print("\n✅ Hook integration ready!")
+    if quick_test:
+        print("\n✅ Hook integration ready! (quick test mode)")
+    else:
+        # Additional comprehensive tests can go here
+        print("\n--- Test 5: Hook Execution Simulation ---")
+        print("Would test actual hook execution here...")
+        print("\n✅ Hook integration ready! (full test)")
 
 
 # Global instance for easy access

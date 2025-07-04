@@ -239,7 +239,16 @@ if __name__ == "__main__":
     
     # Usage example for testing
     if "--test" in sys.argv:
-        print("\n=== Environment Setup Hook Test ===\n")
+        # Import OutputCapture for consistent JSON output
+        project_root = Path(__file__).parent.parent.parent.parent
+        sys.path.insert(0, str(project_root / "src"))
+        from cc_executor.core.usage_helper import OutputCapture
+        
+        with OutputCapture(__file__) as capture:
+            # Override module name to be correct
+            capture.module_name = "cc_executor.hooks.setup_environment"
+            
+            print("\n=== Environment Setup Hook Test ===\n")
         
         # Test venv detection
         print("1. Testing virtual environment detection:\n")

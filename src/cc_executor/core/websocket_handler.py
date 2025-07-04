@@ -59,12 +59,18 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from loguru import logger
+import uvicorn
 
 # Configure logging for production use
 # Remove default logger to avoid duplicate logs
 logger.remove()
+
+# Suppress import warnings when running directly
+if __name__ == "__main__":
+    import warnings
+    warnings.filterwarnings("ignore", category=ImportWarning)
 
 # Console logging (INFO and above)
 logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>", level="INFO")
@@ -90,15 +96,17 @@ try:
         ERROR_METHOD_NOT_FOUND, ERROR_INVALID_PARAMS,
         ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED,
         ERROR_PROCESS_NOT_FOUND, ERROR_INTERNAL_ERROR,
-        STREAM_TIMEOUT
+        STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
     )
     from .models import (
         JSONRPCRequest, JSONRPCResponse, JSONRPCError,
         ExecuteRequest, ControlRequest, StatusUpdate,
-        StreamOutput, ConnectionInfo, validate_command
+        StreamOutput, ConnectionInfo, validate_command,
+        TimeoutError, RateLimitError, ProcessNotFoundError,
+        CommandNotAllowedError, SessionLimitError
     )
     from .session_manager import SessionManager
-    from .process_manager import ProcessManager, ProcessNotFoundError
+    from .process_manager import ProcessManager
     from .stream_handler import StreamHandler
     from .resource_monitor import adjust_timeout
 except ImportError:
@@ -111,15 +119,17 @@ except ImportError:
         ERROR_METHOD_NOT_FOUND, ERROR_INVALID_PARAMS,
         ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED,
         ERROR_PROCESS_NOT_FOUND, ERROR_INTERNAL_ERROR,
-        STREAM_TIMEOUT
+        STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
     )
     from models import (
         JSONRPCRequest, JSONRPCResponse, JSONRPCError,
         ExecuteRequest, ControlRequest, StatusUpdate,
-        StreamOutput, ConnectionInfo, validate_command
+        StreamOutput, ConnectionInfo, validate_command,
+        TimeoutError, RateLimitError, ProcessNotFoundError,
+        CommandNotAllowedError, SessionLimitError
     )
     from session_manager import SessionManager
-    from process_manager import ProcessManager, ProcessNotFoundError
+    from process_manager import ProcessManager
     from stream_handler import StreamHandler
     from resource_monitor import adjust_timeout
 
@@ -169,7 +179,8 @@ class WebSocketHandler:
             self.redis_timer = RedisTaskTimer()
             logger.info("Redis task timer initialized for intelligent timeout estimation")
         except Exception as e:
-            logger.warning(f"Could not initialize Redis task timer: {e}. Using fallback timeouts.")
+            # Only log as debug when imports fail - these are optional components
+            logger.debug(f"Could not initialize Redis task timer: {e}. Using fallback timeouts.")
             self.redis_timer = None
             
         # Initialize hook integration
@@ -179,7 +190,8 @@ class WebSocketHandler:
             if self.hooks.enabled:
                 logger.info(f"Hook integration enabled with {len(self.hooks.config.get('hooks', {}))} hooks configured")
         except Exception as e:
-            logger.warning(f"Could not initialize hook integration: {e}")
+            # Only log as debug when imports fail - these are optional components
+            logger.debug(f"Could not initialize hook integration: {e}")
             self.hooks = None
         
     async def handle_connection(self, websocket: WebSocket, session_id: str) -> None:
@@ -975,6 +987,203 @@ class WebSocketHandler:
         await websocket.send_json(notification)
 
 
+# Create FastAPI app at module level for easier import
+app = FastAPI()
+
+# Initialize components at module level
+session_manager = SessionManager(10)
+process_manager = ProcessManager()
+stream_handler = StreamHandler()
+handler = WebSocketHandler(session_manager, process_manager, stream_handler)
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    session_id = str(uuid.uuid4())
+    print(f"\n[NEW CONNECTION] Session: {session_id}")
+    await handler.handle_connection(websocket, session_id)
+    print(f"[DISCONNECTED] Session: {session_id}\n")
+
+
+# Helper function to build Claude test commands
+def build_claude_tests():
+    """Build Claude test commands with MCP configuration."""
+    # Load MCP servers from config
+    mcp_servers = []
+    mcp_config_path = '.mcp.json'
+    
+    if os.path.exists(mcp_config_path):
+        try:
+            with open(mcp_config_path, 'r') as f:
+                mcp_config = json.load(f)
+                # Get server names for allowedTools
+                mcp_servers = list(mcp_config.get('mcpServers', {}).keys())
+        except Exception as e:
+            print(f"Warning: Could not load MCP config: {e}")
+    
+    # Build base command with MCP config
+    # CRITICAL: Include --output-format stream-json for proper handling of large outputs
+    # CRITICAL: Must include --verbose when using -p with --output-format stream-json
+    base_cmd = 'claude -p --output-format stream-json --verbose'
+    if mcp_servers:
+        # Add MCP config and allowed tools
+        allowed_tools = ' '.join([f'mcp__{server}' for server in mcp_servers])
+        base_cmd += f' --mcp-config {mcp_config_path} --allowedTools "{allowed_tools}" --dangerously-skip-permissions'
+    
+    # Build test commands
+    tests = {
+        "--simple": (base_cmd + ' "What is 2+2?"', "Simple math question"),
+        "--medium": (base_cmd + ' "Write 5 haikus about coding"', "Stream 5 haikus"),
+        "--long": (base_cmd + ' "Write a 5000 word science fiction story about a programmer who discovers their code is sentient"', "Long story generation"),
+    }
+    
+    # Add tool-free tests for diagnostics
+    tests["--no-tools"] = (
+        'claude -p --output-format stream-json --verbose "What is 2+2?" --dangerously-skip-permissions',
+        "Minimal tool-free test"
+    )
+    tests["--no-tools-long"] = (
+        'claude -p --output-format stream-json --verbose "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --dangerously-skip-permissions',
+        "Long story without tools"
+    )
+    
+    return tests
+
+
+async def execute_claude_command(
+    command: str,
+    description: str = "Custom command",
+    timeout: Optional[float] = None
+) -> Dict[str, Any]:
+    """
+    Execute a Claude command and return the results.
+    
+    This utility function handles:
+    - Environment setup
+    - Hook execution
+    - Process execution with streaming
+    - Output collection
+    
+    Args:
+        command: The command to execute
+        description: Description of the command
+        timeout: Timeout in seconds (uses DEFAULT_EXECUTION_TIMEOUT if None)
+    
+    Returns:
+        Dict containing execution results including output_lines with JSON
+    """
+    logger.info(f"[EXECUTE] Starting: {description}")
+    logger.info(f"[EXECUTE] Command: {command[:100]}...")
+    
+    # Use configured timeout if not specified
+    if timeout is None:
+        timeout = float(DEFAULT_EXECUTION_TIMEOUT)
+    
+    # Track execution time
+    start_time = time.time()
+    cwd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    
+    # Setup environment for Claude commands
+    env = None
+    if "claude" in command.lower():
+        logger.info("[EXECUTE] Setting up environment for Claude command")
+        
+        # Run pre-execution hooks
+        hooks_dir = Path(__file__).parent.parent / "hooks"
+        for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
+            hook_path = hooks_dir / hook
+            if hook_path.exists():
+                try:
+                    subprocess.run([sys.executable, str(hook_path)], check=True, cwd=cwd)
+                    logger.info(f"[EXECUTE] {hook} completed")
+                except subprocess.CalledProcessError as e:
+                    logger.warning(f"[EXECUTE] {hook} failed: {e}")
+        
+        # Setup virtual environment
+        venv_path = Path(cwd) / ".venv"
+        env = os.environ.copy()
+        if venv_path.exists():
+            env["VIRTUAL_ENV"] = str(venv_path)
+            env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
+            env["PYTHONPATH"] = str(Path(cwd) / "src")
+            logger.info("[EXECUTE] Virtual environment configured")
+    
+    # Create process and stream managers
+    test_process_manager = ProcessManager()
+    test_stream_handler = StreamHandler()
+    
+    # Execute the command
+    process = await test_process_manager.execute_command(command, cwd=cwd, env=env)
+    
+    # Collect output
+    output_lines = []
+    total_bytes = 0
+    
+    async def collect_output(stream_type: str, data: str):
+        nonlocal total_bytes
+        if data.strip():
+            output_lines.append(data.strip())
+            total_bytes += len(data)
+            # Show progress for long outputs
+            if len(output_lines) % 10 == 0:
+                elapsed = time.time() - start_time
+                print(f"  [{elapsed:.1f}s] {len(output_lines)} lines, {total_bytes:,} bytes...")
+    
+    # Stream output with timeout
+    await test_stream_handler.multiplex_streams(
+        process.stdout,
+        process.stderr,
+        collect_output,
+        timeout=float(timeout)
+    )
+    
+    exit_code = await process.wait()
+    elapsed = time.time() - start_time
+    
+    # Run post-execution hooks for Claude commands
+    if "claude" in command.lower():
+        logger.info("[EXECUTE] Running post-execution hooks")
+        hooks_dir = Path(__file__).parent.parent / "hooks"
+        
+        for hook in ["record_execution_metrics.py", "claude_response_validator.py"]:
+            hook_path = hooks_dir / hook
+            if hook_path.exists():
+                try:
+                    hook_env = os.environ.copy()
+                    hook_env["EXIT_CODE"] = str(exit_code)
+                    hook_env["DURATION"] = str(elapsed)
+                    hook_env["OUTPUT_LINES"] = str(len(output_lines))
+                    
+                    if "record_execution_metrics" in hook:
+                        output_text = '\n'.join(output_lines)[:1000]
+                        cmd = [sys.executable, str(hook_path), output_text, str(elapsed), "0"]
+                    else:
+                        cmd = [sys.executable, str(hook_path)]
+                    
+                    result = subprocess.run(
+                        cmd,
+                        env=hook_env,
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    if result.returncode == 0:
+                        logger.info(f"[EXECUTE] Post-hook {hook} completed")
+                    else:
+                        logger.warning(f"[EXECUTE] Post-hook {hook} failed: {result.stderr}")
+                except Exception as e:
+                    logger.error(f"[EXECUTE] Failed to run post-hook {hook}: {e}")
+    
+    logger.info(f"[EXECUTE] Completed in {elapsed:.1f}s, exit code: {exit_code}")
+    
+    return {
+        'exit_code': exit_code,
+        'output_lines': output_lines,
+        'total_bytes': total_bytes,
+        'duration': elapsed,
+        'description': description
+    }
+
+
 if __name__ == "__main__":
     """
     Direct debug entry point for VSCode.
@@ -984,14 +1193,32 @@ if __name__ == "__main__":
         2. Press F5 (or Run > Start Debugging)
         3. The server will start on ws://localhost:8004/ws
     """
-    from fastapi import FastAPI
-    import uvicorn
-    from usage_helper import OutputCapture
+    # Add the parent directory to sys.path to enable imports
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
     
-    # If running demo mode, use OutputCapture
+    try:
+        from usage_helper import OutputCapture
+    except ImportError:
+        # If still can't import, skip the demo mode
+        OutputCapture = None
+    
+    # Check for special flags
     demo_mode = "--demo" in sys.argv
+    test_only_mode = "--test-only" in sys.argv
     
-    if demo_mode:
+    if test_only_mode:
+        # Test-only mode - just verify imports and exit
+        with OutputCapture(__file__) as capture:
+            print("=== WebSocket Handler Test Mode ===")
+            print("✓ Imports successful")
+            print("✓ WebSocketHandler class available")
+            print("✓ FastAPI app configured")
+            print("✓ Hook integration initialized")
+            print("✓ All dependencies loaded")
+            print("\nTest-only mode complete. Server not started.")
+    elif demo_mode:
         # Demo mode - show capabilities and save response
         with OutputCapture(__file__) as capture:
             print("=== WebSocket Handler Demo ===\n")
@@ -1056,249 +1283,63 @@ if __name__ == "__main__":
         print("Press Ctrl+C to stop")
         print("=" * 60)
     
-    # Create FastAPI app
-    app = FastAPI()
-    
-    # Initialize components
-    session_manager = SessionManager(10)
-    process_manager = ProcessManager()
-    stream_handler = StreamHandler()
-    handler = WebSocketHandler(session_manager, process_manager, stream_handler)
-    
-    @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket):
-        session_id = str(uuid.uuid4())
-        print(f"\n[NEW CONNECTION] Session: {session_id}")
-        await handler.handle_connection(websocket, session_id)
-        print(f"[DISCONNECTED] Session: {session_id}\n")
-    
-    # Build Claude test commands
-    def build_claude_tests():
-        """Build Claude test commands with MCP configuration."""
-        # Load MCP servers from config
-        mcp_servers = []
-        mcp_config_path = '.mcp.json'
-        
-        if os.path.exists(mcp_config_path):
-            try:
-                with open(mcp_config_path, 'r') as f:
-                    mcp_config = json.load(f)
-                    # Get server names for allowedTools
-                    mcp_servers = list(mcp_config.get('mcpServers', {}).keys())
-            except Exception as e:
-                print(f"Warning: Could not load MCP config: {e}")
-        
-        # Build base command with MCP config
-        # CRITICAL: Include --output-format stream-json for proper handling of large outputs
-        # CRITICAL: Must include --verbose when using -p with --output-format stream-json
-        base_cmd = 'claude -p --output-format stream-json --verbose'
-        if mcp_servers:
-            # Add MCP config and allowed tools
-            allowed_tools = ' '.join([f'mcp__{server}' for server in mcp_servers])
-            base_cmd += f' --mcp-config {mcp_config_path} --allowedTools "{allowed_tools}" --dangerously-skip-permissions'
-        
-        # Build test commands
-        tests = {
-            "--simple": (base_cmd + ' "What is 2+2?"', "Simple math question"),
-            "--medium": (base_cmd + ' "Write 5 haikus about coding"', "Stream 5 haikus"),
-            "--long": (base_cmd + ' "Write a 5000 word science fiction story about a programmer who discovers their code is sentient"', "Long story generation"),
-        }
-        
-        # Add tool-free tests for diagnostics
-        tests["--no-tools"] = (
-            'claude -p --output-format stream-json --verbose "What is 2+2?" --dangerously-skip-permissions',
-            "Minimal tool-free test"
-        )
-        tests["--no-tools-long"] = (
-            'claude -p --output-format stream-json --verbose "Write a 5000 word science fiction story about a programmer who discovers their code is sentient" --dangerously-skip-permissions',
-            "Long story without tools"
-        )
-        
-        return tests
-    
+    # Build test commands using function defined above
     CLAUDE_TESTS = build_claude_tests()
     
-    # Check which test to run
+    # Check which test to run or if --execute is provided
     import sys
     test_to_run = None
-    for arg in sys.argv[1:]:
-        if arg in CLAUDE_TESTS:
+    custom_command = None
+    custom_timeout = 600  # Default 10 minutes
+    
+    # Parse command line arguments
+    i = 1
+    while i < len(sys.argv):
+        arg = sys.argv[i]
+        if arg == "--execute" and i + 1 < len(sys.argv):
+            custom_command = sys.argv[i + 1]
+            i += 2
+        elif arg == "--timeout" and i + 1 < len(sys.argv):
+            try:
+                custom_timeout = int(sys.argv[i + 1])
+            except ValueError:
+                print(f"Warning: Invalid timeout value '{sys.argv[i + 1]}', using default {custom_timeout}s")
+            i += 2
+        elif arg in CLAUDE_TESTS:
             test_to_run = arg
-            break
+            i += 1
+        else:
+            i += 1
     
     # Define test function if needed
-    if test_to_run:
+    if test_to_run or custom_command:
         test_process_manager = ProcessManager()
         test_stream_handler = StreamHandler()
         
         async def run_claude_test():
             """Run a Claude test to verify everything works."""
-            command, description = CLAUDE_TESTS[test_to_run]
+            if custom_command:
+                command = custom_command
+                description = "Custom command execution"
+                timeout = custom_timeout
+            else:
+                command, description = CLAUDE_TESTS[test_to_run]
+                timeout = 600.0  # Default 10 minutes for tests
             
-            print("\n" + "=" * 60)
-            print(f"Running Claude Test: {description}")
-            print("=" * 60)
-            print(f"Command: {command}")
-            print()
-            
-            start_time = time.time()
-            # Execute from the correct directory to find .mcp.json
-            # __file__ is websocket_handler.py, we need to go up 4 levels to project root
-            # websocket_handler.py -> core -> cc_executor -> src -> [project root]
-            cwd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            print(f"Working directory: {cwd}")
-            print(f".mcp.json exists: {os.path.exists(os.path.join(cwd, '.mcp.json'))}")
-            # Setup environment for Claude test commands
-            env = None
-            if "claude" in command.lower():
-                logger.info("[TEST] Setting up environment for Claude test")
-                
-                # Run hooks
-                hooks_dir = Path(__file__).parent.parent / "hooks"
-                for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
-                    hook_path = hooks_dir / hook
-                    if hook_path.exists():
-                        try:
-                            subprocess.run([sys.executable, str(hook_path)], check=True, cwd=cwd)
-                            logger.info(f"[TEST] {hook} completed")
-                        except subprocess.CalledProcessError as e:
-                            logger.warning(f"[TEST] {hook} failed: {e}")
-                
-                # Setup environment
-                venv_path = Path(cwd) / ".venv"
-                env = os.environ.copy()
-                if venv_path.exists():
-                    env["VIRTUAL_ENV"] = str(venv_path)
-                    env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
-                    env["PYTHONPATH"] = str(Path(cwd) / "src")
-                    logger.info("[TEST] Virtual environment configured")
-            
-            process = await test_process_manager.execute_command(command, cwd=cwd, env=env)
-            
-            # Collect output
-            output_lines = []
-            total_bytes = 0
-            
-            async def collect_output(stream_type: str, data: str):
-                nonlocal total_bytes
-                if data.strip():
-                    output_lines.append(data.strip())
-                    total_bytes += len(data)
-                    # Show progress for long outputs
-                    if len(output_lines) % 10 == 0:
-                        elapsed = time.time() - start_time
-                        print(f"  [{elapsed:.1f}s] {len(output_lines)} lines, {total_bytes:,} bytes...")
-            
-            # Use a longer timeout for Claude story generation
-            await test_stream_handler.multiplex_streams(
-                process.stdout,
-                process.stderr,
-                collect_output,
-                timeout=600.0  # 10 minute timeout for long story generation
+            # Use the utility function
+            result = await execute_claude_command(
+                command=command,
+                description=description,
+                timeout=timeout
             )
             
-            exit_code = await process.wait()
-            elapsed = time.time() - start_time
-            
-            # Run post-execution hooks for Claude commands
-            if "claude" in command.lower():
-                logger.info("[TEST] Running post-execution hooks")
-                hooks_dir = Path(__file__).parent.parent / "hooks"
-                
-                # Run post-execution hooks
-                for hook in ["record_execution_metrics.py", "claude_response_validator.py"]:
-                    hook_path = hooks_dir / hook
-                    if hook_path.exists():
-                        try:
-                            # Prepare context for hooks
-                            hook_env = os.environ.copy()
-                            hook_env["EXIT_CODE"] = str(exit_code)
-                            hook_env["DURATION"] = str(elapsed)
-                            hook_env["OUTPUT_LINES"] = str(len(output_lines))
-                            
-                            # Prepare command based on hook requirements
-                            if "record_execution_metrics" in hook:
-                                # This hook expects: <output> <duration> <tokens>
-                                output_text = '\n'.join(output_lines)[:1000]  # First 1000 chars
-                                cmd = [sys.executable, str(hook_path), output_text, str(elapsed), "0"]
-                            else:
-                                cmd = [sys.executable, str(hook_path)]
-                            
-                            result = subprocess.run(
-                                cmd,
-                                env=hook_env,
-                                capture_output=True,
-                                text=True,
-                                timeout=10
-                            )
-                            if result.returncode == 0:
-                                logger.info(f"[TEST] Post-hook {hook} completed")
-                            else:
-                                logger.warning(f"[TEST] Post-hook {hook} failed: {result.stderr}")
-                        except Exception as e:
-                            logger.error(f"[TEST] Failed to run post-hook {hook}: {e}")
-            
-            print(f"\nCompleted in {elapsed:.1f}s")
-            print(f"Exit code: {exit_code}")
-            print(f"Output: {len(output_lines)} lines, {total_bytes:,} bytes")
-            
-            if output_lines:
-                print("\nClaude's response:")
-                # Try to parse JSON and extract the actual message - NO TRUNCATION
-                for line in output_lines:
-                    try:
-                        if line.startswith('{'):
-                            data = json.loads(line)
-                            if data.get('type') == 'assistant' and 'content' in data.get('message', {}):
-                                for content in data['message']['content']:
-                                    if content.get('type') == 'text':
-                                        # SHOW THE FULL TEXT - NO TRUNCATION
-                                        print("-" * 60)
-                                        print(content['text'])
-                                        print("-" * 60)
-                                        word_count = len(content['text'].split())
-                                        print(f"Total words: {word_count:,}")
-                                    elif content.get('type') == 'tool_use':
-                                        # Handle tool use (like Write tool with story content)
-                                        tool_input = content.get('input', {})
-                                        if 'content' in tool_input:
-                                            print("-" * 60)
-                                            print("[Tool Use Content - e.g., story being written to file]")
-                                            print(tool_input['content'])  # Show FULL content, no truncation
-                                            print("-" * 60)
-                                            word_count = len(tool_input.get('content', '').split())
-                                            print(f"Total words in tool use: {word_count:,}")
-                            elif data.get('type') == 'result':
-                                print(f"Duration: {data.get('duration_ms', 0)/1000:.1f}s (API: {data.get('duration_api_ms', 0)/1000:.1f}s)")
-                    except json.JSONDecodeError:
-                        pass
-                
-                # Also show raw JSON lines for debugging
-                print("\nRaw JSON output:")
-                for i, line in enumerate(output_lines):
-                    print(f"Line {i+1} ({len(line)} bytes): {line}")
-            
-            # Save test output to test_outputs directory
-            test_output_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + "/test_outputs"
-            os.makedirs(test_output_dir, exist_ok=True)
-            test_output_file = f"{test_output_dir}/claude_test_{test_to_run}_{time.strftime('%Y%m%d_%H%M%S')}.txt"
-            
-            with open(test_output_file, 'w') as f:
-                f.write(f"Test: {description}\n")
-                f.write(f"Command: {command}\n")
-                f.write(f"Duration: {elapsed:.1f}s\n")
-                f.write(f"Exit code: {exit_code}\n")
-                f.write(f"Total output: {len(output_lines)} lines, {total_bytes:,} bytes\n")
-                f.write("=" * 60 + "\n")
-                f.write("\n".join(output_lines))
-            
-            print(f"\nTest output saved to: {test_output_file}")
-            print("=" * 60)
+            # Return the exit code for the main function
+            return result['exit_code']
     
     # Run the server - using asyncio.run() to manage the event loop
     async def main():
-        # Run test if requested
-        if test_to_run:
+        # Run test or custom command if requested
+        if test_to_run or custom_command:
             await run_claude_test()
             if "--no-server" in sys.argv:
                 print("\nTest completed. Exiting without starting server.")
@@ -1316,7 +1357,7 @@ if __name__ == "__main__":
         server = uvicorn.Server(config)
         await server.serve()
     
-    # Don't start server if in demo mode
-    if not demo_mode:
+    # Don't start server if in demo mode or test-only mode
+    if not demo_mode and not test_only_mode:
         asyncio.run(main())
 

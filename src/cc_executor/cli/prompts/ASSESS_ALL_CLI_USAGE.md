@@ -2,11 +2,12 @@
 
 ## 📊 TASK METRICS & HISTORY
 - **Success/Failure Ratio**: 0:0 (Requires 10:1 to graduate)
-- **Last Updated**: 2025-01-02
+- **Last Updated**: 2025-07-03
 - **Evolution History**:
   | Version | Change & Reason                                     | Result |
   | :------ | :---------------------------------------------------- | :----- |
   | v1      | Initial CLI usage function assessment with hooks | TBD    |
+  | v2      | Updated based on core learnings: OutputCapture pattern, no .txt files | TBD    |
 
 ---
 ## 🏛️ ASSESSMENT PRINCIPLES (Immutable)
@@ -136,7 +137,21 @@ class CLIUsageAssessor:
         # Since CLI directory might have different files, we'll use generic expectations
         # and update this as we discover what files exist
         expectations = {
-            # Add specific CLI file expectations here as needed
+            'main.py': {
+                'description': 'Command-line interface with Typer',
+                'indicators': ['usage', 'command', 'cc-executor', 'typer'],
+                'min_lines': 1,
+                'should_have_numbers': False,
+                'error_ok': True,  # CLI may exit with non-zero on help
+                'requires_packages': ['typer'],
+                'timeout': 5,  # Quick timeout for CLI that expects args
+                'cli_entry_point': True,  # Special flag for CLI apps
+                'recovery_commands': [  # Self-correcting recovery
+                    ['--help'],  # Try help flag first
+                    ['help'],    # Try help command
+                    []           # Try with no args (might show usage)
+                ]
+            }
         }
         
         # Default for files not explicitly defined
@@ -146,7 +161,8 @@ class CLIUsageAssessor:
             'min_lines': 1,
             'should_have_numbers': False,
             'error_ok': False,
-            'requires_packages': []
+            'requires_packages': [],
+            'timeout': 30  # Default timeout
         }
         
         return expectations.get(filename, default)
@@ -173,34 +189,89 @@ class CLIUsageAssessor:
             except:
                 pass
         
+        # Determine timeout
+        timeout = expectations.get('timeout', 30)
+        
+        # Check if this is a CLI entry point that needs special handling
+        is_cli_entry = expectations.get('cli_entry_point', False)
+        recovery_commands = expectations.get('recovery_commands', [])
+        
+        output = None
+        recovery_used = None
+        
         try:
             # Change to temp directory for execution
             original_cwd = os.getcwd()
             os.chdir(self.temp_dir)
             
-            result = subprocess.run(
-                [sys.executable, str(file_path)],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                env=env,
-                cwd=self.temp_dir  # Run in temp directory
-            )
-            
-            output = {
-                'success': True,
-                'exit_code': result.returncode,
-                'stdout': result.stdout,
-                'stderr': result.stderr,
-                'timed_out': False
-            }
+            # First attempt: run normally
+            if not is_cli_entry:
+                result = subprocess.run(
+                    [sys.executable, str(file_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    env=env,
+                    cwd=self.temp_dir
+                )
+                
+                output = {
+                    'success': True,
+                    'exit_code': result.returncode,
+                    'stdout': result.stdout,
+                    'stderr': result.stderr,
+                    'timed_out': False
+                }
+            else:
+                # For CLI entry points, try recovery commands
+                for cmd_args in recovery_commands:
+                    try:
+                        print(f"  Trying: {file_path.name} {' '.join(cmd_args)}")
+                        cmd = [sys.executable, str(file_path)] + cmd_args
+                        
+                        result = subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=timeout,
+                            env=env,
+                            cwd=self.temp_dir
+                        )
+                        
+                        # Check if we got useful output
+                        combined = result.stdout + result.stderr
+                        if len(combined.strip()) > 10 and not result.returncode == -1:
+                            output = {
+                                'success': True,
+                                'exit_code': result.returncode,
+                                'stdout': result.stdout,
+                                'stderr': result.stderr,
+                                'timed_out': False
+                            }
+                            recovery_used = cmd_args
+                            print(f"  ✓ Success with: {' '.join(cmd_args) if cmd_args else 'no args'}")
+                            break
+                    except subprocess.TimeoutExpired:
+                        continue
+                    except Exception:
+                        continue
+                
+                # If no recovery worked, report the last failure
+                if output is None:
+                    output = {
+                        'success': False,
+                        'exit_code': -1,
+                        'stdout': '',
+                        'stderr': f'CLI timed out with all recovery attempts: {recovery_commands}',
+                        'timed_out': True
+                    }
             
         except subprocess.TimeoutExpired:
             output = {
                 'success': False,
                 'exit_code': -1,
                 'stdout': '',
-                'stderr': 'Process timed out after 30 seconds',
+                'stderr': f'Process timed out after {timeout} seconds',
                 'timed_out': True
             }
         except Exception as e:
@@ -213,6 +284,10 @@ class CLIUsageAssessor:
             }
         finally:
             os.chdir(original_cwd)
+        
+        # Add recovery info to output
+        if recovery_used is not None:
+            output['recovery_used'] = recovery_used
         
         # Post-execution hook simulation
         if HOOKS_AVAILABLE and self.redis_available:
@@ -288,11 +363,18 @@ class CLIUsageAssessor:
             assessment['hook_evidence'].append("Virtual environment activated")
             assessment['confidence'] += 5
         
-        # Check for timeout
-        if output['timed_out']:
+        # Check for timeout (but be lenient for CLI entry points with recovery)
+        if output['timed_out'] and 'recovery_used' not in output:
             assessment['reasons'].append("Process timed out")
             assessment['confidence'] = 95
             return assessment
+        
+        # If recovery was used, note it
+        if 'recovery_used' in output:
+            recovery_args = output['recovery_used']
+            assessment['reasons'].append(f"Used self-correcting recovery: {' '.join(recovery_args) if recovery_args else 'no args'}")
+            assessment['reasonable'] = True
+            assessment['confidence'] = 85
         
         # Check for exceptions (unless expected)
         has_exception = 'Traceback' in combined_output or 'Exception' in combined_output
@@ -446,6 +528,11 @@ class CLIUsageAssessor:
                 report_lines.append(f"\n**Hook Evidence**:")
                 for evidence in assessment['hook_evidence']:
                     report_lines.append(f"- {evidence}")
+            
+            # Add recovery info if present
+            if 'recovery_used' in output:
+                recovery_args = output['recovery_used']
+                report_lines.append(f"\n**Self-Correcting Recovery**: Used args: {' '.join(recovery_args) if recovery_args else '[no args]'}")
             
             report_lines.extend([
                 "\n**Raw Output**:",

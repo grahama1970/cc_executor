@@ -111,7 +111,7 @@ class WebSocketClient:
             "duration": duration,
             "restart_overhead": 0,  # No restart when using existing server
             "outputs": len(output_data),
-            "output_data": output_data,
+            "output_data": "".join(output_data),
             "error": error
         }
     
@@ -185,60 +185,22 @@ async def main():
 
 
 if __name__ == "__main__":
-    import json
-    from pathlib import Path
-    from datetime import datetime
-    import io
-    import contextlib
-    import sys
+    # Import OutputCapture from core
+    project_root = Path(__file__).parent.parent.parent.parent
+    sys.path.insert(0, str(project_root / "src"))
+    from cc_executor.core.usage_helper import OutputCapture
     
-    # Create responses directory
-    responses_dir = Path(__file__).parent / "tmp" / "responses"
-    responses_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Capture output
-    output_buffer = io.StringIO()
-    
-    # Run with output capture
-    with contextlib.redirect_stdout(output_buffer):
-        with contextlib.redirect_stderr(output_buffer):
-            # Configure logger to also write to buffer
-            from loguru import logger as log
-            log.remove()  # Remove default handler
-            log.add(output_buffer, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
-            log.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
-            
-            try:
-                asyncio.run(main())
-                exit_code = 0
-            except Exception as e:
-                log.error(f"Usage function error: {e}")
-                exit_code = 1
-    
-    # Get captured output
-    output = output_buffer.getvalue()
-    
-    # Save raw response to prevent hallucination
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = Path(__file__).stem
-    
-    # Save as JSON
-    response_file = responses_dir / f"{filename}_{timestamp}.json"
-    with open(response_file, 'w') as f:
-        json.dump({
-            'filename': filename,
-            'timestamp': timestamp,
-            'output': output,
-            'exit_code': exit_code
-        }, f, indent=2)
-    
-    # Save as text
-    text_file = responses_dir / f"{filename}_{timestamp}.txt"
-    with open(text_file, 'w') as f:
-        f.write(output)
-    
-    # Print to console
-    print(output)
-    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")
-    
-    sys.exit(exit_code)
+    # Use OutputCapture for consistent JSON output
+    with OutputCapture(__file__) as capture:
+        # Override module name to be correct for client
+        capture.module_name = "cc_executor.client.client"
+        
+        # Configure logger for OutputCapture
+        from loguru import logger as log
+        log.remove()  # Remove default handler
+        log.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
+        
+        try:
+            asyncio.run(main())
+        except Exception as e:
+            log.error(f"Usage function error: {e}")

@@ -1,0 +1,65 @@
+{
+  "title": "Apply core learnings across CLI, Client, Hooks (from review 019)",
+  "tasks": [
+    {
+      "id": "18-01",
+      "description": "Add README files in cli/, client/, hooks/ explaining assessment scripts and dual-mode operation (CLI vs direct execution)",
+      "component": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "18-02",
+      "description": "Consolidate assessment scripts into tests/assessments/ directory; update import paths and CI references",
+      "component": "prompts/scripts",
+      "priority": "high"
+    },
+    {
+      "id": "18-03",
+      "description": "Introduce --quick-test flag to long-running hooks to skip expensive init during batch assessments (<60 s target)",
+      "component": "hooks/",
+      "priority": "high"
+    },
+    {
+      "id": "18-04",
+      "description": "Refactor OutputCapture to standardize path handling: always emit project-relative paths; fallback to absolute only when outside repo",
+      "component": "core/usage_helper.py",
+      "priority": "medium"
+    },
+    {
+      "id": "18-05",
+      "description": "Automate module_name detection inside OutputCapture instead of manual overrides in scripts",
+      "component": "core/output_capture.py",
+      "priority": "medium"
+    },
+    {
+      "id": "18-06",
+      "description": "Add --test-only flag to websocket_handler.py so assessments can import it without starting the server",
+      "component": "core/websocket_handler.py",
+      "priority": "high"
+    },
+    {
+      "id": "18-07",
+      "description": "Move test/debug hook files (e.g., test_claude_hooks_debug.py) out of production hooks directory into tests/hooks/",
+      "component": "hooks/",
+      "priority": "low"
+    },
+    {
+      "id": "18-08",
+      "description": "Differentiate expected vs unexpected failures in assessment exit codes; update CLI assessments to return 0 for expected connection errors",
+      "component": "cli/prompts/scripts",
+      "priority": "medium"
+    },
+    {
+      "id": "18-09",
+      "description": "Create BaseAssessment class to DRY up duplicate logic across assessment scripts (core, cli, client, hooks)",
+      "component": "prompts/scripts",
+      "priority": "low"
+    },
+    {
+      "id": "18-10",
+      "description": "Integrate assessment suite into GitHub Actions CI workflow for automatic verification",
+      "component": ".github/workflows",
+      "priority": "low"
+    }
+  ]
+}

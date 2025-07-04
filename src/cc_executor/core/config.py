@@ -44,6 +44,7 @@ SESSION_TIMEOUT = int(os.getenv("SESSION_TIMEOUT", "3600"))  # Session timeout i
 MAX_BUFFER_SIZE = int(os.getenv("MAX_BUFFER_SIZE", "8388608"))  # Maximum line size for stdout/stderr (8MB for large Claude JSON events)
 STREAM_TIMEOUT = int(os.getenv("STREAM_TIMEOUT", "600"))  # Stream read timeout in seconds (default 10 minutes)
 PROCESS_CLEANUP_TIMEOUT = int(os.getenv("PROCESS_CLEANUP_TIMEOUT", "10"))  # Timeout for process cleanup operations
+DEFAULT_EXECUTION_TIMEOUT = int(os.getenv("DEFAULT_EXECUTION_TIMEOUT", "600"))  # Default timeout for Claude executions (10 minutes)
 
 # Shell configuration
 PREFERRED_SHELL = os.environ.get('CC_EXECUTOR_SHELL', 'zsh')  # 'zsh', 'bash', or 'default'

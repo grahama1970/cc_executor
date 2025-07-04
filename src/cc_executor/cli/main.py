@@ -944,104 +944,81 @@ PYTHONPATH=./src
 # ============================================
 
 def run_usage_tests():
-    """Run usage tests for the CLI."""
-    import json
-    from pathlib import Path
-    from datetime import datetime
+    """Run usage tests for the CLI using Typer's testing utilities."""
+    # Ensure proper path setup
+    project_root = Path(__file__).parent.parent.parent.parent
+    if str(project_root / "src") not in sys.path:
+        sys.path.insert(0, str(project_root / "src"))
     
-    # Create responses directory
-    responses_dir = Path(__file__).parent / "tmp" / "responses"
-    responses_dir.mkdir(parents=True, exist_ok=True)
+    from cc_executor.core.usage_helper import OutputCapture
+    from typer.testing import CliRunner
     
-    print("=== CC Executor CLI Usage Example ===\n")
-    output_lines = ["=== CC Executor CLI Usage Example ==="]
+    runner = CliRunner()
     
-    # Test 1: Show help
-    print("--- Test 1: CLI Help ---")
-    output_lines.append("\n--- Test 1: CLI Help ---")
-    result = subprocess.run([sys.executable, __file__, "--help"], capture_output=True, text=True)
-    print("Exit code:", result.returncode)
-    output_lines.append(f"Exit code: {result.returncode}")
-    commands = ["server", "test", "history", "hooks", "config", "run", "version", "init"]
-    found_commands = sum(1 for cmd in commands if cmd in result.stdout)
-    print(f"Commands found: {found_commands}/{len(commands)}")
-    output_lines.append(f"Commands found: {found_commands}/{len(commands)}")
-    
-    # Test 2: Show version
-    print("\n--- Test 2: Version Command ---")
-    output_lines.append("\n--- Test 2: Version Command ---")
-    result = subprocess.run([sys.executable, __file__, "version"], capture_output=True, text=True)
-    version_output = result.stdout.strip()
-    print(version_output)
-    output_lines.append(version_output)
-    
-    # Test 3: Show config
-    print("\n--- Test 3: Config Commands ---")
-    output_lines.append("\n--- Test 3: Config Commands ---")
-    config_cmds = ["show", "validate"]
-    for cmd in config_cmds:
-        result = subprocess.run(
-            [sys.executable, __file__, "config", cmd, "--help"],
-            capture_output=True,
-            text=True
-        )
-        status = "✓" if result.returncode == 0 else "✗"
-        print(f"config {cmd}: {status}")
-        output_lines.append(f"config {cmd}: {status}")
-    
-    # Test 4: Hook commands
-    print("\n--- Test 4: Hook Commands ---")
-    output_lines.append("\n--- Test 4: Hook Commands ---")
-    hook_cmds = ["list", "run", "reload"]
-    for cmd in hook_cmds:
-        result = subprocess.run(
-            [sys.executable, __file__, "hooks", cmd, "--help"],
-            capture_output=True,
-            text=True
-        )
-        status = "✓" if result.returncode == 0 else "✗"
-        print(f"hooks {cmd}: {status}")
-        output_lines.append(f"hooks {cmd}: {status}")
-    
-    # Test 5: Server commands
-    print("\n--- Test 5: Server Commands ---")
-    output_lines.append("\n--- Test 5: Server Commands ---")
-    server_cmds = ["start --help", "stop --help", "status --help"]
-    for cmd in server_cmds:
-        result = subprocess.run(
-            [sys.executable, __file__, "server"] + cmd.split(),
-            capture_output=True,
-            text=True
-        )
-        status = "✓" if result.returncode == 0 else "✗"
-        print(f"server {cmd.split()[0]}: {status}")
-        output_lines.append(f"server {cmd.split()[0]}: {status}")
-    
-    print("\n✅ CLI usage example completed with extensive hook integration!")
-    output_lines.append("\n✅ CLI usage example completed with extensive hook integration!")
-    
-    # Save raw response to prevent hallucination
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = Path(__file__).stem
-    
-    # Save as JSON
-    response_file = responses_dir / f"{filename}_{timestamp}.json"
-    with open(response_file, 'w') as f:
-        json.dump({
-            'filename': filename,
-            'timestamp': timestamp,
-            'output': '\n'.join(output_lines),
-            'tests_passed': found_commands == len(commands)
-        }, f, indent=2)
-    
-    # Save as text
-    text_file = responses_dir / f"{filename}_{timestamp}.txt"
-    with open(text_file, 'w') as f:
-        f.write('\n'.join(output_lines))
-    
-    print(f"\n💾 Raw response saved to: {response_file.relative_to(Path.cwd())}")
+    # Fix the module name to be correct for CLI
+    with OutputCapture(__file__) as capture:
+        # Override the module name since we're in cli/, not core/
+        capture.module_name = "cc_executor.cli.main"
+        print("=== CC Executor CLI Usage Example ===\n")
+        
+        # Test 1: Show help
+        print("--- Test 1: CLI Help ---")
+        result = runner.invoke(app, ["--help"])
+        print("Exit code:", result.exit_code)
+        commands = ["server", "test", "history", "hooks", "config", "run", "version", "init"]
+        found_commands = sum(1 for cmd in commands if cmd in result.output)
+        print(f"Commands found: {found_commands}/{len(commands)}")
+        
+        # Test 2: Show version
+        print("\n--- Test 2: Version Command ---")
+        result = runner.invoke(app, ["version"])
+        print(f"Exit code: {result.exit_code}")
+        print("Version output:", result.output.strip()[:50] + "..." if len(result.output) > 50 else result.output.strip())
+        
+        # Test 3: Show config
+        print("\n--- Test 3: Config Commands ---")
+        config_cmds = ["show", "validate"]
+        for cmd in config_cmds:
+            result = runner.invoke(app, ["config", cmd, "--help"])
+            status = "✓" if result.exit_code == 0 else "✗"
+            print(f"config {cmd}: {status}")
+        
+        # Test 4: Hook commands
+        print("\n--- Test 4: Hook Commands ---")
+        hook_cmds = ["list", "run", "reload"]
+        for cmd in hook_cmds:
+            result = runner.invoke(app, ["hooks", cmd, "--help"])
+            status = "✓" if result.exit_code == 0 else "✗"
+            print(f"hooks {cmd}: {status}")
+        
+        # Test 5: Server commands
+        print("\n--- Test 5: Server Commands ---")
+        server_cmds = ["start", "stop", "status"]
+        for cmd in server_cmds:
+            result = runner.invoke(app, ["server", cmd, "--help"])
+            status = "✓" if result.exit_code == 0 else "✗"
+            print(f"server {cmd}: {status}")
+        
+        # Test 6: Test actual functionality (non-destructive)
+        print("\n--- Test 6: Non-destructive Commands ---")
+        # Test config show (should work without server)
+        result = runner.invoke(app, ["config", "show"])
+        print(f"config show: {'✓' if result.exit_code == 0 else '✗'} (exit code: {result.exit_code})")
+        
+        # Test hooks list (should show available hooks)
+        result = runner.invoke(app, ["hooks", "list"])
+        print(f"hooks list: {'✓' if result.exit_code == 0 else '✗'} (exit code: {result.exit_code})")
+        hook_count = result.output.count("✓") + result.output.count("✗")
+        print(f"Found {hook_count} hooks in output")
+        
+        print("\n✅ CLI usage example completed with Typer's CliRunner!")
 
 
 if __name__ == "__main__":
-    # Run usage demonstration directly without user interaction
-    run_usage_tests()
+    # Check if we're running usage tests or the actual CLI
+    if len(sys.argv) == 1 and sys.argv[0].endswith("main.py"):
+        # Running directly without arguments - run usage tests
+        run_usage_tests()
+    else:
+        # Running with CLI arguments - run the Typer app
+        app()

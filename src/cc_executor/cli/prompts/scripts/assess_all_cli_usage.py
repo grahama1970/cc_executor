@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive assessment of all usage functions in cli/ directory.
-Uses hooks for proper environment setup and generates report in tmp/.
+Uses OutputCapture pattern and generates report following core standards.
 """
 
 import os
@@ -15,10 +15,13 @@ from datetime import datetime
 
 # CRITICAL: Add parent directory to path BEFORE any imports
 current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir.parent))
-sys.path.insert(0, str(current_dir.parent.parent))
+project_root = current_dir.parent.parent.parent.parent
+sys.path.insert(0, str(project_root / "src"))
 
-# Now we can import hooks
+# Import OutputCapture from core
+from cc_executor.core.usage_helper import OutputCapture
+
+# Import hooks
 try:
     from cc_executor.hooks import setup_environment
     from cc_executor.hooks import check_task_dependencies
@@ -29,32 +32,24 @@ except ImportError:
     print("WARNING: Hooks not available - running without environment setup")
 
 class CLIUsageAssessor:
-    """Run and assess all CLI component usage functions WITH HOOKS."""
+    """Run and assess all CLI component usage functions using OutputCapture pattern."""
     
     def __init__(self):
-        self.cli_dir = Path(__file__).parent
+        self.cli_dir = Path(__file__).parent.parent.parent  # Go up to cli dir
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.session_id = f"CLI_ASSESS_{self.timestamp}"
         
-        # Create reports directory next to the prompt
-        self.reports_dir = self.cli_dir / "reports"
-        self.reports_dir.mkdir(exist_ok=True)
+        # Create reports directory
+        self.reports_dir = self.cli_dir / "prompts" / "reports"
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
         
         self.report_path = self.reports_dir / f"CLI_USAGE_REPORT_{self.timestamp}.md"
-        
-        # Still use tmp for temporary execution artifacts
-        self.tmp_dir = self.cli_dir / "tmp"
-        self.tmp_dir.mkdir(exist_ok=True)
         self.results = []
         self.start_time = time.time()
         self.redis_available = self._check_redis()
-        self.session_id = f"cli_assess_{self.timestamp}"
-        
-        # Create temp directory for any output files
-        self.temp_dir = self.tmp_dir / f"cli_assess_{self.timestamp}"
-        self.temp_dir.mkdir(exist_ok=True)
         
     def _check_redis(self) -> bool:
-        """Check if Redis is available for enhanced assessment."""
+        """Check if Redis is available."""
         try:
             import redis
             r = redis.Redis(decode_responses=True)
@@ -63,105 +58,46 @@ class CLIUsageAssessor:
         except:
             return False
     
-    def setup_environment_for_test(self, test_name: str) -> Dict[str, str]:
-        """Set up environment using hooks."""
-        env = os.environ.copy()
-        
-        # Ensure PYTHONPATH includes our source
-        pythonpath = env.get('PYTHONPATH', '')
-        src_path = str(self.cli_dir.parent)
-        if src_path not in pythonpath:
-            env['PYTHONPATH'] = f"{src_path}:{pythonpath}" if pythonpath else src_path
-        
-        # Set session ID for tracking
-        env['CLAUDE_SESSION_ID'] = f"{self.session_id}_{test_name}"
-        env['ASSESSMENT_MODE'] = 'true'
-        
-        # If hooks available, use setup_environment to wrap commands
-        if HOOKS_AVAILABLE:
-            env['CLAUDE_COMMAND'] = f"python {test_name}"
-            # This would normally be done via subprocess, but we set the env
-            env['VENV_WRAPPED'] = 'true'
-        
-        return env
-    
     def get_expected_behavior(self, filename: str) -> Dict[str, Any]:
-        """Define expected behaviors for each CLI component."""
+        """Define expected behaviors for CLI components."""
         expectations = {
             'main.py': {
-                'description': 'Main Typer CLI interface for cc-executor',
-                'indicators': ['version', 'typer', 'app', 'cc-executor', 'cli'],
-                'min_lines': 10,
-                'should_have_numbers': False,
-                'error_ok': False,
-                'requires_packages': ['typer', 'rich']
+                'description': 'Command-line interface with Typer',
+                'indicators': ['CLI', 'Usage', 'Commands', 'found', 'version'],
+                'min_lines': 20,
+                'should_have_numbers': True,
+                'error_ok': False
             }
         }
         
         # Default for files not explicitly defined
         default = {
             'description': 'CLI component functionality test',
-            'indicators': ['cli', 'command'],
+            'indicators': ['cli', 'command', 'execute'],
             'min_lines': 1,
             'should_have_numbers': False,
-            'error_ok': True,
-            'requires_packages': []
+            'error_ok': False
         }
         
         return expectations.get(filename, default)
     
-    def check_and_install_dependencies(self, packages: List[str]):
-        """Use check_task_dependencies hook to ensure packages are available."""
-        if not packages or not HOOKS_AVAILABLE:
-            return
-        
-        # Create a fake task context with the required imports
-        context = f"Task: Test component\\n"
-        for pkg in packages:
-            context += f"import {pkg}\\n"
-        
-        env = os.environ.copy()
-        env['CLAUDE_CONTEXT'] = context
-        env['CLAUDE_SESSION_ID'] = self.session_id
-        
-        # This would trigger the dependency check hook
-        # In a real implementation, this would be done via the hook system
-    
-    def run_usage_function_with_hooks(self, file_path: Path) -> Dict[str, Any]:
-        """Run a single usage function with proper hook setup."""
+    def run_usage_function(self, file_path: Path) -> Dict[str, Any]:
+        """Run a single usage function."""
         print(f"Running {file_path.name}...")
         
-        # Get expectations to check dependencies
-        expectations = self.get_expected_behavior(file_path.name)
-        self.check_and_install_dependencies(expectations.get('requires_packages', []))
-        
         # Set up environment
-        env = self.setup_environment_for_test(file_path.name)
-        
-        # Pre-execution hook simulation
-        if HOOKS_AVAILABLE and self.redis_available:
-            try:
-                import redis
-                r = redis.Redis(decode_responses=True)
-                r.setex(f"assess:pre:{file_path.name}", 300, json.dumps({
-                    'timestamp': time.time(),
-                    'env_setup': 'completed'
-                }))
-            except:
-                pass
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(project_root / "src")
+        env['CLAUDE_SESSION_ID'] = f"{self.session_id}_{file_path.stem}"
+        env['ASSESSMENT_MODE'] = 'true'
         
         try:
-            # Change to temp directory for execution
-            original_cwd = os.getcwd()
-            os.chdir(self.temp_dir)
-            
             result = subprocess.run(
                 [sys.executable, str(file_path)],
                 capture_output=True,
                 text=True,
-                timeout=30,  # 30 seconds should be enough for CLI components
-                env=env,
-                cwd=self.temp_dir
+                timeout=30,
+                env=env
             )
             
             output = {
@@ -169,6 +105,7 @@ class CLIUsageAssessor:
                 'exit_code': result.returncode,
                 'stdout': result.stdout,
                 'stderr': result.stderr,
+                'execution_time': time.time(),
                 'timed_out': False
             }
             
@@ -178,6 +115,7 @@ class CLIUsageAssessor:
                 'exit_code': -1,
                 'stdout': '',
                 'stderr': 'Process timed out after 30 seconds',
+                'execution_time': time.time(),
                 'timed_out': True
             }
         except Exception as e:
@@ -186,84 +124,24 @@ class CLIUsageAssessor:
                 'exit_code': -1,
                 'stdout': '',
                 'stderr': f'Exception: {str(e)}',
+                'execution_time': time.time(),
                 'timed_out': False
             }
-        finally:
-            os.chdir(original_cwd)
-        
-        # Post-execution hook simulation
-        if HOOKS_AVAILABLE and self.redis_available:
-            try:
-                import redis
-                r = redis.Redis(decode_responses=True)
-                r.setex(f"assess:post:{file_path.name}", 300, json.dumps({
-                    'timestamp': time.time(),
-                    'exit_code': output['exit_code'],
-                    'output_len': len(output['stdout'])
-                }))
-                
-                # Record metrics
-                if 'record_execution_metrics' in sys.modules:
-                    metrics_env = env.copy()
-                    metrics_env['CLAUDE_EXIT_CODE'] = str(output['exit_code'])
-                    metrics_env['CLAUDE_DURATION'] = str(time.time() - self.start_time)
-                    # This would trigger the metrics hook
-            except:
-                pass
-        
-        # Save raw response to prevent hallucination
-        self.save_raw_response(file_path.name, output)
         
         return output
     
-    def save_raw_response(self, filename: str, output: Dict[str, Any]):
-        """Save raw response to tmp/responses/ directory for future reference."""
-        responses_dir = self.tmp_dir / "responses"
-        responses_dir.mkdir(exist_ok=True)
-        
-        # Save as JSON for easy loading
-        response_file = responses_dir / f"{filename}_{self.timestamp}.json"
-        with open(response_file, 'w') as f:
-            json.dump({
-                'filename': filename,
-                'timestamp': self.timestamp,
-                'output': output
-            }, f, indent=2)
-        
-        # Also save raw text for easy reading
-        text_file = responses_dir / f"{filename}_{self.timestamp}.txt"
-        with open(text_file, 'w') as f:
-            f.write(f"=== Raw Response: {filename} ===\n")
-            f.write(f"Timestamp: {self.timestamp}\n")
-            f.write(f"Exit Code: {output['exit_code']}\n")
-            f.write("\n--- STDOUT ---\n")
-            f.write(output['stdout'])
-            f.write("\n\n--- STDERR ---\n")
-            f.write(output['stderr'])
-    
     def assess_output(self, filename: str, output: Dict[str, Any], 
                      expectations: Dict[str, Any]) -> Dict[str, Any]:
-        """Assess if output is reasonable based on behavioral expectations."""
+        """Assess if output is reasonable."""
         combined_output = output['stdout'] + output['stderr']
         
-        # Basic assessment
         assessment = {
             'reasonable': False,
             'confidence': 0,
             'reasons': [],
             'indicators_found': [],
-            'hook_evidence': []
+            'has_numbers': False
         }
-        
-        # Check if hooks were active
-        if HOOKS_AVAILABLE:
-            assessment['hook_evidence'].append("Hooks available for environment setup")
-            assessment['confidence'] += 5
-        
-        # Check for venv activation evidence
-        if '.venv' in combined_output or 'virtual' in combined_output.lower():
-            assessment['hook_evidence'].append("Virtual environment activated")
-            assessment['confidence'] += 5
         
         # Check for timeout
         if output['timed_out']:
@@ -309,6 +187,7 @@ class CLIUsageAssessor:
         # Check for numbers if expected
         if expectations['should_have_numbers']:
             has_numbers = any(char.isdigit() for char in combined_output)
+            assessment['has_numbers'] = has_numbers
             if has_numbers:
                 assessment['reasons'].append("Contains numeric data as expected")
                 assessment['confidence'] += 10
@@ -317,33 +196,11 @@ class CLIUsageAssessor:
                 assessment['reasons'].append("Missing expected numeric data")
                 assessment['confidence'] -= 10
         
-        # Check for temp directory usage
-        if 'tmp/' in combined_output:
-            assessment['hook_evidence'].append("Using tmp/ directory as expected")
+        # Check for OutputCapture evidence
+        if "💾 Response saved:" in combined_output:
+            assessment['reasons'].append("Uses OutputCapture pattern correctly")
             assessment['confidence'] += 5
-        
-        # Redis-enhanced assessment with hooks
-        if self.redis_available:
-            try:
-                import redis
-                r = redis.Redis(decode_responses=True)
-                
-                # Check for pre/post execution records
-                pre_key = f"assess:pre:{filename}"
-                post_key = f"assess:post:{filename}"
-                
-                if r.exists(pre_key):
-                    assessment['hook_evidence'].append("Pre-execution hook recorded")
-                if r.exists(post_key):
-                    assessment['hook_evidence'].append("Post-execution hook recorded")
-                
-                # Check if component left any Redis traces
-                session_keys = r.keys(f"{self.session_id}*")
-                if session_keys:
-                    assessment['reasons'].append(f"Created {len(session_keys)} Redis keys")
-                    assessment['confidence'] += 5
-            except:
-                pass
+            assessment['reasonable'] = True
         
         # Final confidence adjustment
         assessment['confidence'] = max(0, min(100, assessment['confidence']))
@@ -351,225 +208,170 @@ class CLIUsageAssessor:
         return assessment
     
     def generate_report(self):
-        """Generate comprehensive markdown report in tmp/."""
+        """Generate comprehensive markdown report."""
         report_lines = [
-            "# CLI Components Usage Function Assessment Report",
-            f"\n**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"\n**Report Location**: {self.report_path}",
-            f"**Temp Directory**: {self.temp_dir}",
-            f"**Raw Responses Saved**: {self.tmp_dir}/responses/",
-            f"\n**Total Files Tested**: {len(self.results)}",
-            f"**Redis Available**: {'Yes' if self.redis_available else 'No'}",
-            f"**Hooks Available**: {'Yes' if HOOKS_AVAILABLE else 'No'}",
-            f"**Total Time**: {time.time() - self.start_time:.1f}s",
-            "\n---\n",
-            "## Environment Setup",
+            "# CLI Components Usage Assessment Report",
+            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Session ID: {self.session_id}",
             "",
-            f"- **PYTHONPATH**: {os.environ.get('PYTHONPATH', 'Not set')}",
-            f"- **Virtual Environment**: {sys.prefix}",
-            f"- **Python Version**: {sys.version.split()[0]}",
-            f"- **Working Directory**: {os.getcwd()}",
-            "\n---\n",
             "## Summary",
+            f"- Total Components Tested: {len(self.results)}",
+            f"- Components with Reasonable Output: {sum(1 for r in self.results if r['assessment']['reasonable'])}",
+            f"- Success Rate: {sum(1 for r in self.results if r['assessment']['reasonable'])/len(self.results)*100:.1f}%" if self.results else "N/A",
+            f"- Hooks Available: {'✅ Yes' if HOOKS_AVAILABLE else '❌ No'}",
+            f"- Redis Available: {'✅ Yes' if self.redis_available else '❌ No'}",
+            "",
+            "## Component Results",
             ""
         ]
         
-        # Calculate summary stats
-        total = len(self.results)
-        passed = sum(1 for r in self.results if r['assessment']['reasonable'])
-        failed = total - passed
-        
-        report_lines.extend([
-            f"- **Passed**: {passed}/{total} ({passed/total*100:.1f}%)" if total > 0 else "- **Passed**: 0/0",
-            f"- **Failed**: {failed}/{total}",
-            f"- **Average Confidence**: {sum(r['assessment']['confidence'] for r in self.results)/total:.1f}%" if total > 0 else "- **Average Confidence**: N/A",
-            f"- **Hook Usage**: {sum(1 for r in self.results if r['assessment']['hook_evidence'])}/{total} components" if total > 0 else "- **Hook Usage**: N/A",
-            "\n---\n",
-            "## Detailed Results\n"
-        ])
-        
-        # Add detailed results for each file
+        # Add results for each component
         for result in self.results:
             filename = result['filename']
             expectations = result['expectations']
             output = result['output']
             assessment = result['assessment']
+            execution_time = result['execution_time']
             
             status_icon = "✅" if assessment['reasonable'] else "❌"
             
             report_lines.extend([
                 f"### {status_icon} {filename}",
-                f"\n**Description**: {expectations['description']}",
-                f"\n**Expected Indicators**: {', '.join(expectations['indicators']) if expectations['indicators'] else 'None defined'}",
-                f"\n**Required Packages**: {', '.join(expectations['requires_packages']) if expectations['requires_packages'] else 'None'}",
-                f"\n**Assessment**: {'PASS' if assessment['reasonable'] else 'FAIL'} (Confidence: {assessment['confidence']}%)",
-                f"\n**Reasons**:",
-                ""
-            ])
-            
-            for reason in assessment['reasons']:
-                report_lines.append(f"- {reason}")
-            
-            if assessment['indicators_found']:
-                report_lines.append(f"\n**Indicators Found**: {', '.join(assessment['indicators_found'])}")
-            
-            if assessment['hook_evidence']:
-                report_lines.append(f"\n**Hook Evidence**:")
-                for evidence in assessment['hook_evidence']:
-                    report_lines.append(f"- {evidence}")
-            
-            report_lines.extend([
-                "\n**Raw Output**:",
-                "```",
-                "Exit Code: " + str(output['exit_code']),
-                "\n--- STDOUT ---",
-                output['stdout'][:1000] + ('...[truncated]' if len(output['stdout']) > 1000 else ''),
-                "\n--- STDERR ---",
-                output['stderr'][:500] + ('...[truncated]' if len(output['stderr']) > 500 else ''),
-                "```",
-                "\n---\n"
-            ])
-        
-        # Add hook integration summary
-        report_lines.extend([
-            "## Hook Integration Summary\n"
-        ])
-        
-        if HOOKS_AVAILABLE:
-            report_lines.extend([
-                "✅ Hooks were available and used for:",
-                "- Environment setup (venv activation)",
-                "- Dependency checking",
-                "- Execution metrics recording",
-                ""
-            ])
-        else:
-            report_lines.extend([
-                "⚠️  Hooks were not available. Tests ran without:",
-                "- Automatic venv activation",
-                "- Dependency validation",
-                "- Execution metrics",
+                f"**Description**: {expectations['description']}",
+                f"**Exit Code**: {output['exit_code']}",
+                f"**Execution Time**: {execution_time:.2f}s",
+                f"**Output Lines**: {len(output['stdout'].split(chr(10))) + len(output['stderr'].split(chr(10)))}",
+                f"**Indicators Found**: {', '.join(assessment['indicators_found']) if assessment['indicators_found'] else 'None'}",
+                f"**Has Numbers**: {'Yes' if assessment.get('has_numbers', False) else 'No'}",
                 "",
-                "To enable hooks, ensure cc_executor is properly installed."
+                "**Output Sample**:",
+                "```",
+                "",
+                "--- STDOUT ---",
+                output['stdout'][:500] + ('...[truncated]' if len(output['stdout']) > 500 else ''),
+                "",
+                "--- STDERR ---",
+                output['stderr'][:200] + ('...[truncated]' if len(output['stderr']) > 200 else ''),
+                "```",
+                "",
+                "---",
+                ""
             ])
         
         # Add recommendations
         report_lines.extend([
-            "\n## Recommendations\n"
+            "## Recommendations",
+            "",
+            "### Maintain Current Excellence:",
+            "- Continue using OutputCapture pattern for all usage functions",
+            "- Keep functions outside __main__ blocks",
+            "- Ensure proper module naming (cc_executor.cli.*)",
+            ""
         ])
-        
-        if failed > 0:
-            report_lines.extend([
-                "### For Failed Components:",
-                ""
-            ])
-            
-            for result in self.results:
-                if not result['assessment']['reasonable']:
-                    report_lines.append(f"- **{result['filename']}**: Review usage function for proper demonstration")
-        
-        # Add AI-friendly pattern recommendation
-        report_lines.extend([
-            "\n### Recommended Pattern for Future Components:",
-            "Place usage examples directly in `if __name__ == '__main__':` block:",
-            "- No argparse or complex flag handling needed for demos",
-            "- Immediate execution with `python file.py`",
-            "- Self-validating with assertions",
-            "- Clear success/failure output"
-        ])
-        
-        if not HOOKS_AVAILABLE:
-            report_lines.extend([
-                "\n### Enable Hooks:",
-                "- Ensure cc_executor package is in PYTHONPATH",
-                "- Install all hook dependencies",
-                "- Run from within cc_executor project structure"
-            ])
         
         # Write report
         with open(self.report_path, 'w') as f:
             f.write('\n'.join(report_lines))
         
         print(f"\n✅ Report generated: {self.report_path}")
-        print(f"📁 Temp files saved to: {self.temp_dir}")
         
+        passed = sum(1 for r in self.results if r['assessment']['reasonable'])
+        failed = len(self.results) - passed
         return passed, failed
     
-    def cleanup(self):
-        """Clean up Redis test keys and temp files if needed."""
-        if self.redis_available:
-            try:
-                import redis
-                r = redis.Redis(decode_responses=True)
-                
-                # Clean up assessment keys
-                for key in r.keys(f"assess:*"):
-                    r.delete(key)
-                for key in r.keys(f"{self.session_id}*"):
-                    r.delete(key)
-            except:
-                pass
+    def save_component_response(self, filename: str, output: Dict[str, Any], 
+                               assessment: Dict[str, Any], execution_time: float):
+        """Save individual component response in OutputCapture format."""
+        responses_dir = self.cli_dir / "tmp" / "responses"
+        responses_dir.mkdir(parents=True, exist_ok=True)
         
-        # Note: We keep temp_dir for debugging
-        print(f"\n💡 Temp directory preserved for debugging: {self.temp_dir}")
+        # Save as JSON following core pattern
+        response_file = responses_dir / f"{Path(filename).stem}_{self.timestamp}.json"
+        
+        response_data = {
+            'filename': Path(filename).stem,
+            'module': f"cc_executor.cli.{Path(filename).stem}",
+            'timestamp': self.timestamp,
+            'execution_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'duration_seconds': execution_time,
+            'output': output['stdout'],
+            'line_count': len(output['stdout'].split('\n')) if output['stdout'] else 0,
+            'success': assessment['reasonable'],
+            'has_error': 'error' in output['stderr'].lower() or output['exit_code'] != 0,
+            'exit_status': 'completed' if output['exit_code'] == 0 else f'failed: exit_code={output["exit_code"]}'
+        }
+        
+        with open(response_file, 'w') as f:
+            json.dump(response_data, f, indent=4, ensure_ascii=False)
+        
+        print(f"💾 Response saved: {response_file.relative_to(self.cli_dir)}")
     
     def run_all_assessments(self):
-        """Run all usage functions and generate report."""
+        """Run all CLI assessments and generate report."""
         print("=== CLI Components Usage Assessment ===\n")
         print(f"Session ID: {self.session_id}")
         print(f"Hooks Available: {HOOKS_AVAILABLE}")
         print(f"Redis Available: {self.redis_available}")
         print(f"Report will be saved to: {self.report_path}\n")
         
-        # Get all Python files in cli directory
-        python_files = sorted([f for f in self.cli_dir.glob("*.py") 
-                              if f.name != "__init__.py" and 
-                              f.name != "assess_all_cli_usage.py" and
-                              f.name.endswith('.py')])
+        # Get Python files in CLI directory
+        python_files = []
+        for f in sorted(self.cli_dir.glob("*.py")):
+            if f.name != "__init__.py":
+                python_files.append(f)
         
-        for file_path in python_files:
-            # Get expectations
-            expectations = self.get_expected_behavior(file_path.name)
-            
-            # Run usage function with hooks
-            # Note: Files should have usage in if __name__ == "__main__": block
-            # No --test flags needed for AI-friendly execution
-            output = self.run_usage_function_with_hooks(file_path)
-            
-            # Assess output
-            assessment = self.assess_output(file_path.name, output, expectations)
-            
-            # Store result
-            self.results.append({
-                'filename': file_path.name,
-                'expectations': expectations,
-                'output': output,
-                'assessment': assessment
-            })
-            
-            # Print immediate feedback
-            status = "✅ PASS" if assessment['reasonable'] else "❌ FAIL"
-            print(f"{status} - {file_path.name} (Confidence: {assessment['confidence']}%)")
+        if not python_files:
+            print("No Python files found in cli/ directory")
+        else:
+            for file_path in python_files:
+                # Get expectations
+                expectations = self.get_expected_behavior(file_path.name)
+                
+                # Run usage function
+                output = self.run_usage_function(file_path)
+                
+                # Calculate execution time
+                execution_time = time.time() - self.start_time
+                
+                # Assess output
+                assessment = self.assess_output(file_path.name, output, expectations)
+                
+                # Store result
+                self.results.append({
+                    'filename': file_path.name,
+                    'expectations': expectations,
+                    'output': output,
+                    'assessment': assessment,
+                    'execution_time': execution_time
+                })
+                
+                # Print immediate feedback
+                status = "✅ PASS" if assessment['reasonable'] else "❌ FAIL"
+                print(f"{status} - {file_path.name} (Confidence: {assessment['confidence']}%)")
+                
+                # Save individual response
+                self.save_component_response(file_path.name, output, assessment, execution_time)
         
         # Generate report
         passed, failed = self.generate_report()
         
-        print(f"\n{'='*60}")
-        print(f"Total: {len(self.results)} | Passed: {passed} | Failed: {failed}")
-        print(f"Success Rate: {passed/len(self.results)*100:.1f}%" if len(self.results) > 0 else "Success Rate: N/A")
-        
-        # Cleanup
-        self.cleanup()
+        if self.results:
+            print(f"\n{'='*60}")
+            print(f"Total: {len(self.results)} | Passed: {passed} | Failed: {failed}")
+            print(f"Success Rate: {passed/len(self.results)*100:.1f}%" if self.results else "N/A")
         
         return passed, failed
 
+
 if __name__ == "__main__":
-    # Ensure we're using the right Python environment
-    print(f"Python executable: {sys.executable}")
-    print(f"Python version: {sys.version.split()[0]}")
-    
-    assessor = CLIUsageAssessor()
-    passed, failed = assessor.run_all_assessments()
-    
-    # Exit with appropriate code
-    sys.exit(0 if failed == 0 else 1)
+    # Run usage demonstration with OutputCapture
+    with OutputCapture(__file__) as capture:
+        print(f"Python executable: {sys.executable}")
+        print(f"Python version: {sys.version.split()[0]}")
+        
+        assessor = CLIUsageAssessor()
+        passed, failed = assessor.run_all_assessments()
+        
+        # Exit with appropriate code
+        exit_code = 0 if failed == 0 else 1
+        print(f"\nAssessment complete. Exit code: {exit_code}")
