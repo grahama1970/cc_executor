@@ -120,6 +120,29 @@ After extensive testing with these limitations, this WebSocket-based approach em
 
 *— A Claude Max user (ok, it's me)*
 
+## Quick Usage Example - Task Lists Only!
+
+```python
+from cc_executor import cc_execute_task_list
+
+# CC Executor is for MULTI-STEP workflows, not single calls
+tasks = [
+    "Task 1: Create the FastAPI app structure with routers",
+    "Task 2: Add SQLAlchemy models and database setup", 
+    "Task 3: Implement CRUD endpoints for users",
+    "Task 4: Add authentication middleware",
+    "Task 5: Write comprehensive tests"
+]
+
+results = cc_execute_task_list(tasks)
+```
+
+**❌ DON'T DO THIS:**
+```python
+# WRONG - Don't use CC Executor for single tasks!
+result = some_single_claude_call("Write a function")  # Just use claude -p
+```
+
 ## Overview
 
 CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Max users. It provides a flexible, optional execution pattern (like numpy vs math) for complex tasks that need fresh context isolation.
