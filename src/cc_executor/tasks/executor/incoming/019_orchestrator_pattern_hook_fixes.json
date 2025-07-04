@@ -1,0 +1,59 @@
+{
+  "title": "Stabilize orchestrator pattern tests & hook system (from review 020)",
+  "tasks": [
+    {
+      "id": "19-01",
+      "description": "Implement thread-safe singleton initialization in HookIntegration to prevent double-init crashes; use asyncio.Lock for async safety",
+      "component": "hooks/hook_integration.py",
+      "priority": "high"
+    },
+    {
+      "id": "19-02",
+      "description": "Add retry logic with exponential backoff on Redis connection errors during hook initialization and timeout lookups",
+      "component": "hooks/hook_integration.py",
+      "priority": "high"
+    },
+    {
+      "id": "19-03",
+      "description": "Introduce circuit-breaker pattern around hook execution; on 3 consecutive failures disable hooks for remainder of session and log warning",
+      "component": "hooks/",
+      "priority": "medium"
+    },
+    {
+      "id": "19-04",
+      "description": "Add --test-fixture flag (or context manager) to tests to spin up WebSocket server & mock Redis automatically, simplifying integration tests",
+      "component": "tests/integration",
+      "priority": "high"
+    },
+    {
+      "id": "19-05",
+      "description": "Implement automatic client reconnection with backoff in WebSocketClient for unstable networks; expose max_retries param",
+      "component": "client/client.py",
+      "priority": "medium"
+    },
+    {
+      "id": "19-06",
+      "description": "Add connection pooling (shared aiohttp / websockets pool) for multiple concurrent orchestrator tasks to reduce connect latency",
+      "component": "client/client.py",
+      "priority": "low"
+    },
+    {
+      "id": "19-07",
+      "description": "Provide --test-only flag in websocket_handler.py to allow import without starting server (complements 18-06 but specific to orchestrator tests)",
+      "component": "core/websocket_handler.py",
+      "priority": "medium"
+    },
+    {
+      "id": "19-08",
+      "description": "Cache hook script results within a run to avoid redundant subprocess invocations during sequential tasks; invalidate on file change",
+      "component": "hooks/",
+      "priority": "low"
+    },
+    {
+      "id": "19-09",
+      "description": "Collect and emit metrics for hook execution time and Redis latency; expose via Prometheus endpoint for performance monitoring",
+      "component": "hooks/ metrics",
+      "priority": "low"
+    }
+  ]
+}

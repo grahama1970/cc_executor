@@ -683,12 +683,34 @@ if __name__ == "__main__":
 
 # Global instance for easy access
 _hook_integration = None
-_initialization_lock = asyncio.Lock() if 'asyncio' in sys.modules else None
+_initialization_lock = asyncio.Lock()
+_thread_lock = None
+
+# Import threading for thread safety
+import threading
+
+def _get_thread_lock():
+    """Get or create thread lock for synchronous contexts."""
+    global _thread_lock
+    if _thread_lock is None:
+        _thread_lock = threading.Lock()
+    return _thread_lock
 
 def get_hook_integration() -> HookIntegration:
-    """Get or create the global hook integration instance."""
+    """Get or create the global hook integration instance with thread safety."""
     global _hook_integration
-    if _hook_integration is None:
+    
+    # Fast path - already initialized
+    if _hook_integration is not None:
+        return _hook_integration
+    
+    # Thread-safe initialization
+    lock = _get_thread_lock()
+    with lock:
+        # Double-check pattern
+        if _hook_integration is not None:
+            return _hook_integration
+            
         # Use a simple flag to prevent recursive initialization
         if not hasattr(get_hook_integration, '_initializing'):
             get_hook_integration._initializing = True
@@ -699,6 +721,34 @@ def get_hook_integration() -> HookIntegration:
         else:
             # Return a dummy instance during initialization to prevent recursion
             return type('DummyHookIntegration', (), {'enabled': False, 'enforcer': type('DummyEnforcer', (), {'initialized': True})()})()
+    
+    return _hook_integration
+
+async def get_hook_integration_async() -> HookIntegration:
+    """Async version with asyncio.Lock for thread safety."""
+    global _hook_integration
+    
+    # Fast path - already initialized
+    if _hook_integration is not None:
+        return _hook_integration
+    
+    # Async thread-safe initialization
+    async with _initialization_lock:
+        # Double-check pattern
+        if _hook_integration is not None:
+            return _hook_integration
+            
+        # Use a simple flag to prevent recursive initialization
+        if not hasattr(get_hook_integration_async, '_initializing'):
+            get_hook_integration_async._initializing = True
+            try:
+                _hook_integration = HookIntegration()
+            finally:
+                del get_hook_integration_async._initializing
+        else:
+            # Return a dummy instance during initialization to prevent recursion
+            return type('DummyHookIntegration', (), {'enabled': False, 'enforcer': type('DummyEnforcer', (), {'initialized': True})()})()
+    
     return _hook_integration
 
 
