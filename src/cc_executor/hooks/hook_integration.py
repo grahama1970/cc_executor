@@ -308,7 +308,8 @@ class HookIntegration:
         """Initialize hook integration with configuration."""
         # Use programmatic enforcement instead of config file
         self.enforcer = ProgrammaticHookEnforcement()
-        self.enforcer.initialize()
+        # DEFER initialization - don't call self.enforcer.initialize() here
+        # It will be called on first use via ensure_hooks decorator
         
         # Keep config for backward compatibility
         project_root = Path(__file__).resolve().parents[3]
@@ -682,12 +683,22 @@ if __name__ == "__main__":
 
 # Global instance for easy access
 _hook_integration = None
+_initialization_lock = asyncio.Lock() if 'asyncio' in sys.modules else None
 
 def get_hook_integration() -> HookIntegration:
     """Get or create the global hook integration instance."""
     global _hook_integration
     if _hook_integration is None:
-        _hook_integration = HookIntegration()
+        # Use a simple flag to prevent recursive initialization
+        if not hasattr(get_hook_integration, '_initializing'):
+            get_hook_integration._initializing = True
+            try:
+                _hook_integration = HookIntegration()
+            finally:
+                del get_hook_integration._initializing
+        else:
+            # Return a dummy instance during initialization to prevent recursion
+            return type('DummyHookIntegration', (), {'enabled': False, 'enforcer': type('DummyEnforcer', (), {'initialized': True})()})()
     return _hook_integration
 
 
