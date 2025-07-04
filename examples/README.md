@@ -1,57 +1,106 @@
 # CC Executor Examples
 
-This directory contains working examples demonstrating cc_executor capabilities.
+Clean, organized examples demonstrating cc_executor capabilities.
+
+## Quick Start
+
+Each example is self-contained with its own README:
+
+1. **[01_basic_usage](01_basic_usage/)** - Simplest example showing sequential task execution
+2. **[02_with_error_recovery](02_with_error_recovery/)** - Error handling and retry logic
+3. **[03_with_hooks](03_with_hooks/)** - Pre-flight checks and post-execution reports
+
+## Running Examples
+
+```bash
+# Basic usage
+cd examples/01_basic_usage
+python run_example.py
+
+# With error recovery
+cd examples/02_with_error_recovery
+python run_example.py
+
+# With hooks
+cd examples/03_with_hooks
+python run_example.py
+```
+
+## What Each Example Teaches
+
+### 01_basic_usage
+- Writing task lists that reference cc_execute.md
+- Sequential execution with dependencies
+- Fresh context per task (200K tokens)
+- File creation and modification
+
+### 02_with_error_recovery
+- Documenting common errors upfront
+- Automatic retry with exponential backoff
+- Building a knowledge base of errors
+- Self-healing task lists
+
+### 03_with_hooks
+- Pre-flight complexity assessment
+- Risk identification before execution
+- Post-execution quality reports
+- Automated verification
+
+## Key Concepts
+
+1. **Sequential Execution**: Tasks run one after another, not in parallel
+2. **Fresh Context**: Each task gets a clean 200K token window
+3. **No Pollution**: Tasks don't see each other's generation process
+4. **Tool Integration**: Full MCP tool access per task
 
 ## Directory Structure
 
 ```
 examples/
-├── simple/                    # Basic examples for quick understanding
-│   └── todo_api/             # Simple TODO API demonstration
-│       ├── task_list.md      # Task definitions
-│       ├── run_example.py    # Script to execute tasks
-│       └── tmp/              # Outputs and logs
-│           └── responses/    # JSON results
-└── advanced/                  # Complex workflows
-    └── redis_cache/          # Research → Build → Review workflow
-        ├── task_list.md      # Full self-improving format
-        ├── run_example.py    # Orchestration script
-        └── tmp/              
-            └── responses/    # Results and logs
+├── README.md                    # This file
+├── 01_basic_usage/             # Simplest example
+│   ├── README.md               # Example documentation
+│   ├── task_list.md            # Task definitions
+│   └── run_example.py          # Execution script
+├── 02_with_error_recovery/     # Error handling
+│   ├── README.md
+│   ├── task_list.md
+│   └── run_example.py
+└── 03_with_hooks/              # Quality assurance
+    ├── README.md
+    ├── task_list.md
+    ├── .claude-hooks.json      # Hook configuration
+    └── run_example.py
 ```
-
-## Quick Start
-
-### Simple Example (TODO API)
-```bash
-cd examples/simple/todo_api
-python run_example.py
-```
-This builds a TODO API in 3 steps, demonstrating sequential execution with fresh context per task.
-
-### Advanced Example (Redis Cache)
-```bash
-cd examples/advanced/redis_cache
-python run_example.py
-```
-This shows a full workflow with external tools: Research → Build → Review → Improve.
-
-## Key Concepts Demonstrated
-
-1. **Sequential Execution**: Each task waits for the previous one
-2. **Fresh Context**: Each task gets 200K tokens
-3. **No Pollution**: Tasks don't see each other's generation process
-4. **Tool Integration**: MCP tools, LiteLLM, etc. (advanced example)
 
 ## Output Organization
 
-Each example maintains its own `tmp/responses/` directory:
-- Execution results as timestamped JSON
+Each example creates its own output directories:
+- `tmp/responses/` - JSON execution results
 - Generated code in appropriate directories
-- No pollution of the examples directory
+- Reports (for examples with hooks)
 
-## Notes
+All outputs are gitignored by default.
 
-- Examples in README are simplified for clarity
-- Full production formats with self-improvement features are in the actual task_list.md files
-- Error recovery and retries are built into the execution scripts
+## Best Practices
+
+1. **Start Simple**: Begin with 01_basic_usage
+2. **Add Complexity Gradually**: Move to error recovery, then hooks
+3. **Learn from Outputs**: Check JSON files to understand execution
+4. **Customize**: Modify examples for your use cases
+
+## Troubleshooting
+
+If examples fail:
+1. Check you're in the virtual environment: `source .venv/bin/activate`
+2. Ensure dependencies installed: `uv pip install fastapi pytest httpx`
+3. Review JSON outputs in `tmp/responses/`
+4. For hook examples, check reports in `reports/`
+
+## Next Steps
+
+After running these examples:
+1. Create your own task lists
+2. Experiment with different tools
+3. Add custom hooks for your workflow
+4. Build complex multi-step automations

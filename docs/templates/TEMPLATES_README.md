@@ -60,6 +60,19 @@ This directory contains standardized templates for writing consistent, high-qual
 
 **When to Use**: Implementing data persistence or caching
 
+### 5. [TASK_LIST_REPORT_TEMPLATE.md](./TASK_LIST_REPORT_TEMPLATE.md)
+**Purpose**: Comprehensive reporting structure for task list executions
+
+**Key Features**:
+- Raw JSON output for each task (anti-hallucination)
+- Agent reasonableness assessment per task
+- Cross-task dependency verification
+- File system verification commands
+- Confidence levels and pattern analysis
+- Full execution evidence trail
+
+**When to Use**: Generating reports after task list execution via hooks
+
 ## Quick Start Guide
 
 ### Creating a New Script

@@ -381,3 +381,105 @@ This template ensures code reviews are:
 - Informed by real project learnings
 
 Following this template helps maintain code quality while enabling fast, effective reviews and avoiding known pitfalls discovered during CC Executor development.
+
+## COMPREHENSIVE CODE-REVIEW ASSESSMENT PROCESS
+
+When performing a code review for CC Executor, follow this rigorous assessment process:
+
+### Scope
+
+1. **Read the specified review-request markdown file in full**
+   - No skimming - read every section thoroughly
+   - Note all referenced files and changes
+
+2. **Open every file it references and inspect them line-by-line**
+   - Use Read tool to examine complete files
+   - Track specific line numbers for issues
+
+3. **Evaluate against the four Review Focus Areas:**
+   
+   a. **Template compliance (PYTHON_SCRIPT_TEMPLATE.md)**
+      - Verify shebang, docstring, imports organization
+      - Check function placement (outside `__main__`)
+      - Validate single `asyncio.run()` pattern
+      - Ensure proper logging with loguru
+      - Confirm results saved to `tmp/responses/`
+   
+   b. **Report structure (TASK_LIST_REPORT_TEMPLATE.md)**
+      - Verify all required sections present
+      - Check raw JSON inclusion for each task
+      - Validate anti-hallucination measures
+      - Ensure proper timestamp and session tracking
+   
+   c. **Hook integration (pre/post hooks & sequential guarantees)**
+      - Verify pre-flight checks run before execution
+      - Confirm post-execution reports generated
+      - Validate sequential execution maintained
+      - Check hook configuration in `.claude-hooks.json`
+   
+   d. **Error-recovery patterns (simple, non-brittle)**
+      - Ensure retry logic is straightforward
+      - Verify no over-engineering
+      - Check error tracking mechanisms
+      - Validate known fixes documentation
+
+### Deliverables (write to tasks/executor/incoming)
+
+#### A. `NNN_<slug>_assessment.md`
+Create a comprehensive assessment containing:
+- **Strengths & weaknesses per focus area**
+  - What's done well
+  - What needs improvement
+  - Missing elements
+- **Exact file + line references for each issue**
+  - E.g., "websocket_handler.py:234 - Missing error handling"
+- **Impact analysis and overall verdict**
+  - Critical/High/Medium/Low impact ratings
+  - APPROVED/NEEDS_CHANGES/REJECTED verdict
+
+#### B. Update or create `NNN_<slug>_fixes.json`
+Create a task list with:
+- **ONE task per finding, numbered 00N_**
+- **Priority levels**: critical, high, medium, low
+- **Component tags**: hooks, core, cli, client, docs
+- **Keep tasks minimal, iterative, non-brittle**
+
+Example structure:
+```json
+{
+  "review_id": "021_comprehensive_project_review",
+  "tasks": [
+    {
+      "id": "001_fix_redis_timeout",
+      "priority": "medium",
+      "component": "hooks",
+      "file": "task_list_completion_report.py",
+      "line": 65,
+      "issue": "Redis connection might hang",
+      "fix": "Add connection timeout parameter"
+    }
+  ]
+}
+```
+
+### Rules
+
+- **No skimming**: Cite real line numbers and actual code
+- **Provide both deliverables**: Narrative assessment AND task list
+- **Do not add complexity**: Keep fixes simple and targeted
+- **Be specific**: Vague feedback helps no one
+- **Consider impact**: Focus on what matters most
+
+### Example Review Command
+
+```markdown
+PLEASE PERFORM A COMPREHENSIVE CODE-REVIEW ASSESSMENT
+
+Review: src/cc_executor/tasks/orchestrator/incoming/021_comprehensive_project_review_and_validation.md
+
+Start the assessment immediately and produce:
+1. 021_comprehensive_project_review_assessment.md
+2. 021_comprehensive_project_review_fixes.json
+
+Both in src/cc_executor/tasks/executor/incoming/
+```

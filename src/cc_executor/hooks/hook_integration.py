@@ -120,7 +120,12 @@ class ProgrammaticHookEnforcement:
         """Check Redis connection."""
         try:
             import redis
-            self.redis_client = redis.Redis(decode_responses=True)
+            timeout_seconds = int(os.environ.get('REDIS_TIMEOUT', '5'))
+            self.redis_client = redis.Redis(
+                decode_responses=True,
+                socket_connect_timeout=timeout_seconds,
+                socket_timeout=timeout_seconds
+            )
             self.redis_client.ping()
             logger.info("Redis connection established")
             return True
