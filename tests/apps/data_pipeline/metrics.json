@@ -1,0 +1,143 @@
+{
+  "summary": {
+    "total_revenue": 1335438.36,
+    "total_orders": 1000,
+    "average_order_value": 1335.44,
+    "unique_products": 20,
+    "unique_customers": 100
+  },
+  "revenue_by_product_top5": {
+    "P005": {
+      "revenue": 93021.24,
+      "percentage": 6.97
+    },
+    "P009": {
+      "revenue": 78959.79,
+      "percentage": 5.91
+    },
+    "P018": {
+      "revenue": 76545.15,
+      "percentage": 5.73
+    },
+    "P008": {
+      "revenue": 75566.13,
+      "percentage": 5.66
+    },
+    "P017": {
+      "revenue": 72982.06,
+      "percentage": 5.47
+    }
+  },
+  "revenue_by_month": {
+    "April": {
+      "revenue": 387500.15,
+      "percentage_of_total": 29.02
+    },
+    "May": {
+      "revenue": 508430.01,
+      "percentage_of_total": 38.07,
+      "mom_change_percent": 31.21
+    },
+    "June": {
+      "revenue": 391792.34,
+      "percentage_of_total": 29.34,
+      "mom_change_percent": -22.94
+    },
+    "July": {
+      "revenue": 47715.86,
+      "percentage_of_total": 3.57,
+      "mom_change_percent": -87.82
+    }
+  },
+  "customer_lifetime_value_top10": {
+    "C011": {
+      "lifetime_value": 29799.27,
+      "percentage_of_total": 2.23
+    },
+    "C003": {
+      "lifetime_value": 27189.2,
+      "percentage_of_total": 2.04
+    },
+    "C063": {
+      "lifetime_value": 26197.91,
+      "percentage_of_total": 1.96
+    },
+    "C064": {
+      "lifetime_value": 23867.48,
+      "percentage_of_total": 1.79
+    },
+    "C045": {
+      "lifetime_value": 23818.52,
+      "percentage_of_total": 1.78
+    },
+    "C005": {
+      "lifetime_value": 23780.71,
+      "percentage_of_total": 1.78
+    },
+    "C077": {
+      "lifetime_value": 22325.89,
+      "percentage_of_total": 1.67
+    },
+    "C098": {
+      "lifetime_value": 20570.34,
+      "percentage_of_total": 1.54
+    },
+    "C092": {
+      "lifetime_value": 20169.62,
+      "percentage_of_total": 1.51
+    },
+    "C034": {
+      "lifetime_value": 20007.42,
+      "percentage_of_total": 1.5
+    }
+  },
+  "best_performing_days": [
+    {
+      "date": "2025-05-15",
+      "revenue": 29208.56
+    },
+    {
+      "date": "2025-05-08",
+      "revenue": 24880.08
+    },
+    {
+      "date": "2025-05-18",
+      "revenue": 24151.89
+    },
+    {
+      "date": "2025-04-13",
+      "revenue": 23206.27
+    },
+    {
+      "date": "2025-06-10",
+      "revenue": 22852.98
+    }
+  ],
+  "worst_performing_days": [
+    {
+      "date": "2025-06-23",
+      "revenue": 5865.35
+    },
+    {
+      "date": "2025-04-16",
+      "revenue": 5637.86
+    },
+    {
+      "date": "2025-06-18",
+      "revenue": 4193.83
+    },
+    {
+      "date": "2025-06-05",
+      "revenue": 3853.28
+    },
+    {
+      "date": "2025-06-01",
+      "revenue": 3373.2
+    }
+  ],
+  "insights": {
+    "top_product_concentration": "Top 5 products account for 29.7% of revenue",
+    "top_customer_concentration": "Top 10 customers account for 17.8% of revenue",
+    "revenue_trend": "Revenue increased from April to June, with partial July data"
+  }
+}

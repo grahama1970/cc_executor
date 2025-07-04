@@ -22,29 +22,60 @@ This allows Claude to:
 5. **Handle massive workflows** - 10+ hour workflows with 50+ sequential tasks
 6. **True task dependencies** - Task N can use outputs from Tasks 1 through N-1
 
-### The Orchestrator Pattern in Action
+### Try It Now - Immediate Working Example
 
 ```bash
-cc-executor run "claude -p 'You are the ORCHESTRATOR. Execute these tasks sequentially:
+# Quick start - Run this working example that builds a TODO API
+cc-executor server start  # Start the WebSocket server
+cd examples/simple/todo_api
+python run_example.py
+```
 
-1. SPAWN Claude Instance #1 via cc_execute.md:
-   - Task: Create a FastAPI app with user model and database setup
-   - Fresh 200K context for complex code generation
-   - WAIT for completion before proceeding
-   
-2. SPAWN Claude Instance #2 via cc_execute.md:  
-   - Task: Add authentication endpoints using the models from step 1
-   - Fresh 200K context - won't be polluted by step 1's generation
-   - Can read files created by Instance #1
-   - WAIT for completion before proceeding
-   
-3. SPAWN Claude Instance #3 via cc_execute.md:
-   - Task: Create comprehensive tests for the entire application
-   - Fresh 200K context for detailed test generation  
-   - Can see all files from previous instances
-   - WAIT for completion
+**Simple Task List** (abridged for clarity - see `examples/simple/todo_api/task_list.md`):
+```
+Task 1: Create TODO API → Fresh 200K context
+Task 2: Write tests → New context, reads Task 1's output  
+Task 3: Add PUT endpoint → Clean context, builds on previous work
+```
 
-As the orchestrator, you coordinate but don't execute - each task gets its own Claude!'"
+This example demonstrates:
+- **Task 1**: Creates a FastAPI TODO app (fresh 200K context)
+- **Task 2**: Tests the API (new context, reads Task 1's output)  
+- **Task 3**: Adds features (new context, builds on previous work)
+
+**What This Demonstrates:**
+1. **Fresh Context Per Task**: Each task starts clean, no pollution
+2. **Sequential Dependencies**: Task 2 tests what Task 1 built
+3. **Incremental Development**: Task 3 extends previous work
+4. **Real Working Code**: You get a functioning API with tests
+
+**Expected Output**: A working TODO API in `todo_api/` with full test coverage
+
+> **Note**: The README shows simplified task lists for clarity. For production use with self-improving features, error recovery, and metrics tracking, see:
+> - `examples/todo_api_self_improving_task_list.md` - Full version with gamification
+> - `examples/redis_cache_advanced_task_list.md` - Advanced workflow with external tools
+> - `docs/GAMIFICATION_EXPLAINED.md` - Why self-improving features exist (hint: not for error recovery!)
+
+### For Advanced Users - Full Workflow Example
+
+See `examples/redis_cache_advanced_task_list.md` for a complete Research → Build → Review → Improve workflow that demonstrates:
+- Integration with perplexity-ask for research
+- Building based on researched best practices
+- AI model review with LiteLLM
+- Iterative improvement based on feedback
+
+This shows the FULL power of orchestrated task execution with external tools.
+
+### Advanced Example - Research + Build + Review
+
+```bash
+# Advanced workflow with external tools (simplified view)
+Task 1: Research with perplexity-ask → Save findings
+Task 2: Build Redis cache based on research → Fresh context
+Task 3: Review code with LiteLLM/Gemini → Fresh perspective  
+Task 4: Apply improvements and test → Final iteration
+
+# Full orchestrated example in: examples/redis_cache_advanced_task_list.md
 ```
 
 **The Magic**: 
@@ -154,58 +185,71 @@ uv sync
 uv pip install -e .
 ```
 
-## Advanced Workflow Examples
+## Advanced Workflow Examples (Task List Context)
 
-### 1. Claude + Perplexity Research
+**Note**: These examples show cc_execute.md in its proper context - orchestrating multi-step task lists. For single commands, just use Claude Code directly.
 
-Prompt Claude to use the perplexity-ask MCP tool for fact-checking:
+### 1. Research → Build → Review Pipeline (Multi-Task Orchestration)
+
+Orchestrate a complete workflow where each task gets fresh context:
 
 ```bash
-cc-executor run "claude -p --mcp-config .mcp.json --allowedTools 'mcp__perplexity-ask' \
-  'Explain quantum entanglement in simple terms. Then use the perplexity-ask mcp tool to \
-  research recent breakthroughs in quantum entanglement from 2024-2025 and update your explanation.'"
+# Task List: Build Quantum Computing Tutorial
+cc-executor run "claude -p 'You are the ORCHESTRATOR. Execute this task list:
+
+Task 1 (Direct): Use perplexity-ask to research quantum entanglement breakthroughs from 2024-2025
+
+Task 2 (cc_execute.md): Based on the research, create a beginner-friendly tutorial on quantum 
+entanglement with code examples in Python. Save as quantum_tutorial.md
+
+Task 3 (cc_execute.md): Review the tutorial and create interactive Jupyter notebook exercises 
+that demonstrate the concepts. Each exercise should build on the previous one.'"
 ```
 
-### 2. Using Prompt Files with External Models
+### 2. Sequential Implementation with External Review (Task List)
 
-Reference prompt files to have Claude use specific models:
+Build complex systems where each component needs fresh context:
 
 ```bash
-cc-executor run "claude -p \
-  'Write a Python implementation of quicksort. Then follow the instructions in \
-  ./prompts/ask-litellm.md using the gemini-2.0-flash-exp model to critique the \
-  code for efficiency and suggest optimizations.'"
+# Task List: Build Secure API with Authentication
+cc-executor run "claude -p 'ORCHESTRATE these sequential tasks:
+
+Task 1 (cc_execute.md): Create a FastAPI application structure with proper project layout,
+dependency injection, and configuration management. Include a main.py and config.py
+
+Task 2 (cc_execute.md): Add JWT-based user authentication to the FastAPI app. Include 
+registration, login, and protected endpoints. Implement proper password hashing.
+
+Task 3 (cc_execute.md): Review the complete implementation using ./prompts/ask-litellm.md 
+with gemini-2.0-flash-exp to identify security vulnerabilities and suggest improvements.
+
+Task 4 (cc_execute.md): Implement the security improvements suggested in Task 3 and add 
+comprehensive test coverage for all authentication flows.'"
 ```
 
-Or for a more complex review:
+### 3. Parallel Generation Followed by Sequential Analysis (Task List)
+
+Combine parallel and sequential patterns in a workflow:
 
 ```bash
-cc-executor run "claude -p \
-  'Create a FastAPI application with user authentication. After implementation, \
-  use ./prompts/ask-litellm.md with gemini-2.0-flash-exp to review for security \
-  vulnerabilities and best practices.'"  
-```
+# Task List: Algorithm Implementation Comparison
+cc-executor run "claude -p 'ORCHESTRATE this workflow:
 
-### 3. Parallel Task Execution
+Phase 1 - Parallel Generation (Direct):
+Spawn 3 parallel tasks to implement binary search:
+- Task A: Iterative implementation with performance focus
+- Task B: Recursive implementation with clarity focus  
+- Task C: Generic implementation supporting any comparable type
 
-Prompt Claude to spawn multiple task instances for comparison:
+Phase 2 - Sequential Analysis (cc_execute.md):
+Task 4: Analyze all three implementations for time/space complexity and create a 
+comparison table. Include Big-O analysis and practical performance considerations.
 
-```bash
-cc-executor run "claude -p \
-  'I need you to write a haiku about programming. Use your task spawning capabilities to \
-  create 5 different variations in parallel, then compare them and select the most creative one. \
-  Show me all 5 variations and explain why you chose the winner.'"
-```
+Task 5: Create a comprehensive test suite that validates all three implementations
+with edge cases, large datasets, and different data types.
 
-For more complex parallel tasks:
-
-```bash
-cc-executor run "claude -p \
-  'Implement a binary search algorithm in Python. Spawn 3 parallel tasks: \
-  Task 1: Write an iterative implementation \
-  Task 2: Write a recursive implementation \
-  Task 3: Write a generic implementation that works with any comparable type \
-  Then compare all three for readability, performance, and versatility.'"
+Task 6: Write a technical blog post explaining when to use each implementation,
+with benchmarks and real-world examples.'"
 ```
 
 ## Usage
@@ -259,6 +303,40 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Orchestration and Tool Integration
+
+CC Executor works best as a **prompt-based tool** using `cc_execute.md`. After exploring MCP integration, we determined that the prompt-based approach is superior for this use case.
+
+### Why Prompts Over MCP
+
+1. **Proven Reliability**: 10:1 success ratio with prompt-based approach
+2. **Simplicity**: No additional servers, protocols, or dependencies
+3. **Flexibility**: Prompts can evolve and self-improve
+4. **No Added Value**: MCP would add complexity without solving real problems
+
+### For Orchestrators
+
+If you need an orchestrator to use multiple tools (cc_execute, perplexity-ask, etc.), use structured prompts:
+
+```markdown
+## Task Execution Plan
+
+1. Implementation Phase:
+   - Use cc_execute.md: "Create a FastAPI app with user authentication"
+   - Timeout: 300s
+   - Tools: Read, Write, Edit, Bash
+
+2. Research Phase:
+   - Use perplexity-ask: "Latest FastAPI security best practices"
+
+3. Review Phase:
+   - Use Claude task tool: "Review the generated code"
+```
+
+This gives you structure and flexibility without brittleness.
+
+See [MCP Evaluation Result](docs/MCP_EVALUATION_RESULT.md) for the full analysis.
 
 ## Key Features
 

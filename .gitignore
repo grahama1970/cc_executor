@@ -19,6 +19,7 @@ dist
 coverage.xml
 repos/
 archive
+playground
 
 # Sensitive credentials and service accounts
 vertex_ai_service_account.json

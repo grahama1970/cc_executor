@@ -4,8 +4,8 @@
 
 This guide provides templates and best practices for creating flexible task lists where the orchestrator (Claude) intelligently decides how to execute each task - whether directly, through cc_execute.md, or via other methods.
 
-**Version**: 2.0 (Enhanced with Perplexity critique feedback)
-**Last Updated**: 2025-07-01
+**Version**: 2.1 (Enhanced with cc_execute.md learnings)
+**Last Updated**: 2025-01-04
 
 ## ⚠️ MANDATORY PRE-EXECUTION VALIDATION
 
@@ -65,6 +65,17 @@ The orchestrator should use cc_execute.md for:
 - Expected output > 1000 lines → Use cc_execute.md
 - Retry logic needed → Use cc_execute.md
 - Task similarity score < 2.0 in Redis → Use cc_execute.md
+
+**NEW LEARNING (2025-01-04)**: cc_execute.md Usage & Architecture Decision
+- Import pattern: `from src.cc_executor.prompts.cc_execute_utils import execute_task_via_websocket`
+- Always use absolute paths in tasks (e.g., `tests/apps/data_pipeline/file.csv`)
+- WebSocket server must be running (`cc-executor serve`)
+- Timeouts may need adjustment - start with 120s for analytical tasks
+- Direct execution often sufficient for simple file operations
+- **MCP EVALUATION**: After testing, prompt-based cc_execute.md remains superior to MCP wrapper
+  - Prompt approach: 10:1 success ratio, simple, proven
+  - MCP approach: Added complexity without solving real problems
+  - Decision: Continue using prompts for orchestration flexibility
 
 ### When to Execute Directly
 
@@ -286,6 +297,80 @@ Current validation status: ✅ All tasks compliant as of v3
 
 1. After ANY failure:
    - Check CLAUDE_CODE_PROMPT_RULES.md compliance
+
+## 🚀 Advanced Task List Patterns
+
+### Understanding cc_execute.md Purpose
+**IMPORTANT**: cc_execute.md is ONLY valuable in task list contexts for sequential execution. For single commands, use Claude Code directly.
+
+The value proposition:
+- **Task Lists**: Use cc_execute.md to spawn fresh Claude instances per task
+- **Single Tasks**: Just use Claude Code directly (no orchestration needed)
+
+### Sequential Task List Example (Primary Use Case)
+```python
+# This is where cc_execute.md shines - orchestrating multiple sequential tasks
+task_list = [
+    "Task 1: Create data model for blog system",
+    "Task 2: Using the model from Task 1, build REST API",  
+    "Task 3: Using the API from Task 2, write integration tests",
+    "Task 4: Using all previous work, generate API documentation"
+]
+
+# Each task gets fresh 200K context but can read previous outputs
+for task in task_list:
+    result = execute_task_via_websocket(task)
+    if not result["success"]:
+        break  # Dependencies require sequential success
+```
+
+### When to Use cc_execute.md in Task Lists
+
+✅ **USE cc_execute.md when**:
+- Executing tasks that depend on previous task outputs
+- Tasks that generate lots of output (would pollute context)
+- Complex multi-file operations needing fresh context
+- Tasks requiring different tool sets or permissions
+
+❌ **DON'T use cc_execute.md for**:
+- Single standalone tasks (just use Claude directly)
+- Simple file reads or calculations
+- Tasks that need shared in-memory state
+
+### Advanced Pattern: Research → Build → Review Pipeline
+```markdown
+## Task List: Implement Caching Layer
+
+### Task 1: Research Current Best Practices
+**Method**: Direct execution with perplexity-ask
+**Why not cc_execute**: Simple MCP tool call, minimal output
+
+### Task 2: Implement Caching Based on Research  
+**Method**: cc_execute.md
+**Why**: Complex implementation, needs fresh 200K context
+```bash
+cc_execute.md: "Using the research from Task 1 (in research.md), implement a Redis caching layer with TTL, invalidation, and monitoring"
+```
+
+### Task 3: Review Implementation
+**Method**: cc_execute.md with LiteLLM
+**Why**: Needs to read all code from Task 2 with fresh perspective
+```bash
+cc_execute.md: "Review the caching implementation in cache/ directory and use ./prompts/ask-litellm.md to analyze for performance"
+```
+```
+
+### The Orchestration Pattern
+The main Claude (orchestrator) manages the workflow but doesn't execute complex tasks:
+
+```
+ORCHESTRATOR (You)           WORKER CLAUDES (via cc_execute.md)
+    │                                    │
+    ├─ Manages task sequence            ├─ Fresh 200K context each
+    ├─ Tracks progress                  ├─ Focused on single task
+    ├─ Handles errors                   ├─ No knowledge of other tasks
+    └─ Coordinates results              └─ Clean execution environment
+```
    - Log specific error (timeout/token/ambiguity)
    - Apply targeted improvement
    - Re-validate before next run
@@ -1419,5 +1504,45 @@ Remember: The orchestrator (Claude) has the context and intelligence to choose t
 **The #1 Rule**: If a task violates CLAUDE_CODE_PROMPT_RULES.md, it WILL fail. Always validate first!
 
 **Key Understanding**: Tasks execute ONCE. We improve failing tasks until they succeed, but we don't re-run successful tasks. The goal is 100% task completion through self-improvement, not building execution ratios.
+
+## NEW: Practical cc_execute.md Execution Pattern (Added 2025-01-04)
+
+Based on real execution experience, here's the working pattern for orchestrators:
+
+```python
+# Pattern for executing tasks via cc_execute.md
+from src.cc_executor.prompts.cc_execute_utils import execute_task_via_websocket
+
+# Execute analytical task
+task = '''What insights can be extracted from path/to/data.csv? 
+Analyze and report: [specific requirements]. 
+Save findings as path/to/report.md.'''
+
+result = execute_task_via_websocket(
+    task=task,
+    timeout=120,  # Start with 2 minutes
+    tools=['Read', 'Write']  # Only needed tools
+)
+
+if result['success']:
+    print("Task completed successfully")
+else:
+    print(f"Task failed: {result.get('stderr', 'Unknown error')}")
+```
+
+**Key Learnings from Data Pipeline Execution:**
+1. **Task Granularity**: Break complex analyses into focused questions
+2. **Path Specification**: Always use relative paths from project root
+3. **Tool Selection**: Specify only the tools actually needed
+4. **Timeout Tuning**: Analytical tasks often need 120-180s
+5. **Direct vs cc_execute**: Simple file generation → Direct; Complex analysis → cc_execute
+
+**Success Pattern Observed:**
+- Task 1 (Generate Data): Direct execution ✅
+- Task 2 (Quality Analysis): cc_execute.md ✅ 
+- Task 3 (Data Cleaning): Direct execution ✅
+- Task 4 (Business Metrics): Direct execution (after cc_execute timeout) ✅
+
+This demonstrates the flexibility to switch execution methods based on task complexity and system state.
 
 This guide evolves with experience - track what works and update accordingly!
