@@ -103,7 +103,7 @@ Task 4: Apply improvements and test → Final iteration
 ## Why This Exists
 
 Beyond sequential execution, this project provides a reliable Claude Code SDK that:
-- **Actually runs hooks reliably** (hooks are completely broken in the official implementation)
+- **Implements a working hook system** (addressing challenges with the official hook implementation)
 - **Works with Claude Max** ($200/month Claude Max subscribers)
 - **Allows Claude Code to be called programmatically** without hanging
 - **Provides consistent subprocess execution** that doesn't mysteriously fail
@@ -111,7 +111,7 @@ Beyond sequential execution, this project provides a reliable Claude Code SDK th
 
 The official SDK currently focuses on API-key workflows and does not support browser-authenticated Claude Max users, so they can't:
 - Use the API (Claude Max uses browser auth, not API keys)
-- Run hooks reliably (they simply don't seem to work)
+- Run hooks reliably (implementation challenges exist)
 - Integrate Claude into any automated workflow
 
 After extensive testing with these limitations, this WebSocket-based approach emerged as a reliable way to integrate Claude Code.
