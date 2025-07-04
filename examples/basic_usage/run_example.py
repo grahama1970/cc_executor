@@ -70,16 +70,25 @@ Use in-memory storage with a simple list.''',
         with open(output_file, 'w') as f:
             json.dump(result, f, indent=2)
         
-        status = result.get('status', 'unknown')
-        duration = result.get('duration', 0)
+        success = result.get('success', False)
+        status = 'success' if success else 'failed'
+        attempts = result.get('attempts', 1)
+        
+        # Check hook verification
+        verification_passed = False
+        if 'hook_verification' in result:
+            verification_passed = result['hook_verification'].get('verification_passed', False)
+            print(f"\n🔐 UUID Verification: {'PASSED' if verification_passed else 'FAILED'}")
         
         results.append({
             'task': task['name'],
             'status': status,
-            'duration': duration
+            'success': success,
+            'verification': verification_passed,
+            'attempts': attempts
         })
         
-        print(f"\n✅ Task completed: {status} ({duration:.1f}s)")
+        print(f"\n{'✅' if success else '❌'} Task completed: {status} (attempts: {attempts})")
         print(f"   Output saved to: {output_file}")
         
         if status != 'success':
@@ -92,7 +101,8 @@ Use in-memory storage with a simple list.''',
     print(f"{'='*60}")
     for i, r in enumerate(results, 1):
         status_icon = "✅" if r['status'] == 'success' else "❌"
-        print(f"{status_icon} Task {i}: {r['task']} - {r['status']} ({r['duration']:.1f}s)")
+        verify_icon = "🔐" if r['verification'] else "⚠️"
+        print(f"{status_icon} Task {i}: {r['task']} - {r['status']} {verify_icon} (attempts: {r['attempts']})")
     
     # Verify outputs
     if all(r['status'] == 'success' for r in results):

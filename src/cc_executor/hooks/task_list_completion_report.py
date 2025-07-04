@@ -22,11 +22,7 @@ from enum import Enum
 from loguru import logger
 
 # Import truncation utilities from existing hook
-try:
-    from truncate_logs import truncate_large_value, detect_binary_content
-except ImportError:
-    # Fallback if import fails
-    from .truncate_logs import truncate_large_value, detect_binary_content
+from .truncate_logs import truncate_large_value, detect_binary_content
 
 class TaskStatus(Enum):
     """Task execution status."""
@@ -72,7 +68,7 @@ class TaskListReporter:
     
     def __init__(self):
         # Add connection timeout to prevent infinite blocking
-        timeout_seconds = int(os.environ.get('REDIS_TIMEOUT', '5'))
+        timeout_seconds = float(os.environ.get('REDIS_TIMEOUT', '5'))
         self.r = redis.Redis(
             decode_responses=True,
             socket_connect_timeout=timeout_seconds,
@@ -167,7 +163,12 @@ class TaskListReporter:
             
         # Check if it's binary content first
         if detect_binary_content(output):
-            return f"[BINARY DATA - {len(output)} bytes total]", True
+            # Show a preview of the binary data in hex format
+            preview_bytes = output[:32].encode('utf-8', errors='replace')
+            hex_preview = ' '.join(f'{b:02x}' for b in preview_bytes[:16])
+            if len(preview_bytes) > 16:
+                hex_preview += '...'
+            return f"[BINARY DATA - {len(output)} bytes total, preview: {hex_preview}]", True
             
         if len(output.encode('utf-8')) <= max_size:
             return output, False

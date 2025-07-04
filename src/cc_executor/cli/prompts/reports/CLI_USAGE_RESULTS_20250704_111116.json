@@ -1,0 +1,93 @@
+{
+  "session_id": "CLI_ASSESS_20250704_111116",
+  "timestamp": "20250704_111116",
+  "results": [
+    {
+      "filename": "demo_main_usage.py",
+      "expectations": {
+        "description": "CLI component functionality test",
+        "indicators": [
+          "cli",
+          "command",
+          "execute"
+        ],
+        "min_lines": 1,
+        "should_have_numbers": false,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== CC Executor CLI Usage Demonstration ===\n\n1. Testing --help flag:\n--------------------------------------------------\nExit code: 0\nOutput:\n                                                                                \n Usage: main.py [OPTIONS] COMMAND [ARGS]...                                     \n                                                                                \n CC Executor MCP WebSocket Service CLI with Hook Integration                    \n                                                                                \n                                                                                \n\u256d\u2500 Options \u2500\u2500\u2500...\n\n2. Testing --version flag:\n--------------------------------------------------\nExit code: 2\nOutput: \n\n3. Testing server status (should fail gracefully):\n--------------------------------------------------\nExit code: 0\nOutput: \u2717 Server is not running or not accessible\n\nError: 2025-07-04 11:11:17.764 | WARNING  | cc_executor.hooks.analyze_task_complexity:<module>:27 - rank_bm25 not installed, using simple matching\n\u001b[32m2025-07-04 11:11:17\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_ex...\n\n4. Testing config show:\n--------------------------------------------------\nExit code: 0\nOutput:\n            CC Executor Configuration            \n\u250f\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2533\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2533\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2513\n\u2503 Setting         \u2503 Value           \u2503 Source    \u2503\n\u2521\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2547\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2547\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2529\n\u2502 Service Name    \u2502 cc_executor_mcp \u2502 config.py \u2502\n\u2502 Version         \u2502 1.0.0           \u2502 config.py \u2502\n...\n\n\u2705 CLI usage demonstration complete\nCLI has Typer commands for: server, execute, stress, history, hooks, config\n",
+        "stderr": "",
+        "execution_time": 1751641878.4054728,
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 90.0,
+        "reasons": [
+          "Adequate output length (41 lines)",
+          "Found 3/3 expected indicators"
+        ],
+        "indicators_found": [
+          "cli",
+          "command",
+          "execute"
+        ],
+        "has_numbers": false
+      },
+      "execution_time": 2.011408805847168
+    },
+    {
+      "filename": "main.py",
+      "expectations": {
+        "description": "Command-line interface with Typer",
+        "indicators": [
+          "CLI",
+          "Usage",
+          "Commands",
+          "found",
+          "version"
+        ],
+        "min_lines": 20,
+        "should_have_numbers": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== CC Executor CLI Usage Example ===\n\n--- Test 1: CLI Help ---\nExit code: 0\nCommands found: 8/8\n\n--- Test 2: Version Command ---\nExit code: 0\nVersion output: cc_executor_mcp v1.0.0\n\n--- Test 3: Config Commands ---\nconfig show: \u2713\nconfig validate: \u2713\n\n--- Test 4: Hook Commands ---\nhooks list: \u2713\nhooks run: \u2713\nhooks reload: \u2713\n\n--- Test 5: Server Commands ---\nserver start: \u2713\nserver stop: \u2713\nserver status: \u2713\n\n--- Test 6: Non-destructive Commands ---\nconfig show: \u2713 (exit code: 0)\nhooks list: \u2713 (exit code: 0)\nFound 0 hooks in output\n\n\u2705 CLI usage example completed with Typer's CliRunner!\n\n\ud83d\udcbe Response saved: src/cc_executor/cli/tmp/responses/main_20250704_111118.json\n",
+        "stderr": "2025-07-04 11:11:18.781 | WARNING  | cc_executor.hooks.analyze_task_complexity:<module>:27 - rank_bm25 not installed, using simple matching\n\u001b[32m2025-07-04 11:11:18\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m331\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-04 11:11:18\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m191\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n\u001b[32m2025-07-04 11:11:18\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m331\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-04 11:11:18\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m191\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n",
+        "execution_time": 1751641878.9476688,
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 100,
+        "reasons": [
+          "Adequate output length (37 lines)",
+          "Found 5/5 expected indicators",
+          "Contains numeric data as expected",
+          "Uses OutputCapture pattern correctly"
+        ],
+        "indicators_found": [
+          "CLI",
+          "Usage",
+          "Commands",
+          "found",
+          "version"
+        ],
+        "has_numbers": true
+      },
+      "execution_time": 2.553607225418091
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "execution_uuid": "e5b1aa4f-ad42-43f3-bbb3-bba90271a8dd"
+}

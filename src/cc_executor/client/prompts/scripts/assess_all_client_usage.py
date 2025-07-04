@@ -9,6 +9,7 @@ import sys
 import subprocess
 import json
 import time
+import uuid
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 from datetime import datetime
@@ -288,14 +289,45 @@ class ClientUsageAssessor:
             ""
         ])
         
+        # Add UUID4 verification section
+        report_uuid = str(uuid.uuid4())
+        report_lines.extend([
+            "\n## Anti-Hallucination Verification",
+            f"**Report UUID**: `{report_uuid}`",
+            "\nThis UUID4 is generated fresh for this report execution and can be verified against:",
+            "- JSON response files in tmp/responses/",
+            "- Transcript logs for this session",
+            "\nIf this UUID does not appear in the corresponding JSON files, the report may be hallucinated.",
+            ""
+        ])
+        
         # Write report
         with open(self.report_path, 'w') as f:
             f.write('\n'.join(report_lines))
         
-        print(f"\n✅ Report generated: {self.report_path}")
-        
         passed = sum(1 for r in self.results if r['assessment']['reasonable'])
         failed = len(self.results) - passed
+        
+        # Save assessment results with UUID to JSON
+        json_path = self.reports_dir / f"CLIENT_USAGE_RESULTS_{self.timestamp}.json"
+        with open(json_path, 'w') as f:
+            json.dump({
+                'session_id': self.session_id,
+                'timestamp': self.timestamp,
+                'results': self.results,
+                'summary': {
+                    'total': len(self.results),
+                    'passed': passed,
+                    'failed': failed,
+                    'success_rate': passed/len(self.results)*100 if self.results else 0
+                },
+                'execution_uuid': report_uuid  # UUID4 at END for anti-hallucination
+            }, f, indent=2)
+        
+        print(f"\n✅ Report generated: {self.report_path}")
+        print(f"💾 JSON results saved to: {json_path}")
+        print(f"\n🔐 Verification UUID: {report_uuid}")
+        
         return passed, failed
     
     def save_component_response(self, filename: str, output: Dict[str, Any], 
@@ -303,6 +335,9 @@ class ClientUsageAssessor:
         """Save individual component response in OutputCapture format."""
         responses_dir = self.client_dir / "tmp" / "responses"
         responses_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate UUID4 for anti-hallucination verification
+        execution_uuid = str(uuid.uuid4())
         
         # Save as JSON following core pattern
         response_file = responses_dir / f"{Path(filename).stem}_{self.timestamp}.json"
@@ -317,7 +352,8 @@ class ClientUsageAssessor:
             'line_count': len(output['stdout'].split('\n')) if output['stdout'] else 0,
             'success': assessment['reasonable'],
             'has_error': 'error' in output['stderr'].lower() or output['exit_code'] != 0,
-            'exit_status': 'completed' if output['exit_code'] == 0 else f'failed: exit_code={output["exit_code"]}'
+            'exit_status': 'completed' if output['exit_code'] == 0 else f'failed: exit_code={output["exit_code"]}',
+            'execution_uuid': execution_uuid  # UUID4 at END for anti-hallucination
         }
         
         with open(response_file, 'w') as f:

@@ -25,36 +25,53 @@ This allows Claude to:
 ### Try It Now - Immediate Working Example
 
 ```bash
-# Quick start - Run this working example that builds a TODO API
+# Quick start - Run working examples
 cc-executor server start  # Start the WebSocket server
-cd examples/simple/todo_api
+
+# Basic example - All tasks use cc_execute
+cd examples/basic_usage
+python run_example.py
+
+# Advanced example - Mixed execution patterns  
+cd examples/advanced_usage
 python run_example.py
 ```
 
-**Simple Task List** (abridged for clarity - see `examples/simple/todo_api/task_list.md`):
+**Example Task Lists**:
+
+Basic Usage (all cc_execute):
 ```
 Task 1: Create TODO API → Fresh 200K context
 Task 2: Write tests → New context, reads Task 1's output  
-Task 3: Add PUT endpoint → Clean context, builds on previous work
+Task 3: Add feature → Clean context, builds on previous work
 ```
 
-This example demonstrates:
-- **Task 1**: Creates a FastAPI TODO app (fresh 200K context)
-- **Task 2**: Tests the API (new context, reads Task 1's output)  
-- **Task 3**: Adds features (new context, builds on previous work)
+Advanced Usage (mixed patterns):
+```
+Task 1: Research (Direct) → Quick MCP tool call
+Task 2: Create Tutorial (cc_execute) → Complex generation  
+Task 3: External Review (cc_execute) → Fresh perspective
+Task 4: Create Exercises (cc_execute) → Interactive content
+```
 
-**What This Demonstrates:**
-1. **Fresh Context Per Task**: Each task starts clean, no pollution
-2. **Sequential Dependencies**: Task 2 tests what Task 1 built
-3. **Incremental Development**: Task 3 extends previous work
-4. **Real Working Code**: You get a functioning API with tests
+**What The Examples Demonstrate:**
 
-**Expected Output**: A working TODO API in `todo_api/` with full test coverage
+Basic Usage:
+- **All cc_execute**: Simple approach for learning the system
+- **Sequential execution**: Each task waits for previous to complete
+- **Fresh context always**: Every task gets full 200K tokens
+- **Automatic UUID4**: Verification happens transparently
 
-> **Note**: The README shows simplified task lists for clarity. For production use with self-improving features, error recovery, and metrics tracking, see:
-> - `examples/todo_api_self_improving_task_list.md` - Full version with gamification
-> - `examples/redis_cache_advanced_task_list.md` - Advanced workflow with external tools
-> - `docs/GAMIFICATION_EXPLAINED.md` - Why self-improving features exist (hint: not for error recovery!)
+Advanced Usage:
+- **Mixed patterns**: Optimize between direct and cc_execute
+- **Tool integration**: MCP tools, external models
+- **Smart selection**: Use cc_execute only when beneficial
+- **Real workflows**: Research → Build → Review → Improve
+
+> **Note**: See the `examples/` directory for complete working examples:
+> - `examples/basic_usage/` - Learn cc_execute fundamentals
+> - `examples/advanced_usage/` - Production patterns with mixed execution
+> - `docs/GAMIFICATION_EXPLAINED.md` - Understanding self-improving features
 
 ### For Advanced Users - Full Workflow Example
 
@@ -105,16 +122,18 @@ After extensive testing with these limitations, this WebSocket-based approach em
 
 ## Overview
 
-CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Max users.
+CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Max users. It provides a flexible, optional execution pattern (like numpy vs math) for complex tasks that need fresh context isolation.
 
 ## Core Features
 
 - **Sequential task execution** - WebSockets maintain persistent connections for multi-step workflows
+- **Optional execution pattern** - Use cc_execute when you need it, direct execution when you don't
+- **Automatic UUID4 verification** - Built-in anti-hallucination hooks (always enabled)
 - **WebSocket JSON-RPC server** (`src/cc_executor/core/websocket_handler.py`) – reliable streaming command execution.
 - **Async Python client SDK** (`src/cc_executor/client/client.py`) – programmatic access for Python scripts.
-- **Extensible pre/post hooks** (`src/cc_executor/hooks/hook_integration.py` & modules in `src/cc_executor/hooks/`) – virtual-env setup, validation, metrics.
-- **Token-limit detection & adaptive retry** (logic in `websocket_handler.py`).
-- **Redis-backed session state & execution history** (`src/cc_executor/core/session_manager.py`).
+- **Automatic hooks** - UUID4 injection and verification happens transparently
+- **Token-limit detection & adaptive retry** (logic in `websocket_handler.py` - detects multiple token limit patterns).
+- **Redis-backed session state & execution history** (`src/cc_executor/core/session_manager.py` - fully implemented with Redis support).
 - **Shell consistency with Claude Code** (default shell configured in `src/cc_executor/core/config.py`).
 
 ### Comparison with Official Anthropic SDK
@@ -125,7 +144,8 @@ CC Executor is an unofficial Python SDK and WebSocket service for Claude Code Ma
 | Works with Claude Max (browser-auth) | ✅ | ❌ |
 | Python async client & CLI | ✅ `client/client.py`, `cli/main.py` | ❌ (API only) |
 | WebSocket streaming JSON-RPC | ✅ `core/websocket_handler.py` | ❌ |
-| Pre / post execution hooks | ✅ `hooks/` | ❌ (hooks in alpha state?) |
+| Automatic UUID4 hooks | ✅ Always enabled | ❌ (hooks broken) |
+| Optional execution pattern | ✅ Use when needed | N/A |
 | Token-limit detection & adaptive retry | ✅ | ❌ |
 | Redis-backed session & history | ✅ `core/session_manager.py` | ❌ |
 | Shell consistency (`zsh`) | ✅ | N/A |
@@ -145,9 +165,10 @@ src/cc_executor/
 ├── cli/            # Command-line interface
 │   └── main.py                # Typer-based CLI with all commands
 ├── hooks/          # Hook system for extensibility
-│   ├── pre_execution_hooks.py  # Pre-execution validation
-│   ├── post_execution_hooks.py # Post-execution processing
-│   └── error_hooks.py         # Error handling hooks
+│   ├── hook_integration.py    # Main hook integration (ProgrammaticHookEnforcement)
+│   ├── setup_environment.py    # Environment setup hooks
+│   ├── record_execution_metrics.py # Execution metrics recording
+│   └── review_code_changes.py  # Code review hooks
 └── templates/      # Self-improving prompt templates
 ```
 
@@ -183,6 +204,40 @@ uv sync
 
 # Install for development
 uv pip install -e .
+```
+
+## When to Use cc_execute vs Direct Execution
+
+Think of cc_execute like numpy - you don't need it for simple math, but it's invaluable for complex operations:
+
+### Use Direct Execution When:
+- **Simple tool calls**: MCP tools like perplexity-ask, GitHub operations
+- **Quick queries**: Tasks under 30 seconds
+- **No isolation needed**: When context accumulation is beneficial
+- **Basic commands**: File reads, simple edits, status checks
+
+### Use cc_execute When:
+- **Fresh context needed**: Each task needs full 200K token window
+- **Complex generation**: Multi-file creation, architecture design
+- **Long-running tasks**: Operations over 1 minute (WebSocket keeps alive)
+- **Anti-hallucination critical**: Automatic UUID4 verification
+- **Task isolation required**: No pollution from previous operations
+
+### Example: Mixed Execution Pattern
+```bash
+# Task 1: Direct - Quick MCP tool call
+Use perplexity-ask to research Redis caching patterns
+
+# Task 2: cc_execute - Complex implementation
+Using cc_execute.md: Create a Redis cache module with connection pooling,
+error handling, and automatic retry logic based on the research
+
+# Task 3: cc_execute - External review  
+Using cc_execute.md: Review the implementation with gemini-2.0-flash-exp
+via LiteLLM and suggest improvements
+
+# Task 4: Direct - Simple test run
+Run pytest on the generated tests
 ```
 
 ## Advanced Workflow Examples (Task List Context)
@@ -351,17 +406,19 @@ See [MCP Evaluation Result](docs/MCP_EVALUATION_RESULT.md) for the full analysis
 - Provides adaptive retry strategies with more concise prompts
 - Sends real-time notifications via WebSocket
 
-### Hook System
-- Pre-execution validation hooks
-- Post-execution processing hooks
-- Error handling with recovery strategies
-- Fully extensible architecture
+### Automatic Hook System
+- **UUID4 anti-hallucination**: Always enabled, no configuration needed
+- **Pre-execution hooks**: Automatically inject UUID4 requirements
+- **Post-execution hooks**: Verify UUID4 presence in outputs
+- **Transparent operation**: Hooks run automatically with cc_execute
+- **Error recovery**: Built-in retry logic (3 attempts)
 
 ### Self-Improving Assessments
 - Each major directory has self-assessment capabilities
 - Behavioral testing (not regex-based)
 - Saves raw outputs to prevent AI hallucination
 - Generates comprehensive markdown reports
+- UUID4 verification prevents fabricated results
 
 ### WebSocket Protocol
 - JSON-RPC 2.0 based communication

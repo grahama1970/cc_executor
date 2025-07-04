@@ -701,9 +701,18 @@ class WebSocketHandler:
             # Check for token limit errors in the output
             if stream_type == "stdout":
                 # Token limit detection patterns
-                if "Claude's response exceeded the" in data and "output token maximum" in data:
+                if any(pattern in data for pattern in [
+                    "Claude's response exceeded the",
+                    "maximum context length",
+                    "context length exceeded",
+                    "output token maximum",
+                    "This model's maximum context length is",
+                    "reduce the length of the messages"
+                ]):
                     # Extract token limit if possible
-                    limit_match = re.search(r'exceeded the (\d+) output token', data)
+                    limit_match = re.search(r'(\d+)(?:\s+(?:output\s+)?token|token|context)', data)
+                    if not limit_match:
+                        limit_match = re.search(r'maximum.*?(\d+)', data)
                     token_limit = int(limit_match.group(1)) if limit_match else 32000
                     
                     logger.warning(f"[TOKEN LIMIT EXCEEDED] Detected token limit error: {token_limit} tokens")
@@ -716,7 +725,7 @@ class WebSocketHandler:
                             "session_id": session_id,
                             "error_type": "token_limit",
                             "limit": token_limit,
-                            "message": f"Claude's output exceeded {token_limit} token limit",
+                            "message": f"Output exceeded {token_limit} token limit",
                             "suggestion": "Retry with a more concise prompt or specify word/token limits",
                             "error_text": data.strip(),
                             "recoverable": True

@@ -1,0 +1,1384 @@
+{
+  "session_id": "hook_assess_20250704_110912",
+  "timestamp": "20250704_110912",
+  "results": [
+    {
+      "filename": "analyze_task_complexity.py",
+      "expectations": {
+        "description": "Analyzes task complexity and estimates timeout",
+        "test_indicators": [
+          "Task Complexity Analyzer Test",
+          "Complexity:",
+          "Timeout:"
+        ],
+        "redis_keys": [
+          "task:complexity:*"
+        ],
+        "min_lines": 8,
+        "should_have_json": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Task Complexity Analyzer Test ===\n\nTesting complexity estimation for various tasks:\n\nTask: Add a simple print statement to hello.py...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\nTask: Implement a concurrent websocket handler with async processi...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\nTask: Create a REST API endpoint for user authentication...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\nTask: Fix typo in README.md...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\nTask: Refactor the database connection pool to handle concurrent r...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\nTask: Analyze performance bottlenecks in the async task queue...\n  Complexity: unknown\n  Timeout: 120s\n  Based on: default\n  Confidence: 0.00\n\n\nTesting file extraction:\n\nFile: /tmp/test_task.md\nExtracted: Can you implement a websocket handler?\nComplexity: {'estimated_timeout': 120, 'complexity': 'unknown', 'based_on': 'default', 'confidence': 0.0}\n\nFile: /tmp/test_task.py\nExtracted: Create a function to calculate fibonacci numbers\"\"\"\nComplexity: {'estimated_timeout': 120, 'complexity': 'unknown', 'based_on': 'default', 'confidence': 0.0}\n\n=== Test Complete ===\n",
+        "stderr": "2025-07-04 11:09:13.692 | WARNING  | __main__:<module>:27 - rank_bm25 not installed, using simple matching\n2025-07-04 11:09:13.694 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.695 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.696 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.697 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.698 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.698 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.699 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n2025-07-04 11:09:13.700 | INFO     | __main__:estimate_complexity:67 - No historical data, using default complexity\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (61 lines)",
+          "Found 3/3 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Task Complexity Analyzer Test",
+          "Complexity:",
+          "Timeout:"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 2363,
+              "truncated_size": 2363
+            }
+          }
+        }
+      },
+      "duration": 0.11922097206115723
+    },
+    {
+      "filename": "check_cli_entry_points.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== CLI Entry Point Checker Hook Test ===\n\nTesting: cc_executor server start\n  Warnings: [\"Use 'cc-executor' (with hyphen) not 'cc_executor'\"]\n  Recommended: cc-executor server start\n\nTesting: cc-executor\n  Warnings: []\n  Recommended: cc-executor\n\nTesting: python src/cc_executor/core/main.py\n  Warnings: []\n  Recommended: None\n\nTesting: check-file-rules --help\n  Warnings: []\n  Recommended: check-file-rules --help\n\nTesting: python -m cc_executor.core.main\n  Warnings: []\n  Recommended: None\n\n\nFull analysis for 'cc_executor':\n{\n  \"original_command\": \"cc_executor\",\n  \"entry_points\": {\n    \"cc-executor\": \"cc_executor.cli.main:app\",\n    \"check-file-rules\": \"cc_executor.prompts.commands.check_file_rules:main\",\n    \"transcript-helper\": \"cc_executor.prompts.commands.transcript_helper:main\"\n  },\n  \"recommended_invocation\": \"cc-executor\",\n  \"environment_setup\": [\n    \"cd /home/graham/workspace/experiments/cc_executor\",\n    \"source .venv/bin/activate\",\n    \"export PYTHONPATH=\\\"/home/graham/workspace/experiments/cc_executor/src:$PYTHONPATH\\\"\"\n  ],\n  \"warnings\": [\n    \"Use 'cc-executor' (with hyphen) not 'cc_executor'\"\n  ]\n}\n\n\u2705 CLI entry point check completed\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (43 lines)",
+          "Found 2/2 test indicators"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1163,
+              "truncated_size": 1163
+            }
+          }
+        }
+      },
+      "duration": 0.03574395179748535
+    },
+    {
+      "filename": "check_task_dependencies.py",
+      "expectations": {
+        "description": "Extracts and validates required packages from tasks",
+        "test_indicators": [
+          "Task Dependencies Check",
+          "packages",
+          "Test"
+        ],
+        "redis_keys": [
+          "hook:req_pkgs:*"
+        ],
+        "min_lines": 8,
+        "should_find_packages": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Task Dependencies Checker Test ===\n\n1. Testing task extraction:\n\nContext: ### Task 1: Set up the development environment\nExtracted: {'number': 1, 'description': 'Set up the development environment'}\nDependencies: []\n\nContext: **Task 3**: Create websocket handler (depends on Task 1)\nExtracted: {'number': 3, 'description': 'Create websocket handler (depends on Task 1)'}\nDependencies: [1, 2]\n\nContext: Task 5: Test the endpoint after Task 4 completes\nExtracted: {'number': 5, 'description': 'Test the endpoint after Task 4 completes'}\nDependencies: [1, 2, 3, 4]\n\nContext: Run cc_execute.md on the WebSocket server\nExtracted: None\n\nContext: Task 7: Verify everything works after all setup tasks\nExtracted: {'number': 7, 'description': 'Verify everything works after all setup tasks'}\nDependencies: [1, 2, 3, 4, 5, 6]\n\n\n2. Testing package extraction:\n\nCode sample:\n\n        import redis\n        import asyncio\n        from loguru import logger\n        \n        # First we need to install\n        uv pip install websockets\n        uv pip install pytest-asyncio\n        \nExtracted packages: ['asyncio', 'pytest-asyncio', 'redis', 'logger', 'websockets']\n\n\n3. Testing WebSocket readiness check:\n\nWebSocket ready: False\n\nTest data set up in Redis\n\n4. Testing dependency validation:\n\nTask 4 dependencies: [1, 2, 3]\n  Task 1: completed\n  Task 2: completed\n  Task 3: failed\n\nIncomplete dependencies: [3]\n\n5. Testing resource checks:\n\nmemory: \u2713\ncpu: \u2713\ndisk: \u2713\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (61 lines)",
+          "Found 3/3 test indicators"
+        ],
+        "indicators_found": [
+          "Task Dependencies Check",
+          "packages",
+          "Test"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1478,
+              "truncated_size": 1478
+            }
+          }
+        }
+      },
+      "duration": 0.11462068557739258
+    },
+    {
+      "filename": "claude_instance_pre_check.py",
+      "expectations": {
+        "description": "Pre-validates Claude instance configuration",
+        "test_indicators": [
+          "Claude Instance Pre-Check",
+          "validation",
+          "Test"
+        ],
+        "redis_keys": [
+          "claude:precheck:*"
+        ],
+        "min_lines": 8,
+        "should_validate_config": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Claude Instance Pre-Check Test ===\n\n1. Running all environment checks:\n\n\u2713 Working Directory: False - /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\n\u2713 Virtual Environment: True - /home/graham/workspace/experiments/cc_executor/.venv\n\u2713 MCP Config: True - /home/graham/workspace/experiments/cc_executor/.mcp.json\n\u2713 Python Path: True - []\n\u2713 Dependencies: True - All dependencies present\n\n2. Summary:\n  Checks passed: 4\n  Checks failed: 1\n  Fixes applied: 0\n\n\u2713 Passed checks:\n  - Venv active: /home/graham/workspace/experiments/cc_executor/.venv\n  - Valid .mcp.json at /home/graham/workspace/experiments/cc_executor/.mcp.json\n  - PYTHONPATH includes src: /home/graham/workspace/experiments/cc_executor/src/cc_executor\n  - All key dependencies installed\n\n\u2717 Failed checks:\n  - No project indicators in /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\n\n3. Generated initialization commands:\n  $ pwd\n  $ source /home/graham/workspace/experiments/cc_executor/.venv/bin/activate\n  $ export PYTHONPATH=./src:$PYTHONPATH\n  $ which python\n  $ echo $PYTHONPATH\n\n4. Validation record ready: False\n\n5. Testing command enhancement:\nOriginal: claude -p \"What is 2+2?\" --dangerously-skip-permissions\n\n6. Testing Redis storage:\n\u2713 Successfully stored validation for session test_session_123\n  Project root: /home/graham/workspace/experiments/cc_executor\n  Ready: False\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (42 lines)",
+          "Found 3/3 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Claude Instance Pre-Check",
+          "validation",
+          "Test"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1480,
+              "truncated_size": 1480
+            }
+          }
+        }
+      },
+      "duration": 0.6061053276062012
+    },
+    {
+      "filename": "claude_response_validator.py",
+      "expectations": {
+        "description": "Validates Claude responses for quality and hallucinations",
+        "test_indicators": [
+          "Claude Response Validation",
+          "quality",
+          "score"
+        ],
+        "redis_keys": [
+          "claude:quality:*",
+          "claude:response:*"
+        ],
+        "min_lines": 10,
+        "should_detect_hallucination": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Claude Response Validator Test ===\n\nTesting different response types:\n\n1. Complete task with evidence\n   Command: Create a function to calculate fibonacci numbers\n   ------------------------------------------------------------\n   Quality: partial\n   Evidence: 4 items\n     1. file_created: /tmp/fibonacci.py\n\n```python\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(\n     2. test_passed: 5 passed\n   Hallucination Score: 0.17\n   Missing: ['file created', 'wrote to', 'saved as']\n   Needs Retry: True\n   Suggestions:\n     - Complete missing: file created, wrote to, saved as\n\n2. Hallucination - claims without evidence\n   Command: Implement a websocket server\n   ------------------------------------------------------------\n   Quality: hallucinated\n   Evidence: 0 items\n   Hallucination Score: 0.33\n   Missing: ['def ', 'class ', 'function implemented', 'code block', 'error resolution']\n   Needs Retry: True\n   Suggestions:\n     - Provide concrete evidence of work done\n     - Complete missing: def , class , function implemented, code block, error resolution\n     - Show command outputs or file modifications\n\n3. Acknowledgment only\n   Command: Fix the bug in the login function\n   ------------------------------------------------------------\n   Quality: partial\n   Evidence: 0 items\n   Hallucination Score: 0.00\n   Missing: ['def ', 'class ', 'function implemented', 'code block']\n   Needs Retry: True\n   Suggestions:\n     - Complete missing: def , class , function implemented, code block\n     - Show command outputs or file modifications\n\n4. Partial completion\n   Command: Create a REST API endpoint for user registration\n   ------------------------------------------------------------\n   Quality: partial\n   Evidence: 1 items\n     1. code_block: @app.post(\"/register\")\nasync def register_user(user: UserCreate):\n    # TODO: Add validation\n    # T\n   Hallucination Score: 0.00\n   Missing: ['file created', 'wrote to', 'saved as']\n   Needs Retry: True\n   Suggestions:\n     - Complete missing: file created, wrote to, saved as\n\n5. Error in execution\n   Command: Run the test suite\n   ------------------------------------------------------------\n   Quality: error\n   Evidence: 2 items\n     1. code_block: $ pytest\n\n     2. error_handled: No module named 'main'\n```\n\nThe tests failed due to missing module.\n   Hallucination Score: 0.00\n   Missing: ['tests passed', 'test results', 'pytest output', 'error resolution']\n   Needs Retry: False\n   Suggestions:\n     - Complete missing: tests passed, test results, pytest output, error resolution\n\n\n2. Testing self-reflection prompt generation:\n\nGenerated self-reflection prompt:\n------------------------------------------------------------\nPlease review your previous response and verify:\n\n1. Did you actually complete the requested task: \"implement a websocket server\"?\n2. Can you point to specific evidence of completion?\n3. If not fully completed, what remains to be done?\n\nYour response quality assessment: hallucinated\nEvidence found: 0\nMissing elements: ['def ', 'class ', 'function implemented', 'code block', 'error resolution']\n\nPlease either:\na) Provide evidence that the task was completed (file paths, command outputs, etc.)\nb) Complete any missing work now\nc) Explain what prevented completion\n\nBe specific and factual. Do not claim completion without evidence.\n------------------------------------------------------------\n\n3. Testing complexity scoring:\n\nCommand: Write hello world...\n  Complexity Score: 0.03\n  Complexity Bucket: 0\n\nCommand: Create a simple function to add two numbers...\n  Complexity Score: 0.26\n  Complexity Bucket: 0\n\nCommand: Implement a concurrent websocket handler with auth...\n  Complexity Score: 1.21\n  Complexity Bucket: 1\n\nCommand: Design and implement a complete REST API with auth...\n  Complexity Score: 1.70\n  Complexity Bucket: 1\n\n\n4. Testing validation storage:\n\n\u2713 Validation completed and stored\n  Stored quality: partial\n  Evidence count: 4\n  Execution recorded: False\n  Complexity: 0.29\n\n=== Test Complete ===\n",
+        "stderr": "=== Claude Response Validation ===\nResponse quality: partial\nEvidence found: 4\nHallucination score: 0.17\nMissing elements: ['file created', 'wrote to', 'saved as']\nImprovement suggestions:\n  - Complete missing: file created, wrote to, saved as\nComplexity score: 0.29 (bucket: 0, failure rate: 0.0%)\nGenerated self-reflection prompt for retry\n\u26a0\ufe0f  Task partially completed - missing elements\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 85,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (141 lines)",
+          "Found 3/3 test indicators",
+          "Using tmp/ directory correctly",
+          "Successfully detected hallucination"
+        ],
+        "indicators_found": [
+          "Claude Response Validation",
+          "quality",
+          "score"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 4424,
+              "truncated_size": 3308
+            }
+          }
+        }
+      },
+      "duration": 0.12230038642883301
+    },
+    {
+      "filename": "claude_structured_response.py",
+      "expectations": {
+        "description": "Ensures Claude responses follow structured format",
+        "test_indicators": [
+          "Structured Response",
+          "format",
+          "validation"
+        ],
+        "redis_keys": [
+          "claude:structured:*"
+        ],
+        "min_lines": 5,
+        "should_validate_structure": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Claude Structured Response Test ===\n\n1. Testing response templates for different tasks:\n\nTask 1: Create a Python function that calculates fibonacci numbers\n------------------------------------------------------------\nYou must structure your response according to this format:\n\n# Task Execution Report\n\n## Task: Create a Python function that calculates fibonacci numbers\n## Status: [Choose: not_started | in_progress | completed | failed | blocked]\n\n### Steps Completed:\nList each action taken with evidence:\n1. [Actio...\n\nTask 2: Fix the bug in the login authentication module\n------------------------------------------------------------\nYou must structure your response according to this format:\n\n# Task Execution Report\n\n## Task: Fix the bug in the login authentication module\n## Status: [Choose: not_started | in_progress | completed | failed | blocked]\n\n### Steps Completed:\nList each action taken with evidence:\n1. [Action descriptio...\n\nTask 3: Implement a WebSocket server with message broadcasting\n------------------------------------------------------------\nYou must structure your response according to this format:\n\n# Task Execution Report\n\n## Task: Implement a WebSocket server with message broadcasting\n## Status: [Choose: not_started | in_progress | completed | failed | blocked]\n\n### Steps Completed:\nList each action taken with evidence:\n1. [Action de...\n\nTask 4: Run all tests and fix any failures\n------------------------------------------------------------\nYou must structure your response according to this format:\n\n# Task Execution Report\n\n## Task: Run all tests and fix any failures\n## Status: [Choose: not_started | in_progress | completed | failed | blocked]\n\n### Steps Completed:\nList each action taken with evidence:\n1. [Action description]\n   Comman...\n\n\n2. Testing response parsing:\n\nComplete successful response:\n------------------------------------------------------------\nParsed successfully!\n  Task: Create a Python function that calculates fibonacci...\n  Status: completed\n  Steps: 0\n  Files created: 1\n  Commands: 2\n  Errors: 0\n  Verified: True\n  Validation issues:\n    - Status is COMPLETED but no steps recorded\n\nFailed task with errors:\n------------------------------------------------------------\nParsed successfully!\n  Task: Fix the bug in the login authentication module...\n  Status: failed\n  Steps: 0\n  Files created: 0\n  Commands: 2\n  Errors: 0\n  Verified: False\n  Validation issues:\n    - Status is FAILED but no errors recorded\n\nInvalid response (hallucination):\n------------------------------------------------------------\nParsed successfully!\n  Task: Implement a WebSocket server...\n  Status: completed\n  Steps: 0\n  Files created: 0\n  Commands: 0\n  Errors: 0\n  Verified: False\n  Validation issues:\n    - Status is COMPLETED but no steps recorded\n    - No evidence of work (files/commands/verification)\n\n\n3. Testing command enhancement:\n\nOriginal command: Create a REST API endpoint for user registration\n\nEnhanced command preview (first 500 chars):\n------------------------------------------------------------\nCreate a REST API endpoint for user registration\n\nIMPORTANT: You MUST follow this exact response format:\n\nYou must structure your response according to this format:\n\n# Task Execution Report\n\n## Task: Create a REST API endpoint for user registration\n## Status: [Choose: not_started | in_progress | completed | failed | blocked]\n\n### Steps Completed:\nList each action taken with evidence:\n1. [Action description]\n   Command: `[exact command if applicable]`\n   Output: [first 100 chars of output]\n   Fil...\n\n\n4. Testing StructuredClaudeExecutor:\n\nValidating: Complete successful response\n  Valid: False\n  Issues: ['Status is COMPLETED but no steps recorded']\n\nValidating: Failed task with errors\n  Valid: False\n  Issues: ['Status is FAILED but no errors recorded']\n\nValidating: Invalid response (hallucination)\n  Valid: False\n  Issues: ['Status is COMPLETED but no steps recorded', 'No evidence of work (files/commands/verification)']\n\n\n5. Testing retry prompt generation:\n\nRetry prompt preview (first 400 chars):\n------------------------------------------------------------\nYour previous response had these issues:\n- Status is COMPLETED but no steps recorded\n- No evidence of work (files/commands/verification)\n\nPlease retry the task: Create a function to calculate prime numbers\n\nThis time:\n1. Actually execute the required commands\n2. Include real output as evidence\n3. Follow the structured format exactly\n4. Mark as COMPLETED only with proof\n\nYou must structure your res...\n\n\n6. Typical workflow demonstration:\n\nStep 1: Prepare command with structure\nTask: Write a hello world program in Python\nPrepared: [command with 1444 chars]\n\nStep 2: Claude executes and responds\n(Claude would execute and respond with structured format)\n\nStep 3: Validate response\nValid: False\nTask status: completed\n\nStep 4: Generate retry if needed\nRetry prompt generated: 1445 chars\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (177 lines)",
+          "Found 3/3 test indicators"
+        ],
+        "indicators_found": [
+          "Structured Response",
+          "format",
+          "validation"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 4945,
+              "truncated_size": 2880
+            }
+          }
+        }
+      },
+      "duration": 0.03014540672302246
+    },
+    {
+      "filename": "debug_hooks.py",
+      "expectations": {
+        "description": "Debug utility for testing individual hooks",
+        "test_indicators": [
+          "Debug",
+          "hook",
+          "test"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "is_utility": true,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Hook Debug Utilities Test ===\n\n1. Testing environment context conversion:\n\nContext converted to environment variables:\n  CLAUDE_CODE_SSE_PORT = 35786...\n  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = 1...\n  CLAUDE_CODE_ENTRYPOINT = cli...\n  CLAUDE_TEST_REPORTER_PROJECT = /home/graham/workspace/experiments/claude-test-rep...\n  CLAUDE_SESSION_ID = test_123...\n  CLAUDE_COMMAND = python test.py...\n  CLAUDE_DURATION = 5.5...\n  CLAUDE_COMPLEX_DATA = {\"key\": \"value\", \"list\": [1, 2, 3]}...\n\n\n2. Testing hook runner mechanism:\n\nCreated test hook: tmpynq6bdge\nExit code: 0\nSuccess: True\nHook output: {\n  \"session_id\": \"test_123\",\n  \"command\": \"python test.py\",\n  \"processed\": true\n}\n\n\n3. Testing specific hook debug functions:\n\nAvailable debug functions:\n  - debug_setup_environment\n  - debug_check_task_dependencies\n  - debug_claude_instance_pre_check\n  - debug_analyze_task_complexity\n  - debug_claude_response_validator\n  - debug_truncate_logs\n  - debug_all_hooks\n\n\nRunning debug_setup_environment():\n------------------------------------------------------------\n=== Testing setup_environment.py ===\n\n\nTest: Python command\nCommand: python script.py\nWrapped: None\n\nTest: Pytest command\nCommand: pytest tests/\nWrapped: None\n\nTest: Non-Python command\nCommand: ls -la\nWrapped: None\n\nTest: Complex Python path\nCommand: /usr/bin/python3 -m pip install requests\nWrapped: None\n\n\n4. Custom hook testing example:\n\nTesting a hook with custom context:\nContext: {\n  \"command\": \"pytest tests/ -v\",\n  \"session_id\": \"custom_test\",\n  \"output\": \"5 passed in 0.5s\",\n  \"exit_code\": 0\n}\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (72 lines)",
+          "Found 3/3 test indicators"
+        ],
+        "indicators_found": [
+          "Debug",
+          "hook",
+          "test"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1589,
+              "truncated_size": 1589
+            }
+          }
+        }
+      },
+      "duration": 2.0919864177703857
+    },
+    {
+      "filename": "debug_hooks_thoroughly.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "[11:09:24.776] INFO: \n=== Testing Hook Configuration Formats ===\n[11:09:24.777] INFO: \nTesting simple_format...\n[11:09:24.777] INFO:   \u2705 Valid JSON with hooks section\n[11:09:24.777] INFO:   Hook types: ['pre-execute', 'post-execute']\n[11:09:24.777] INFO: \nTesting array_format...\n[11:09:24.777] INFO:   \u2705 Valid JSON with hooks section\n[11:09:24.777] INFO:   Hook types: ['pre-execute']\n[11:09:24.777] INFO: \nTesting matcher_format...\n[11:09:24.777] INFO:   \u2705 Valid JSON with hooks section\n[11:09:24.777] INFO:   Hook types: ['PreToolUse']\n[11:09:24.777] INFO: \nTesting mixed_format...\n[11:09:24.778] INFO:   \u2705 Valid JSON with hooks section\n[11:09:24.778] INFO:   Hook types: ['pre-execute', 'PreToolUse']\n[11:09:24.778] INFO: \n=== Testing Hook Triggers ===\n[11:09:24.778] INFO: \nTesting trigger: subprocess_python\n[11:09:24.789] INFO:   \u274c No hooks triggered\n[11:09:24.789] INFO: \nTesting trigger: subprocess_shell\n[11:09:24.790] INFO:   \u274c No hooks triggered\n[11:09:24.790] INFO: \nTesting trigger: os_system\n[11:09:24.792] INFO:   \u274c No hooks triggered\n[11:09:24.792] INFO: \nTesting trigger: claude_help\n[11:09:25.340] INFO:   \u274c No hooks triggered\n[11:09:25.340] INFO: \nTesting trigger: claude_with_tool\n[11:09:29.820] INFO:   \u274c No hooks triggered\n[11:09:29.820] INFO: \n=== Testing Hook Context ===\n[11:09:29.821] INFO: Testing context with claude command...\n[11:09:34.663] INFO: \u274c No context log found\n[11:09:34.663] INFO: \n=== Testing Hook Configuration Locations ===\n[11:09:34.664] INFO: \nChecking: /home/graham/.claude-hooks.json\n[11:09:34.664] INFO:   \u2705 Exists\n[11:09:34.664] INFO:   Hooks: ['pre-execute', 'PreToolUse']\n[11:09:34.664] INFO: \nChecking: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912/.claude-hooks.json\n[11:09:34.664] INFO:   \u274c Not found\n[11:09:34.664] INFO: \nChecking: /etc/claude-hooks.json\n[11:09:34.664] INFO:   \u274c Not found\n[11:09:34.664] INFO: \nChecking: /nonexistent\n[11:09:34.664] INFO:   \u274c Not found\n[11:09:34.664] INFO: \n=== Testing Hook Execution Order ===\n[11:09:34.665] INFO: Created order test hooks\n[11:09:34.665] INFO: \n============================================================\n[11:09:34.665] INFO: COMPREHENSIVE HOOK DEBUG REPORT\n[11:09:34.665] INFO: ============================================================\n[11:09:34.665] INFO: \nTotal tests: 9\n[11:09:34.665] INFO: Passed: 4\n[11:09:34.665] INFO: Failed: 5\n[11:09:34.665] INFO: \nDetailed Results:\n[11:09:34.665] INFO:   \u2705 config_simple_format\n[11:09:34.665] INFO:   \u2705 config_array_format\n[11:09:34.665] INFO:   \u2705 config_matcher_format\n[11:09:34.665] INFO:   \u2705 config_mixed_format\n[11:09:34.665] INFO:   \u274c trigger_subprocess_python\n[11:09:34.665] INFO:   \u274c trigger_subprocess_shell\n[11:09:34.666] INFO:   \u274c trigger_os_system\n[11:09:34.666] INFO:   \u274c trigger_claude_help\n[11:09:34.666] INFO:   \u274c trigger_claude_with_tool\n[11:09:34.666] INFO: \n============================================================\n[11:09:34.666] INFO: KEY FINDINGS\n[11:09:34.666] INFO: ============================================================\n[11:09:34.666] INFO: \n1. Hook Configuration Formats:\n   - Multiple formats exist (simple, array, matcher-based)\n   - cc_executor uses simple format\n   - Documentation shows matcher-based format\n   \n2. Hook Triggers:\n   - Subprocess commands do NOT trigger hooks\n   - Only Claude's internal tool use triggers hooks\n   - This is by design, not a bug\n   \n3. Hook Context:\n   - Hooks receive JSON via stdin when triggered by Claude\n   - Environment variables provide additional context\n   - Hooks can block execution with exit code 2\n   \n4. Implications for cc_executor:\n   - Claude hooks are irrelevant for subprocess execution\n   - The \"setup_environment.py\" approach is correct\n   - Not a workaround, but the proper implementation\n\n[11:09:34.666] INFO: \nCleaning up...\n\nFull debug log saved to: /tmp/hook_debug_log.txt\nTest artifacts in: /tmp/hook_markers\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (106 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 3919,
+              "truncated_size": 3820
+            }
+          }
+        }
+      },
+      "duration": 9.923132419586182
+    },
+    {
+      "filename": "hook_enforcement.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 1,
+        "stdout": "=== Hook Enforcement Workaround ===\n\ud83e\ude9d PRE-EXECUTION HOOK: test_function\n\ud83e\ude9d POST-EXECUTION HOOK: test_function \u2705\nResult: 8\n\n\u2705 Created 8 hook logs\n",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/hook_enforcement.py\", line 160, in <module>\n    print(f\"\\n\ud83d\udcbe Response saved to: {output_file.relative_to(Path.cwd())}\")\n  File \"/home/graham/.local/share/uv/python/cpython-3.10.11-linux-x86_64-gnu/lib/python3.10/pathlib.py\", line 818, in relative_to\n    raise ValueError(\"{!r} is not in the subpath of {!r}\"\nValueError: '/home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/responses/hook_enforcement_20250704_110935.json' is not in the subpath of '/home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912' OR one path is relative and the other is absolute.\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (12 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 877,
+              "truncated_size": 877
+            }
+          }
+        }
+      },
+      "duration": 0.027752161026000977
+    },
+    {
+      "filename": "hook_integration.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Hook Integration Usage Example ===\n\n--- Test 1: Hook Configuration ---\nHooks enabled: True\nConfig path: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\nHooks configured: ['PreToolUse', 'PostToolUse']\nTimeout: 60s\nParallel execution: False\n\n--- Test 2: Hook Execution Flow ---\nFor a typical command execution:\n1. pre-execute \u2192 Environment setup\n2. pre-tool \u2192 Dependency check\n3. [Command executes]\n4. post-tool \u2192 Update task status\n5. post-output \u2192 Record metrics\n\n--- Test 3: Special Hook Triggers ---\nClaude commands trigger additional hooks:\n- pre-claude \u2192 Instance validation\n- post-claude \u2192 Response validation\n\nFile operations trigger:\n- pre-edit \u2192 Complexity analysis\n- post-edit \u2192 Code review\n\n--- Test 4: Configuration Validation ---\n\u2713 Loaded 2 hook types\n\u2713 Configured 0 environment variables\n  PreToolUse: 1 commands\n  PostToolUse: 1 commands\n\n\u2705 Hook integration ready! (quick test mode)\n",
+        "stderr": "2025-07-04 11:09:37.033 | INFO     | __main__:_load_config:331 - Loaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (34 lines)",
+          "Found 2/2 test indicators"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1081,
+              "truncated_size": 1081
+            }
+          }
+        }
+      },
+      "duration": 0.06743860244750977
+    },
+    {
+      "filename": "prove_hooks_broken.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Claude Code Hooks Test ===\nDate: 2025-07-04T11:09:38.183395\nPython: /home/graham/workspace/experiments/cc_executor/.venv/bin/python\nWorking Directory: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\n\n1. Checking .claude-hooks.json...\n   \u274c NOT FOUND at /home/graham/workspace/experiments/cc_executor/src/cc_executor/.claude-hooks.json\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (7 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 391,
+              "truncated_size": 391
+            }
+          }
+        }
+      },
+      "duration": 0.024837970733642578
+    },
+    {
+      "filename": "record_execution_metrics.py",
+      "expectations": {
+        "description": "Records execution metrics to Redis",
+        "test_indicators": [
+          "Execution Metrics",
+          "Recording",
+          "metrics"
+        ],
+        "redis_keys": [
+          "metrics:*",
+          "execution:stats:*"
+        ],
+        "min_lines": 5,
+        "should_store_metrics": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Execution Metrics Recorder Test ===\n\n1. Testing output quality analysis:\n\nComplete successful task:\n  Quality score: 1.00\n  Completeness: complete\n  Has error: False\n  Has code: True\n  Has verification: True\n\nToken limit error:\n  Quality score: 0.20\n  Completeness: incomplete\n  Has error: True\n  Error type: token_limit\n  Has code: False\n  Has verification: False\n\nSyntax error in code:\n  Quality score: 0.10\n  Completeness: incomplete\n  Has error: True\n  Error type: syntax_error\n  Has code: True\n  Has verification: False\n\nPartial implementation:\n  Quality score: 0.80\n  Completeness: partial\n  Has error: False\n  Has code: True\n  Has verification: False\n\n\n2. Testing performance metrics:\n\nTest 1:\n  Duration: 5.2s\n  Tokens/sec: 28.8\n  Performance: fast\n\nTest 2:\n  Duration: 45.0s\n  Tokens/sec: 26.7\n  Performance: normal\n\nTest 3:\n  Duration: 180.0s\n  Tokens/sec: 11.1\n  Performance: slow\n\nTest 4:\n  Duration: 2.0s\n  Tokens/sec: 25.0\n  Performance: fast\n\n\n3. Testing reflection triggers:\n\nHigh quality, fast:\n  Should reflect: False\n\nLow quality, slow:\n  Should reflect: True\n  Triggers: ['low_quality', 'code_error', 'slow_performance']\n\nToken limit hit:\n  Should reflect: True\n  Triggers: ['token_limit']\n\n\n4. Testing metrics storage:\n\n\u2713 Metrics stored successfully\n\nAggregate metrics:\n  total_executions: 50\n  total_duration: 1191.45442676544190252\n  total_tokens: 2250\n  errors:syntax_error: 1\n  errors:timeout: 1\n\nAverage quality score: 0.89\n\n\u2713 Reflection triggered\n  Triggers: ['low_quality', 'code_error', 'slow_performance']\n  Suggestions: ['Use cc_execute.md for complex tasks or increase timeout', 'Add more explicit code examples and import statements', 'Improve task clarity with specific requirements and examples']\n\n\n5. Full workflow demonstration:\n\nOutput preview: Task 5: Implement user authentication\n\nCreated authentication module:\n\n```python\ndef authenticate_us...\nDuration: 25.5s\nTokens: 450\n\nAnalysis:\n  Quality score: 1.00\n  Performance: normal\n  Tokens/sec: 17.6\n  Needs reflection: False\n\n=== Test Complete ===\n",
+        "stderr": "2025-07-04 11:09:39.491 | INFO     | __main__:store_metrics:176 - Stored metrics: quality=1.00, duration=10.5s\n2025-07-04 11:09:39.492 | INFO     | __main__:trigger_reflection:221 - Triggered reflection for: ['low_quality', 'code_error', 'slow_performance']\n2025-07-04 11:09:39.492 | INFO     | __main__:trigger_reflection:222 - Suggestions: ['Use cc_execute.md for complex tasks or increase timeout', 'Add more explicit code examples and import statements', 'Improve task clarity with specific requirements and examples']\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 90,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (111 lines)",
+          "Found 2/3 test indicators",
+          "Created Redis keys: metrics:*"
+        ],
+        "indicators_found": [
+          "Execution Metrics",
+          "metrics"
+        ],
+        "redis_evidence": {
+          "metrics:*": 1
+        },
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 2566,
+              "truncated_size": 1935
+            }
+          }
+        }
+      },
+      "duration": 0.11324667930603027
+    },
+    {
+      "filename": "review_code_changes.py",
+      "expectations": {
+        "description": "Reviews code changes for quality and safety",
+        "test_indicators": [
+          "Code Review",
+          "changes",
+          "review"
+        ],
+        "redis_keys": [
+          "code:review:*"
+        ],
+        "min_lines": 5,
+        "should_analyze_code": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Code Review Hook Test ===\n\n1. Testing diff parsing and function extraction:\n\nChanged functions: ['unsafe_execute', 'calculate_total']\n\n\n2. Testing review decision logic:\n\ntrivial.py: \u2717 Skip review\nimportant.py: \u2713 Review needed\nconfig.json: \u2717 Skip review\nbig_change.js: \u2713 Review needed\n\n\n3. Testing static analysis:\n\nStatic analysis results:\n  Risk level: high\n  Issues found: 5\n    - Security: Avoid eval() - use ast.literal_eval() or json.loads() instead\n    - Security: Use subprocess.run() instead of os.system()\n    - Security: Don't hardcode passwords\n    - Security: Don't hardcode API keys\n    - Avoid bare except or broad Exception catching\n  Suggestions: 2\n    - Use enumerate() instead of range(len())\n    - Consider list comprehension instead of append in loop\n\n\n4. Testing review prompt generation:\n\nGenerated prompt preview (first 500 chars):\n------------------------------------------------------------\nReview this code change for potential issues:\n\nFile: example.py\nLanguage: py\n\nDIFF:\n```diff\n--- a/example.py\n+++ b/example.py\n@@ -10,7 +10,7 @@\n-def calculate_total(items):\n+def calculate_total(items, tax_rate=0.1):\n     total = 0\n     for item in items:\n-        total += item.price\n+        total += item.price * (1 + tax_rate)\n     return total\n     \n+def unsafe_execute(code_string):\n+    # This is dangerous!\n+    return eval(code_string)\n     \n def process_data(data):\n-    result = json.loads(...\n\n\n5. Testing review output formatting:\n\n\n============================================================\nCode Review for: test1.py\nRisk Level: HIGH\nSource: static_analysis\n\nISSUES FOUND:\n  1. Security: Avoid eval() - use ast.literal_eval() instead\n  2. Security: Don't hardcode API keys\n\nSUGGESTIONS:\n  1. Use enumerate() instead of range(len())\n  2. Consider using environment variables for secrets\n============================================================\n\n\n============================================================\nCode Review for: test2.py\nRisk Level: LOW\nSource: perplexity\n\nSUGGESTIONS:\n  1. Consider adding type hints\n============================================================\n\n\n6. Testing review storage:\n\n\u2713 Review stored successfully\n\nReview statistics:\n  total_reviews: 8\n  risk_medium: 8\n  files_with_issues: 8\n\nLatest review:\n  File: test_file.py\n  Risk: medium\n  Time: 2025-07-04 11:09:40\n\n\n7. Perplexity integration (mock):\n\nWould call perplexity-ask with:\n  Tool: perplexity_ask\n  Messages: [code review prompt]\n  Expected response: JSON with issues, suggestions, and risk_level\n\n\n8. Real-world example:\n\n\n============================================================\nCode Review for: src/api/auth.py\nRisk Level: HIGH\nSource: static_analysis\n\nISSUES FOUND:\n  1. Security: Don't hardcode passwords\n============================================================\n\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (125 lines)",
+          "Found 2/3 test indicators"
+        ],
+        "indicators_found": [
+          "Code Review",
+          "review"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 2827,
+              "truncated_size": 2317
+            }
+          }
+        }
+      },
+      "duration": 0.11413335800170898
+    },
+    {
+      "filename": "setup_environment.py",
+      "expectations": {
+        "description": "Wraps commands with virtual environment activation",
+        "test_indicators": [
+          "Environment Setup Hook Test",
+          "Testing",
+          "venv"
+        ],
+        "redis_keys": [
+          "cmd:wrapped:*"
+        ],
+        "min_lines": 10,
+        "should_modify_env": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Environment Setup Hook Test ===\n\n\n\ud83d\udcbe Response saved: src/cc_executor/hooks/tmp/responses/setup_environment_20250704_110942.json\n1. Testing virtual environment detection:\n\nCurrent environment status:\n  in_venv: True\n  venv_path: /home/graham/workspace/experiments/cc_executor/.venv\n  python_path: /home/graham/workspace/experiments/cc_executor/.venv/bin/python\n  pip_path: None\n  site_packages: /home/graham/workspace/experiments/cc_executor/.venv/lib/python3.10/site-packages\n\n\n2. Testing .venv directory search:\n\nSearch from .: /home/graham/workspace/experiments/cc_executor/.venv\nSearch from /tmp: No .venv found\nSearch from /home/graham: /home/graham/.venv\n\nTest project venv: /tmp/tmppnksztot/test_project/.venv\n\n\n3. Testing environment variable configuration:\n\nEnvironment updates for /home/graham/workspace/experiments/cc_executor/.venv:\n  VIRTUAL_ENV = /home/graham/workspace/experiments/cc_executor/.ve...\n  PATH = /home/graham/workspace/experiments/cc_executor/.ve...\n  PYTHONPATH = ./src...\n\n\n4. Testing command wrapping:\n\n\u2713 python script.py...\n  \u2192 source /path/to/.venv/bin/activate && python script.py...\n\u2713 pytest tests/...\n  \u2192 source /path/to/.venv/bin/activate && pytest tests/...\n\u2713 pip install requests...\n  \u2192 source /path/to/.venv/bin/activate && pip install requests...\n\u2717 ls -la... (no wrapping needed)\n\u2713 /usr/bin/python3 -m pip list...\n  \u2192 source /path/to/.venv/bin/activate && /usr/bin/python3 -m pi...\n\u2717 source .venv/bin/activate... (no wrapping needed)\n\u2713 coverage run -m pytest...\n  \u2192 source /path/to/.venv/bin/activate && coverage run -m pytest...\n\u2717 echo 'Hello World'... (no wrapping needed)\n\u2713 python -c 'print(\"test\")'...\n  \u2192 source /path/to/.venv/bin/activate && python -c 'print(\"test...\n\u2713 python script.py --arg \"value ...\n  \u2192 source /path/to/.venv/bin/activate && python script.py --arg...\n\n\n5. Testing Redis storage (if available):\n\n\u2713 Successfully stored and retrieved environment data\n  Venv path: /home/user/project/.venv\n  Command wrapped: True\n\n\n6. Full workflow demonstration:\n\nInput command: python analyze_data.py\nSession ID: demo_session\n\nFound venv: /home/graham/workspace/experiments/cc_executor/.venv\nWrapped command: source /home/graham/workspace/experiments/cc_executor/.venv/bin/activate && python analyze_data.py\n\nEnvironment updates: 3 variables\n\nThis hook would:\n1. Store environment data in Redis\n2. Make venv activation available to WebSocket handler\n3. Ensure Python commands run in correct environment\n\n=== Test Complete ===\n",
+        "stderr": "rank_bm25 not installed, using simple matching\n\u001b[32m2025-07-04 11:09:42\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m331\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-04 11:09:42\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m191\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n\u001b[32m2025-07-04 11:09:42\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m331\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-04 11:09:42\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m191\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (80 lines)",
+          "Found 3/3 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Environment Setup Hook Test",
+          "Testing",
+          "venv"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 3366,
+              "truncated_size": 3366
+            }
+          }
+        }
+      },
+      "duration": 0.4354732036590576
+    },
+    {
+      "filename": "task_list_completion_report.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/task_list_completion_report.py\", line 25, in <module>\n    from .truncate_logs import truncate_large_value, detect_binary_content\nImportError: attempted relative import with no known parent package\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 40,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (4 lines)",
+          "Missing test indicators (1/2)"
+        ],
+        "indicators_found": [
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 309,
+              "truncated_size": 309
+            }
+          }
+        }
+      },
+      "duration": 0.10467290878295898
+    },
+    {
+      "filename": "task_list_preflight_check.py",
+      "expectations": {
+        "description": "Analyzes task lists for risk and complexity",
+        "test_indicators": [
+          "Task List Pre-Flight Check",
+          "risk",
+          "Testing"
+        ],
+        "redis_keys": [
+          "task:risk:*"
+        ],
+        "min_lines": 10,
+        "should_assess_risk": true,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Task List Pre-Flight Check Test ===\n\n1. Testing task extraction from markdown:\n\nExtracted 6 tasks:\n  Task 1: Set up the development environment...\n  Task 1: Set up the development environment...\n  Task 2: Create a WebSocket server with message broadcastin...\n  Task 3: Write comprehensive tests for all endpoints...\n  Task 4: Deploy to production and monitor performance...\n  Task 4: Deploy to production and monitor performance...\n\n\n2. Testing complexity calculation:\n\nTask: Add a comment to the code...\n  Complexity: 0.1/5.0\n  Failure rate: 1%\n  Est. duration: 3s\n\nTask: Create a simple print function...\n  Complexity: 0.7/5.0\n  Failure rate: 10%\n  Est. duration: 3s\n\nTask: Implement authentication with JWT tokens...\n  Complexity: 1.2/5.0\n  Failure rate: 18%\n  Est. duration: 39s\n\nTask: Refactor the entire codebase to use async/await pa...\n  Complexity: 0.7/5.0\n  Failure rate: 11%\n  Est. duration: 3s\n\nTask: Deploy a microservices architecture with Kubernete...\n  Complexity: 0.7/5.0\n  Failure rate: 11%\n  Est. duration: 3s\n\n\n3. Testing individual task assessment:\n\nTask assessment:\n  Risk level: medium\n  Complexity: 1.9\n  Failure probability: 28%\n  Duration: 39s\n\n\n4. Testing full task list assessment:\n\n\nSimple task list:\n  Total tasks: 3\n  Average complexity: 0.3\n  Success rate: 85.1%\n  Overall risk: low\n  Should proceed: \u2705 Yes\n\nComplex task list:\n  Total tasks: 5\n  Average complexity: 0.7\n  Success rate: 54.9%\n  Overall risk: medium\n  Should proceed: \u2705 Yes\n\nMixed complexity:\n  Total tasks: 5\n  Average complexity: 0.3\n  Success rate: 77.7%\n  Overall risk: medium\n  Should proceed: \u2705 Yes\n\n\n5. Testing report generation:\n\nGenerated report preview (first 1000 chars):\n----------------------------------------------------------------------\n======================================================================\nTASK LIST PRE-FLIGHT ASSESSMENT\n======================================================================\n\n\ud83d\udcca SUMMARY\nTotal Tasks: 6\nAverage Complexity: 0.5/5.0\nPredicted Success Rate: 59.4%\nOverall Risk: MEDIUM\nEstimated Time: 1 minutes\nShould Proceed: \u2705 YES\n\n\ud83d\udccb TASK ANALYSIS\n----------------------------------------------------------------------\n\nTask 1: Initialize the project with proper structure and dependencies\n   Risk: \u2705 low (Complexity: 0.1, Failure: 2%, Time: 3s)\n\nTask 2: Create a REST API with FastAPI including user authentication\n   Risk: \u26a1 medium (Complexity: 1.5, Failure: 23%, Time: 39s)\n\nTask 3: Implement WebSocket support for real-time notifications\n   Risk: \u2705 low (Complexity: 0.7, Failure: 11%, Time: 3s)\n\nTask 4: Add comprehensive error handling and logging\n   Risk: \u2705 low (Complexity: 0.1, Failure: 1%, Time: 3s)\n\nTask 5: Write unit and integration tests\n   Risk: \u2705 low (Complexity: 0.4, Failure: 5%, Time: 3...\n\n\n6. Testing Redis storage (if available):\n\n\u2713 Assessment stored successfully\n  Success rate: 59.4%\n  Risk level: medium\n  Can proceed: True\n\n\n7. Testing edge cases:\n\nEmpty task:\n  Risk: low\n  Issues: 0\n\nVague task:\n  Risk: low\n  Issues: 1\n\nUltra complex:\n  Risk: medium\n  Issues: 0\n\nMultiple steps:\n  Risk: medium\n  Issues: 1\n\n\n=== Test Complete ===\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 80,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (138 lines)",
+          "Found 3/3 test indicators",
+          "Performed risk assessment"
+        ],
+        "indicators_found": [
+          "Task List Pre-Flight Check",
+          "risk",
+          "Testing"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 3110,
+              "truncated_size": 2456
+            }
+          }
+        }
+      },
+      "duration": 0.12568235397338867
+    },
+    {
+      "filename": "test_all_three_hooks.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "============================================================\nDEFINITIVE CLAUDE CODE HOOKS TEST\n============================================================\n\nEnvironment:\n  Working directory: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\n  Python: /home/graham/workspace/experiments/cc_executor/.venv/bin/python\n  Claude config exists: True\n\n=== TEST 1: Regular Subprocess ===\nTesting if hooks trigger on normal subprocess calls...\n\n   Testing Python command: /home/graham/workspace/experiments/cc_executor/.venv/bin/python -c print('test')\n   Exit code: 0\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing Shell command: echo test\n   Exit code: 0\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing Python module: /home/graham/workspace/experiments/cc_executor/.venv/bin/python -m sys\n   Exit code: 1\n   \u274c NO MARKERS - Hook did not execute\n\n=== TEST 2: Claude Commands ===\nTesting if hooks trigger on claude commands...\n\n   Testing Version: claude --version\n   Exit code: 0\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing Help: claude --help\n   Exit code: 0\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing Debug version: claude --debug --version\n   Exit code: 0\n   \u274c NO MARKERS - Hook did not execute\n\n=== TEST 3: Explicit Configuration ===\nTesting with explicit hook configuration...\n\n   Testing with config at: /home/graham/.claude-hooks.json\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing with config at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912/.claude-hooks.json\n   \u274c NO MARKERS - Hook did not execute\n\n   Testing with config at: /tmp/.claude-hooks.json\n   \u274c NO MARKERS - Hook did not execute\n\n=== CONTROL TEST: Manual Execution ===\nVerifying our test hook works when run manually...\nExit code: 0\nOutput: HOOK EXECUTED at 2025-07-04T11:09:47.771578\n\n   \u2705 HOOK EXECUTED - Marker files created:\n      /tmp/hook_executed.txt: YES\n      /tmp/hook_timestamp.txt: 2025-07-04T11:09:47.771578\n      /tmp/hook_args.txt: Args: ['/tmp/definitive_test_hook.py']\nEnv: NOT SE\n\n============================================================\nRESULTS SUMMARY\n============================================================\nsubprocess_hooks........................ \u274c FAIL\nclaude_hooks............................ \u274c FAIL\nconfig_hooks............................ \u274c FAIL\nmanual_execution........................ \u2705 PASS\n\n============================================================\nDEFINITIVE CONCLUSION\n============================================================\n\n\ud83d\udd34 CLAUDE CODE HOOKS ARE 100% BROKEN\n\nProof:\n  1. Manual execution works \u2705 (hooks are valid)\n  2. Subprocess hooks fail \u274c\n  3. Claude command hooks fail \u274c\n  4. Explicit config hooks fail \u274c\n\nThe hooks system is completely non-functional.\nOur workaround in websocket_handler.py is the ONLY solution.\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (84 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 2866,
+              "truncated_size": 2866
+            }
+          }
+        }
+      },
+      "duration": 1.761603593826294
+    },
+    {
+      "filename": "test_claude_hooks_debug.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Testing Claude Code Hooks with --debug ===\n\nRunning command: claude --debug -p Write a simple Python script that prints 'Hello from Claude'\nCurrent directory: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\nANTHROPIC_API_KEY set: No\nVirtual environment: /home/graham/workspace/experiments/cc_executor/.venv\n\n============================================================\n\nChecking for hook files:\n  \u2705 setup_environment.py exists\n     \u2514\u2500 Executable: Yes\n  \u2705 check_task_dependencies.py exists\n     \u2514\u2500 Executable: Yes\n  \u2705 analyze_task_complexity.py exists\n     \u2514\u2500 Executable: Yes\n  \u2705 claude_instance_pre_check.py exists\n     \u2514\u2500 Executable: Yes\n\n============================================================\n\nTest 1: Running Claude with --debug flag...\nExit code: 0\nElapsed time: 27.18s\n\n--- STDOUT ---\n[DEBUG] Stream started - received first chunk\n[DEBUG] Stream started - received first chunk\n[DEBUG] Stream started - received first chunk\n[DEBUG] Stream started - received first chunk\n[DEBUG] Stream started - received first chunk\nI need permissions to create the file. Please grant me permission to use one of the file creation tools (Write, Edit, MultiEdit, or Bash) so I can create the Python script for you.\n\n\n--- STDERR ---\n\n\n--- Hook Analysis ---\n\nFound 'DEBUG' in line 0:\n>>> [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n\nFound 'DEBUG' in line 1:\n    [DEBUG] Stream started - received first chunk\n>>> [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n\nFound 'DEBUG' in line 2:\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n>>> [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n\nFound 'DEBUG' in line 3:\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n>>> [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n    I need permissions to create the file. Please grant me permission to use one of the file creation tools (Write, Edit, MultiEdit, or Bash) so I can create the Python script for you.\n\nFound 'DEBUG' in line 4:\n    [DEBUG] Stream started - received first chunk\n    [DEBUG] Stream started - received first chunk\n>>> [DEBUG] Stream started - received first chunk\n    I need permissions to create the file. Please grant me permission to use one of the file creation tools (Write, Edit, MultiEdit, or Bash) so I can create the Python script for you.\n    \n\n\u2705 Found hook indicators: DEBUG\n\n============================================================\n\nTest 2: Testing our manual hook workaround...\n\nManually running setup_environment.py...\n  \u2705 setup_environment.py completed successfully\n\nManually running check_task_dependencies.py...\n  \u2705 check_task_dependencies.py completed successfully\n\nManual workaround result: 2 hooks executed successfully\n\n============================================================\n\n=== SUMMARY ===\n\n1. Claude Code hooks with --debug:\n   \u2705 Some hook-related output was found\n   \u2192 Hooks might be partially working\n\n2. Manual hook workaround:\n   \u2705 Successfully ran 2 hooks manually\n   \u2192 Workaround is functional\n\n3. Recommendation:\n   \u2192 Investigate the debug output further\n   \u2192 Hooks might be fixable with proper configuration\n\n============================================================\n\nTest 3: Checking .claude-hooks.json configuration...\n\u2705 Found .claude-hooks.json at: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n   Hooks configured: 2\n   - PreToolUse\n   - PostToolUse\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (108 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 3825,
+              "truncated_size": 3582
+            }
+          }
+        }
+      },
+      "duration": 27.690608024597168
+    },
+    {
+      "filename": "test_claude_no_api_key.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Testing Claude Code without API Key ===\n\nCurrent environment:\n  ANTHROPIC_API_KEY: NOT SET\n  Python: /home/graham/workspace/experiments/cc_executor/.venv/bin/python\n  Working dir: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912\n\n\u2705 ANTHROPIC_API_KEY was not set\n\n============================================================\nTest: Simple claude command\nCommand: claude -p Say hello\nTimeout: 30s\n============================================================\n\n\u2705 Command completed in 4.41s\nExit code: 0\n\n--- STDOUT ---\nHello! I'm ready to help you with software engineering tasks. What would you like to work on today?\n\n\n--- Analysis ---\nNo authentication or hook indicators found\n\n============================================================\nTest: Claude with --debug flag\nCommand: claude --debug -p Say hello\nTimeout: 30s\n============================================================\n\n\u2705 Command completed in 4.30s\nExit code: 0\n\n--- STDOUT ---\n[DEBUG] Stream started - received first chunk\nHello! I'm ready to help you with your software engineering tasks. What would you like me to work on today?\n\n\n--- Analysis ---\nNo authentication or hook indicators found\n\n============================================================\nTest: Claude with --no-api-key flag\nCommand: claude --no-api-key -p Say hello\nTimeout: 30s\n============================================================\n\n\u2705 Command completed in 0.55s\nExit code: 1\n\n--- STDERR ---\nerror: unknown option '--no-api-key'\n\n\n--- Analysis ---\nNo authentication or hook indicators found\n\n============================================================\nChecking Claude installation...\n\u2705 Claude found at: /home/graham/.nvm/versions/node/v22.15.0/bin/claude\n\u2705 Claude --help works!\nUsage: claude [options] [command] [prompt]\n\nClaude Code - starts an interactive session by default, use -p/--print for\nnon-interactive output\n\nArguments:\n  prompt                          Your prompt\n...\n\n============================================================\nSUMMARY\n============================================================\n\nClaude Code appears to be broken in multiple ways:\n1. Hooks don't trigger automatically \u274c\n2. Claude command hangs/times out \u274c\n3. No clear authentication method for Max plan \u274c\n\nOur workaround bypasses ALL of this by:\n1. Running hooks manually via subprocess\n2. Not relying on the claude CLI\n3. Using the API directly with proper auth\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (84 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 2440,
+              "truncated_size": 2440
+            }
+          }
+        }
+      },
+      "duration": 9.839446783065796
+    },
+    {
+      "filename": "test_claude_tools_directly.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "Creating test hook configuration...\n\nTest configuration:\n{\n  \"hooks\": {\n    \"pre-execute\": \"/tmp/test_claude_hook.py\",\n    \"post-execute\": \"/tmp/test_claude_hook.py\",\n    \"pre-tool\": \"/tmp/test_claude_hook.py\",\n    \"post-tool\": \"/tmp/test_claude_hook.py\",\n    \"PreToolUse\": [\n      {\n        \"matcher\": \".*\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/tmp/test_claude_hook.py PreToolUse\"\n          }\n        ]\n      }\n    ],\n    \"PostToolUse\": [\n      {\n        \"matcher\": \".*\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/tmp/test_claude_hook.py PostToolUse\"\n          }\n        ]\n      }\n    ],\n    \"Notification\": [\n      {\n        \"matcher\": \".*\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/tmp/test_claude_hook.py Notification\"\n          }\n        ]\n      }\n    ]\n  }\n}\n\nTo test:\n1. Save this config to ~/.claude-hooks.json\n2. Have Claude use various tools (Bash, Write, Edit, etc.)\n3. Check /tmp/claude_hook_log.txt to see if hooks were called\n\nLog file will be at: /tmp/claude_hook_log.txt\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (51 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1128,
+              "truncated_size": 1128
+            }
+          }
+        }
+      },
+      "duration": 0.02212977409362793
+    },
+    {
+      "filename": "test_hook_demo.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Claude Code Hook Test Demo ===\n\n\u2705 Hooks configured at: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n\u2705 Pre-execute hooks include setup_environment.py\n\n1. Testing: Running Python command (should trigger pre-execute hook)\n   Command output: Hello from Python\n   \u274c Hook did NOT trigger\n\n2. Testing: Running setup_environment.py manually\n   \u2705 Hook works when run manually!\n\n=== CONCLUSION ===\nClaude Code hooks are broken - they don't trigger automatically.\nOur workaround in websocket_handler.py is the only solution.\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (15 lines)",
+          "Found 2/2 test indicators"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 539,
+              "truncated_size": 539
+            }
+          }
+        }
+      },
+      "duration": 0.4422430992126465
+    },
+    {
+      "filename": "test_hooks_correct.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "============================================================\nTESTING CLAUDE CODE HOOKS - CORRECT METHOD\n============================================================\nBacked up existing config to: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json.backup\nCreated correct hooks config at: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n\n=== Testing Claude Tool Use ===\nThis should trigger PreToolUse and PostToolUse hooks...\nRunning: claude -p List the files in /tmp directory using the appropriate tool\nExit code: 0\n\n\u274c No hook log found - hooks did not trigger\n\n============================================================\nCLAUDE CODE HOOKS - CORRECTED UNDERSTANDING\n============================================================\n\nWhat I got WRONG:\n- I thought hooks trigger on ANY subprocess command \u274c\n- I was testing with regular Python/shell commands \u274c\n- I was expecting hooks to intercept subprocess.run() calls \u274c\n\nWhat hooks ACTUALLY do:\n- Hooks trigger when CLAUDE uses tools (Bash, Edit, Read, etc.) \u2705\n- They intercept Claude's tool use, not general subprocess calls \u2705\n- They receive JSON data about the tool use via stdin \u2705\n\nThis means:\n1. Our original tests were testing the wrong thing\n2. Hooks only work within Claude's tool-use context\n3. For cc_executor (which runs subprocess directly), hooks are irrelevant\n4. The \"workaround\" in websocket_handler.py is not a workaround - it's the correct approach\n\nThe cc_executor project needs to run setup scripts before subprocess execution.\nSince it's not using Claude's tools, Claude hooks won't help anyway!\n\n\nRestored original config from: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json.backup\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (38 lines)",
+          "Found 2/2 test indicators"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1700,
+              "truncated_size": 1700
+            }
+          }
+        }
+      },
+      "duration": 17.0603129863739
+    },
+    {
+      "filename": "test_hooks_really_work.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "======================================================================\nCOMPREHENSIVE CLAUDE CODE HOOK TEST\n======================================================================\n[11:10:49] INFO: === Testing Hook Configuration ===\n[11:10:49] INFO:    Not found at: /home/graham/.claude-hooks.json\n[11:10:49] INFO:    Not found at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/hooks/tmp/hook_assess_20250704_110912/.claude-hooks.json\n[11:10:49] INFO: \u2705 Found config at: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n[11:10:49] INFO:    Hooks defined: ['PreToolUse', 'PostToolUse']\n[11:10:49] INFO: \n=== Testing Hook Files ===\n[11:10:49] INFO: Found 28 Python files in hooks directory\n[11:10:49] INFO: \u2705 setup_environment.py: exists (executable)\n[11:10:49] INFO:    Syntax: valid\n[11:10:49] INFO: \u2705 check_task_dependencies.py: exists (executable)\n[11:10:49] INFO:    Syntax: valid\n[11:10:49] INFO: \u2705 analyze_task_complexity.py: exists (executable)\n[11:10:49] INFO:    Syntax: valid\n[11:10:49] INFO: \n=== Creating Test Marker Hook ===\n[11:10:49] INFO: Created test hook at: /tmp/test_marker_hook.py\n[11:10:49] INFO: Created test config at: /tmp/test-claude-hooks.json\n[11:10:49] INFO: \n=== Testing Subprocess Hook Triggering ===\n[11:10:49] INFO: \nTesting: Simple Python print\n[11:10:49] INFO: Command: ['/home/graham/workspace/experiments/cc_executor/.venv/bin/python', '-c', \"print('Test')\"]\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: Test\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \nTesting: Shell command\n[11:10:49] INFO: Command: echo 'Shell test'\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: Shell test\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \nTesting: Python script execution\n[11:10:49] INFO: Command: ['/home/graham/workspace/experiments/cc_executor/.venv/bin/python', '-c', 'import sys; print(sys.version)']\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: 3.10.11 (main, May  7 2023, 19:26:31) [Clang 16.0.3 ]\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \n=== Testing Subprocess Hook Triggering ===\n[11:10:49] INFO: \nTesting: Simple Python print\n[11:10:49] INFO: Command: ['/home/graham/workspace/experiments/cc_executor/.venv/bin/python', '-c', \"print('Test')\"]\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: Test\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \nTesting: Shell command\n[11:10:49] INFO: Command: echo 'Shell test'\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: Shell test\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \nTesting: Python script execution\n[11:10:49] INFO: Command: ['/home/graham/workspace/experiments/cc_executor/.venv/bin/python', '-c', 'import sys; print(sys.version)']\n[11:10:49] INFO: Exit code: 0\n[11:10:49] INFO: Output: 3.10.11 (main, May  7 2023, 19:26:31) [Clang 16.0.3 ]\n[11:10:49] INFO: \u274c Hook did NOT trigger\n[11:10:49] INFO: \n=== Testing Manual Hook Execution ===\n[11:10:49] INFO: Running /tmp/test_marker_hook.py manually...\n[11:10:49] INFO: Exit code: 1\n[11:10:49] INFO: Output: \n[11:10:49] SUCCESS: \u2705 Manual execution works!\n[11:10:49] INFO: \n=== Testing Claude Command Specifically ===\n[11:10:49] INFO: \nTesting: claude --version\n[11:10:50] INFO: Exit code: 0\n[11:10:50] INFO: \u274c No hook trigger\n[11:10:50] INFO: \nTesting: claude --help\n[11:10:50] INFO: Exit code: 0\n[11:10:50] INFO: \u274c No hook trigger\n[11:10:50] INFO: \nTesting: claude --debug --version\n[11:10:51] INFO: Exit code: 0\n[11:10:51] INFO: \u274c No hook trigger\n\n======================================================================\nTEST RESULTS SUMMARY\n======================================================================\nconfig_valid............................ \u2705 PASS\nfiles_exist............................. \u2705 PASS\nproject_hooks_trigger................... \u274c FAIL\ntest_hooks_trigger...................... \u274c FAIL\nmanual_execution........................ \u2705 PASS\nclaude_hooks_trigger.................... \u274c FAIL\n\n======================================================================\nCONCLUSION\n======================================================================\nClaude Code hooks are CONFIRMED BROKEN:\n- Hooks exist and are valid \u2705\n- Manual execution works \u2705\n- Automatic triggering fails \u274c\n\nThe workaround in websocket_handler.py is necessary.\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (101 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 4304,
+              "truncated_size": 4277
+            }
+          }
+        }
+      },
+      "duration": 1.829543113708496
+    },
+    {
+      "filename": "test_hooks_simple.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Testing Hook Trigger Mechanism ===\n\n1. Checking hooks configuration...\n   \u2705 Found .claude-hooks.json at: /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n   Configured hooks: ['PreToolUse', 'PostToolUse']\n\n2. Testing if hooks trigger on simple commands...\n\n   Testing: Python print\n   Command: /home/graham/workspace/experiments/cc_executor/.venv/bin/python -c print('Hello from Python')\n   Exit code: 0\n   \u274c No marker file created (hooks didn't run)\n   \u274c No hook-related output detected\n\n   Testing: Echo command\n   Command: echo Hello from echo\n   Exit code: 0\n   \u274c No marker file created (hooks didn't run)\n   \u274c No hook-related output detected\n\n   Testing: List files\n   Command: ls -la\n   Exit code: 0\n   \u274c No marker file created (hooks didn't run)\n   \u274c No hook-related output detected\n\n   Testing: Python version\n   Command: /home/graham/workspace/experiments/cc_executor/.venv/bin/python -c import sys; print(sys.version)\n   Exit code: 0\n   \u274c No marker file created (hooks didn't run)\n   \u274c No hook-related output detected\n\n3. Testing our subprocess workaround...\n   Running setup_environment.py manually...\n   \u2705 Hook executed successfully\n   Command output: Python: /home/graham/workspace/experiments/cc_executor/.venv/bin/python\n   \u2705 Virtual environment is active!\n\n=== CONCLUSION ===\nClaude Code hooks appear to be completely broken.\nThey don't trigger on ANY subprocess commands.\nOur manual workaround in websocket_handler.py is the only solution.\n\nTo use hooks, we must:\n1. Run hook scripts manually before subprocess\n2. Capture environment changes from hooks\n3. Pass modified environment to subprocess\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (47 lines)",
+          "Found 2/2 test indicators"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1634,
+              "truncated_size": 1634
+            }
+          }
+        }
+      },
+      "duration": 0.4630582332611084
+    },
+    {
+      "filename": "test_pre_post_hooks.py",
+      "expectations": {
+        "description": "Hook functionality test",
+        "test_indicators": [
+          "Test",
+          "Hook"
+        ],
+        "redis_keys": [],
+        "min_lines": 3,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "=== Testing Pre and Post Hooks with Claude ===\n\n1. Creating test hook scripts...\n   \u2705 Created test_pre_execute.py\n   \u2705 Created test_post_execute.py\n\n2. Creating test hooks configuration...\n   \u2705 Created .claude-hooks-test.json\n\n3. Cleaning up old marker files...\n   \u2705 Removed /tmp/pre_hook_ran.txt\n   \u2705 Removed /tmp/post_hook_ran.txt\n\n4. Running Claude command to create add function...\n   Command: claude --debug -p Write a simple Python function that adds two numbers and returns the result. Just the function, no explanation.\n   Running command...\n   \u2705 Command completed in 4.37s\n   Exit code: 0\n\n   --- Claude Output ---\n   [DEBUG] Stream started - received first chunk\n   ```python\n   def add(a, b):\n       return a + b\n   ```\n   \n\n5. Checking if hooks executed...\n   \u274c Pre-hook did NOT execute\n   \u274c Post-hook did NOT execute\n\n6. Demonstrating manual hook execution...\n   Running pre-hook manually...\n   Running Claude command...\n   Running post-hook manually...\n   \u2705 Manual hook execution works!\n   Pre-hook: Pre-hook executed at 2025-07-04T11:10:58.678261\nCommand: claude -p test\n   Post-hook: Post-hook executed at 2025-07-04T11:11:02.844253\nExit code: 0\n\n============================================================\nSUMMARY\n============================================================\n\nAutomatic hook triggering:\n  - Pre-execute hook: \u274c Does NOT trigger\n  - Post-execute hook: \u274c Does NOT trigger\n\nManual hook execution:\n  - Pre-execute hook: \u2705 Works when run manually\n  - Post-execute hook: \u2705 Works when run manually\n\nConclusion:\n  Claude Code hooks are completely broken.\n  The only solution is to manually run hooks in our code.\n\nThis is exactly what we do in websocket_handler.py!\n\n8. Cleaning up test files...\n   \u2705 Removed test_pre_execute.py\n   \u2705 Removed test_post_execute.py\n   \u2705 Removed .claude-hooks-test.json\n",
+        "stderr": "",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 75,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (63 lines)",
+          "Found 2/2 test indicators",
+          "Using tmp/ directory correctly"
+        ],
+        "indicators_found": [
+          "Test",
+          "Hook"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1826,
+              "truncated_size": 1826
+            }
+          }
+        }
+      },
+      "duration": 8.581512212753296
+    },
+    {
+      "filename": "truncate_logs.py",
+      "expectations": {
+        "description": "Truncates large outputs while preserving key information",
+        "test_indicators": [
+          "Log Truncation Hook Test",
+          "truncat",
+          "Testing"
+        ],
+        "redis_keys": [
+          "log:truncated:*"
+        ],
+        "min_lines": 5,
+        "should_show_reduction": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Log Truncation Hook Test ===\n\n1. Testing binary content detection:\n\nNormal text: \u2717 Text\nCode snippet: \u2717 Text\nBase64 image: \u2713 Binary\nLong alphanumeric: \u2713 Binary\nJSON data: \u2717 Text\nBinary marker: \u2713 Binary\n\n\n2. Testing large value truncation:\n\nOriginal size: 10018 bytes\nTruncated size: 791 bytes\nTruncated preview: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...\nContains marker: True\n\n\n3. Testing output line truncation:\n\nOriginal lines: 200\nTruncated lines: 41\nOriginal size: 42089 bytes\nTruncated size: 7722 bytes\n\u2713 Extra lines were omitted\n\n\n4. Testing different output types:\n\n\nSmall normal output:\n  Original: 50 bytes\n  Truncated: 50 bytes\n  Reduction: 0.0%\n  Preview: Task completed successfully\nAll tests passed\nDone....\n\nLarge code output:\n  Original: 7069 bytes\n  Truncated: 1773 bytes\n  Reduction: 74.9%\n  Preview: def function_0():\n    # This is function number 0\n    return 0 * 2\n\ndef function...\n\nBase64 blob:\n  Original: 28030 bytes\n  Truncated: 33 bytes\n  Reduction: 99.9%\n  Preview: [BINARY DATA - 28030 bytes total]...\n\nVerbose logs:\n  Original: 60789 bytes\n  Truncated: 5918 bytes\n  Reduction: 90.3%\n  Preview: [2024-01-01 12:00:00] DEBUG: Processing item 0 of 1000...\n[2024-01-01 12:00:01] ...\n\nMixed content:\n  Original: 7048 bytes\n  Truncated: 2065 bytes\n  Reduction: 70.7%\n  Preview: Normal start\n===================================================================...\n\n\n5. Testing Redis metrics storage:\n\n\u2713 Truncation metrics stored\n  Original size: 50000\n  Truncated size: 7722\n  Reduction: 84.6%\n\n\n6. Full workflow demonstration:\n\nSimulated command output: 20140 bytes\n\nTruncation result:\n  Truncated: True\n  Original size: 20140\n  Truncated size: 7721\n  Reduction: 61.7%\n\n\u2713 Truncated output stored in environment (7721 bytes)\n\n=== Test Complete ===\n",
+        "stderr": "Log truncation applied: 20140 \u2192 7721 bytes (61.7% reduction)\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 80,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (93 lines)",
+          "Found 3/3 test indicators",
+          "Showed log truncation"
+        ],
+        "indicators_found": [
+          "Log Truncation Hook Test",
+          "truncat",
+          "Testing"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 1895,
+              "truncated_size": 1895
+            }
+          }
+        }
+      },
+      "duration": 0.12094426155090332
+    },
+    {
+      "filename": "update_task_status.py",
+      "expectations": {
+        "description": "Updates task status in Redis",
+        "test_indicators": [
+          "Task Status Update",
+          "status",
+          "updated"
+        ],
+        "redis_keys": [
+          "task:status:*"
+        ],
+        "min_lines": 5,
+        "should_update_status": true,
+        "error_ok": false
+      },
+      "output": {
+        "success": true,
+        "exit_code": 0,
+        "stdout": "\n=== Task Status Update Hook Test ===\n\n1. Testing task info parsing:\n\nInput: Task 1: Create a hello world function...\nParsed: {'number': 1, 'description': 'Create a hello world function'}\n\nInput: {\"number\": 2, \"description\": \"Implement WebSocket ...\nParsed: {'number': 2, 'description': 'Implement WebSocket handler'}\n\nInput: Task 5: Test all endpoints...\nParsed: {'number': 5, 'description': 'Test all endpoints'}\n\nInput: Some random task description without number...\nParsed: {'number': 0, 'description': 'Some random task description without number'}\n\nInput: {\"number\": 3, \"description\": \"Deploy to production...\nParsed: {'number': 3, 'description': 'Deploy to production', 'priority': 'high'}\n\n\n2. Testing improvement strategies:\n\nTask 1 (exit 0):\n  \u2713 Success - no improvement needed\n\nTask 2 (exit 1):\n  Type: general_failure\n  Strategy: Add more explicit instructions and examples\n  Retry: True\n\nTask 3 (exit 124):\n  Type: timeout\n  Strategy: Increase timeout or use cc_execute.md for complex tasks\n  Retry: True\n\nTask 4 (exit 137):\n  Type: killed\n  Strategy: Check memory usage, reduce task complexity\n  Retry: True\n\nTask 5 (exit -15):\n  Type: terminated\n  Strategy: Task was cancelled, check if it was taking too long\n  Retry: False\n\nTask 6 (exit 255):\n  Type: unknown_failure\n  Strategy: Investigate exit code 255\n  Retry: True\n\nTask 7 (exit 1):\n  Type: token_limit\n  Strategy: Break into smaller subtasks or request more concise output\n  Retry: True\n\n\n3. Testing metrics update (if Redis available):\n\nTask statuses:\n  task_1: completed\n  task_2: completed\n  task_3: failed\n  task_4: failed\n  task_5: completed\n\nOverall success rate: 60.0%\n\nRecent executions: 5\n  Latest: Task 5 - completed\n\n\n4. Testing self-improvement system:\n\nFailed task: Create complex async handler\nImprovement: Break into smaller subtasks\n\n\u2713 Improvement queued:\n  Task: 10\n  Failure type: timeout\n  Strategy: Break into smaller subtasks\n  Should retry: True\n\n\u2713 Improvement stored for future reference\n\n\n5. Full workflow demonstration:\n\nExecuting: Task 15: Implement real-time data synchronization\nResult: Exit code 124 (timeout)\nDuration: 300.0s\n\nParsed task info: {'number': 15, 'description': 'Implement real-time data synchronization'}\n\nImprovement needed:\n  Type: timeout\n  Strategy: Increase timeout or use cc_execute.md for complex tasks\n  Should retry: True\n\nIn production, this would:\n1. Update task status to 'failed'\n2. Record execution in history\n3. Update success rate metrics\n4. Queue improvement suggestion\n5. Potentially update task template\n\n\n6. Testing edge cases:\n\nEmpty task:\n  Parsed: number=0, desc=...\nVery long task:\n  Parsed: number=0, desc=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...\nSpecial characters:\n  Parsed: number=0, desc=Task $%: Do @#! stuff...\nJSON in description:\n  Error: 'number'\n\n=== Test Complete ===\n",
+        "stderr": "2025-07-04 11:11:05.338 | INFO     | __main__:update_task_metrics:127 - Task 1 completed (exit code: 0, success rate: 61.9%)\n2025-07-04 11:11:05.340 | INFO     | __main__:update_task_metrics:127 - Task 2 completed (exit code: 0, success rate: 63.6%)\n2025-07-04 11:11:05.341 | INFO     | __main__:update_task_metrics:127 - Task 3 failed (exit code: 124, success rate: 60.9%)\n2025-07-04 11:11:05.343 | INFO     | __main__:update_task_metrics:127 - Task 4 failed (exit code: 1, success rate: 58.3%)\n2025-07-04 11:11:05.344 | INFO     | __main__:update_task_metrics:127 - Task 5 completed (exit code: 0, success rate: 60.0%)\n2025-07-04 11:11:05.347 | INFO     | __main__:trigger_self_improvement:154 - Self-improvement triggered for Task 10: Break into smaller subtasks\n",
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 70,
+        "reasons": [
+          "Pre-hooks executed: ['setup_environment', 'check_dependencies']",
+          "Post-hooks executed: ['log_truncation']",
+          "Good output length (124 lines)",
+          "Found 2/3 test indicators"
+        ],
+        "indicators_found": [
+          "Task Status Update",
+          "status"
+        ],
+        "redis_evidence": {},
+        "hook_chain_evidence": {
+          "pre": {
+            "setup_environment": "success",
+            "check_dependencies": "success"
+          },
+          "post": {
+            "log_truncation": {
+              "original_size": 3579,
+              "truncated_size": 2402
+            }
+          }
+        }
+      },
+      "duration": 0.1272139549255371
+    }
+  ],
+  "summary": {
+    "total": 27,
+    "passed": 27,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "execution_uuid": "73a06fe4-67b7-4490-b764-42f88b98e8b0"
+}

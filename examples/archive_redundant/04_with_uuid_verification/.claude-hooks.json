@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "pre_execute": [
+      {
+        "name": "UUID4 Generation Hook",
+        "script": "examples/04_with_uuid_verification/hooks/generate_uuid_hook.py",
+        "description": "Automatically injects UUID4 requirements into every Claude prompt"
+      }
+    ],
+    "post_execute": [
+      {
+        "name": "UUID4 Verification Hook",
+        "script": "examples/04_with_uuid_verification/hooks/verify_uuid_hook.py",
+        "description": "Verifies UUID4 appears in execution outputs to prevent hallucination"
+      }
+    ]
+  },
+  "config": {
+    "uuid_verification": {
+      "enabled": true,
+      "enforce_position": true,
+      "require_in_json": true
+    }
+  }
+}

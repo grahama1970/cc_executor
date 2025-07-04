@@ -18,6 +18,12 @@ This directory contains practical guides for operating, developing, and troubles
 
 ## For Developers
 
+- **[project_setup.md](project_setup.md)** - Standard Python project setup
+  - Creating new projects with proper structure
+  - Virtual environment with uv
+  - pyproject.toml configuration
+  - src/ layout best practices
+
 - **[development_workflow.md](development_workflow.md)** - Development best practices
   - Code review process
   - Testing strategies
@@ -32,6 +38,11 @@ This directory contains practical guides for operating, developing, and troubles
   - Agent-specific configuration
   - Dynamic timeout adjustment
   - ACK pattern implementation
+
+- **[prompt_best_practices.md](prompt_best_practices.md)** - Writing effective prompts
+  - Clear instruction patterns
+  - Context management
+  - Error handling in prompts
 
 ## Quick Reference
 
@@ -52,4 +63,4 @@ LOG_LEVEL=DEBUG python core/websocket_handler.py --serve
 python core/websocket_handler.py --serve --auto-demo --test-case simple
 ```
 
-Last updated: 2025-07-02
+Last updated: 2025-01-04

@@ -60,7 +60,7 @@ class TaskListValidator:
     
     def __init__(self):
         # Add connection timeout to prevent infinite blocking
-        timeout_seconds = int(os.environ.get('REDIS_TIMEOUT', '5'))
+        timeout_seconds = float(os.environ.get('REDIS_TIMEOUT', '5'))
         self.r = redis.Redis(
             decode_responses=True,
             socket_connect_timeout=timeout_seconds,

@@ -1,0 +1,51 @@
+{
+  "session_id": "CLIENT_ASSESS_20250704_111128",
+  "timestamp": "20250704_111128",
+  "results": [
+    {
+      "filename": "client.py",
+      "expectations": {
+        "description": "WebSocket client for connecting to CC Executor server",
+        "indicators": [
+          "WebSocket",
+          "client",
+          "connect",
+          "server",
+          "standalone"
+        ],
+        "min_lines": 10,
+        "should_have_numbers": true,
+        "error_ok": true
+      },
+      "output": {
+        "success": true,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/client.py\", line 189, in <module>\n    project_root = Path(__file__).parent.parent.parent.parent\nNameError: name 'Path' is not defined\n",
+        "execution_time": 1751641888.705034,
+        "timed_out": false
+      },
+      "assessment": {
+        "reasonable": true,
+        "confidence": 90,
+        "reasons": [
+          "Output too short (4 lines, expected 10+)",
+          "Only found 1/5 indicators",
+          "Contains numeric data as expected"
+        ],
+        "indicators_found": [
+          "client"
+        ],
+        "has_numbers": true
+      },
+      "execution_time": 0.07748889923095703
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "execution_uuid": "416f0cb4-d6bb-4dd8-a0e7-b8f6192b32c8"
+}

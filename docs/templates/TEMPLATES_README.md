@@ -73,6 +73,34 @@ This directory contains standardized templates for writing consistent, high-qual
 
 **When to Use**: Generating reports after task list execution via hooks
 
+### 6. [CORE_ASSESSMENT_REPORT_TEMPLATE.md](./CORE_ASSESSMENT_REPORT_TEMPLATE.md)
+**Purpose**: Assessment template for testing all script `if __name__ == "__main__"` blocks
+
+**Key Features**:
+- Tests every Python script's demo/usage code
+- Verifies reasonable output from each component
+- Validates numerical values are in expected ranges
+- Requires reading full JSON output files (anti-hallucination)
+- Agent assessment of functionality demonstration
+- System health analysis based on all outputs
+- **v1.3**: Added UUID4 anti-hallucination verification
+
+**When to Use**: After each code review round to verify all scripts work correctly
+
+### 7. [PROMPT_TEMPLATE.md](./PROMPT_TEMPLATE.md)
+**Purpose**: Gamified self-improving prompt template with anti-hallucination measures
+
+**Key Features**:
+- UUID4 generation and verification (at END of JSON)
+- Success/failure tracking with 10:1 graduation requirement
+- Self-recovery patterns for automatic improvement
+- Raw output saving to prevent fabrication
+- Gamification rules that prevent giving up
+- Comprehensive debugging resources
+- Evolution history tracking with UUIDs
+
+**When to Use**: Creating new self-improving prompts that need to graduate to production code
+
 ## Quick Start Guide
 
 ### Creating a New Script
@@ -107,13 +135,49 @@ This directory contains standardized templates for writing consistent, high-qual
 4. Include metadata with stored results
 5. Plan for service unavailability
 
+### Running Script Assessments
+
+1. Use [CORE_ASSESSMENT_REPORT_TEMPLATE.md](./CORE_ASSESSMENT_REPORT_TEMPLATE.md)
+2. Run all `if __name__ == "__main__"` blocks in core/, cli/, client/, and hooks/
+3. Capture output to JSON files in tmp/responses/
+4. Read FULL JSON files (not truncated output)
+5. Assess if each output demonstrates the component's functionality
+6. Validate all numerical values are reasonable
+7. Generate comprehensive report with system health assessment
+
+## Assessment Workflow After Code Reviews
+
+After each code review round, run a comprehensive assessment:
+
+1. **Execute Assessment Scripts**:
+   - Run `assess_all_core_usage.py` for core/ directory
+   - Run `assess_all_cli_usage.py` for cli/ directory  
+   - Run `assess_all_client_usage.py` for client/ directory
+   - Run `assess_all_hooks_usage.py` for hooks/ directory
+
+2. **Generate Reports**:
+   - Each assessment creates JSON files in `tmp/responses/`
+   - Read FULL JSON files, not truncated console output
+   - Use CORE_ASSESSMENT_REPORT_TEMPLATE.md structure
+
+3. **Verify Functionality**:
+   - Each script's `__main__` block should demonstrate its purpose
+   - Output should be reasonable and error-free
+   - Numbers should be in valid ranges
+   - No infinite loops or crashes
+
+4. **System Health Check**:
+   - Aggregate results show overall system health
+   - Identify any broken components
+   - Ensure critical components (websocket_handler.py) work
+
 ## Core Principles
 
 ### 1. Consistency
 All scripts follow the same structure, making the codebase predictable and maintainable.
 
 ### 2. Testability
-Every script includes runnable examples in the `__main__` block with assertions.
+Every script includes runnable examples in the `__main__` block with assertions. These are tested after each code review round.
 
 ### 3. Debuggability
 Results are saved to `tmp/responses/` with timestamps for forensic analysis.
@@ -207,7 +271,6 @@ The following templates have been moved to the `archive/` directory as they are 
 3. **PROMPT_SYSTEM_GUIDELINES.md** - Specific to old prompt system
 4. **REVIEW_PROMPT_AND_CODE_TEMPLATE.md** - Replaced by updated CODE_REVIEW_REQUEST_TEMPLATE.md
 5. **REASONABLE_OUTPUT_ASSESSMENT.md** - Superseded by proper testing patterns
-6. **CORE_ASSESSMENT_REPORT_TEMPLATE.md** - Assessment phase complete
 
 These are preserved for historical reference but should not be used for new development.
 

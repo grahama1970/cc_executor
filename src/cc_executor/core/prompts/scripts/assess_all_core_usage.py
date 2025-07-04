@@ -10,6 +10,7 @@ import subprocess
 import json
 import time
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 from datetime import datetime
@@ -412,9 +413,37 @@ class CoreUsageAssessor:
             "\nThis pattern requires no flags and is AI-friendly for immediate execution."
         ])
         
+        # Add UUID4 verification section
+        report_uuid = str(uuid.uuid4())
+        report_lines.extend([
+            "\n## Anti-Hallucination Verification",
+            f"**Report UUID**: `{report_uuid}`",
+            "\nThis UUID4 is generated fresh for this report execution and can be verified against:",
+            "- JSON response files saved during execution",
+            "- Transcript logs for this session",
+            "\nIf this UUID does not appear in the corresponding JSON files, the report may be hallucinated.",
+            ""
+        ])
+        
         # Write report
         with open(self.report_path, 'w') as f:
             f.write('\n'.join(report_lines))
+        
+        # Save assessment results with UUID to JSON
+        json_path = self.reports_dir / f"CORE_USAGE_RESULTS_{self.timestamp}.json"
+        with open(json_path, 'w') as f:
+            json.dump({
+                'session_id': self.session_id,
+                'timestamp': self.timestamp,
+                'results': self.results,
+                'summary': {
+                    'total': len(self.results),
+                    'passed': sum(1 for r in self.results if r['assessment']['reasonable']),
+                    'failed': failed,
+                    'success_rate': sum(1 for r in self.results if r['assessment']['reasonable']) / len(self.results) * 100
+                },
+                'execution_uuid': report_uuid  # UUID4 at END for anti-hallucination
+            }, f, indent=2)
         
         # Also print summary
         print(f"\n{'='*60}")
@@ -425,6 +454,8 @@ class CoreUsageAssessor:
         print(f"Failed: {failed}")
         print(f"Success Rate: {sum(1 for r in self.results if r['assessment']['reasonable']) / len(self.results) * 100:.1f}%")
         print(f"\nReport saved to: {self.report_path}")
+        print(f"JSON results saved to: {json_path}")
+        print(f"\nVerification UUID: {report_uuid}")
     
     def run_tests(self):
         """Main test runner."""

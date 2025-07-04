@@ -1,0 +1,364 @@
+{
+  "session_id": "CORE_ASSESS_20250704_110858",
+  "timestamp": "20250704_110858",
+  "results": [
+    {
+      "filename": "config.py",
+      "expectations": {
+        "description": "Configuration management and settings",
+        "indicators": [
+          "config",
+          "settings",
+          "timeout",
+          "loaded"
+        ],
+        "min_lines": 5,
+        "should_have_numbers": true,
+        "error_ok": false,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== CC Executor Configuration ===\nService: cc_executor_mcp v1.0.0\nDefault Port: 8003\nWebSocket Path: /ws/mcp\n\n=== Session Configuration ===\nMax Sessions: 100\nSession Timeout: 3600s\n\n=== Process Configuration ===\nMax Buffer Size: 8388608 bytes\nStream Timeout: 600s\nCleanup Timeout: 10s\n\n=== Security Configuration ===\nAllowed Commands: ALL (no restrictions)\n\n=== Logging Configuration ===\nLog Level: INFO\nDebug Mode: False\n\n=== Testing Environment Variable Parsing ===\nInput: ALLOWED_COMMANDS='echo,ls,cat,grep'\nParsed: ['echo', 'ls', 'cat', 'grep']\nInput: LOG_LEVEL='WARNING'\nParsed: WARNING\nInput: DEBUG='true'\nParsed: True\n\n\u2705 Configuration validation passed!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/config_20250704_110858.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.02425241470336914,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "config",
+          "timeout"
+        ],
+        "missing_indicators": [
+          "settings",
+          "loaded"
+        ],
+        "line_count": 25,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "main.py",
+      "expectations": {
+        "description": "Component functionality test",
+        "indicators": [],
+        "min_lines": 1,
+        "should_have_numbers": false,
+        "error_ok": true,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== CC Executor Main Service Usage ===\n\n--- Test 1: Service Configuration ---\nService: cc_executor_mcp v1.0.0\nDefault port: 8003\nDebug mode: False\nLog level: INFO\n\u2713 Configuration loaded successfully\n\n--- Test 2: Component Initialization ---\n\u2713 SessionManager initialized (max sessions: 100)\n\u2713 ProcessManager initialized\n\u2713 StreamHandler initialized (max buffer: 8,388,608 bytes)\n\u2713 WebSocketHandler initialized\n\n--- Test 3: FastAPI Application Endpoints ---\nAvailable endpoints:\n  /openapi.json - {'GET', 'HEAD'}\n  /docs - {'GET', 'HEAD'}\n  /docs/oauth2-redirect - {'GET', 'HEAD'}\n  /redoc - {'GET', 'HEAD'}\n  /health - {'GET'}\n  /healthz - {'GET'}\n  /ws/mcp - N/A\n\n--- Test 4: Health Check Response Structure ---\nHealth response: {\n  \"status\": \"healthy\",\n  \"service\": \"cc_executor_mcp\",\n  \"version\": \"1.0.0\",\n  \"active_sessions\": 0,\n  \"max_sessions\": 100,\n  \"uptime_seconds\": 0.0007147789001464844\n}\n\n--- Test 5: WebSocket Protocol Info ---\nWebSocket endpoint: /ws/mcp\nProtocol: JSON-RPC 2.0 over WebSocket\nSupported methods:\n  - execute: Run commands with streaming output\n  - control: Process control (PAUSE/RESUME/CANCEL)\nEnvironment variables:\n  - WS_PING_INTERVAL: 20.0s\n  - WS_PING_TIMEOUT: 30.0s\n  - WS_MAX_SIZE: 10,485,760 bytes\n\n\u2705 All main service components verified!\n\nTo start the service:\n  python main.py --server --port 8003\n\nFor full integration tests:\n  python examples/test_websocket_handler.py\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/main_20250704_110858.json\n",
+        "stderr": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/core/main.py:134: DeprecationWarning: \n        on_event is deprecated, use lifespan event handlers instead.\n\n        Read more about it in the\n        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).\n        \n  @app.on_event(\"startup\")\n/home/graham/workspace/experiments/cc_executor/src/cc_executor/core/main.py:149: DeprecationWarning: \n        on_event is deprecated, use lifespan event handlers instead.\n\n        Read more about it in the\n        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).\n        \n  @app.on_event(\"shutdown\")\n",
+        "exit_code": 0,
+        "execution_time": 0.36160850524902344,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [],
+        "missing_indicators": [],
+        "line_count": 56,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "models.py",
+      "expectations": {
+        "description": "Data models and schemas",
+        "indicators": [
+          "task",
+          "session",
+          "result",
+          "model"
+        ],
+        "min_lines": 3,
+        "should_have_numbers": false,
+        "error_ok": false,
+        "requires_packages": [
+          "pydantic"
+        ]
+      },
+      "output": {
+        "stdout": "=== Testing ExecuteRequest Model ===\nValid request: command=\"echo 'Hello World'\" timeout=None id=123\nCommand: echo 'Hello World'\nID: 123\n\n=== Testing ControlRequest Model ===\nControl: PAUSE (id=1)\nControl: RESUME (id=2)\nControl: CANCEL (id=3)\n\n=== Testing JSON-RPC Models ===\nJSON-RPC Request: {\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"execute\",\n  \"params\": {\n    \"command\": \"ls -la\"\n  },\n  \"id\": 42\n}\n\nSuccess Response: {\n  \"jsonrpc\": \"2.0\",\n  \"result\": {\n    \"status\": \"started\",\n    \"pid\": 12345\n  },\n  \"id\": 42\n}\n\nError Response: {\n  \"jsonrpc\": \"2.0\",\n  \"error\": {\n    \"code\": -32602,\n    \"message\": \"Invalid params\",\n    \"data\": \"Command cannot be empty\"\n  },\n  \"id\": 42\n}\n\n=== Testing Command Validation ===\n\u2713 Command: 'echo test' | Allowed: None | Valid: True\n\u2713 Command: 'echo test' | Allowed: ['echo', 'ls'] | Valid: True\n\u2713 Command: 'rm -rf /' | Allowed: ['echo', 'ls'] | Valid: False\n   Message: Command 'rm' is not allowed\n\u2713 Command: '' | Allowed: None | Valid: False\n   Message: Command cannot be empty\n\u2713 Command: 'ls -la' | Allowed: ['echo', 'ls'] | Valid: True\n\n=== Testing Stream Output Model ===\nstdout: Hello World\nstderr: Error: File not found... (truncated)\n\n\u2705 All model tests completed!\n\n=== Testing Structured Error Types ===\nTimeoutError: Operation timed out after 30 seconds, duration=30.0s\nRateLimitError: Rate limit exceeded, retry_after=60s\nProcessNotFoundError: Process not found, pid=12345, pgid=67890\nCommandNotAllowedError: Command not allowed, command='rm -rf /'\nSessionLimitError: Too many sessions, current=10, max=10\n\n\u2705 All error type tests completed!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/models_20250704_110858.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.12145709991455078,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "session",
+          "result",
+          "model"
+        ],
+        "missing_indicators": [
+          "task"
+        ],
+        "line_count": 54,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "process_manager.py",
+      "expectations": {
+        "description": "Process lifecycle management with PID/PGID tracking",
+        "indicators": [
+          "process",
+          "pid",
+          "pgid",
+          "started",
+          "exit"
+        ],
+        "min_lines": 5,
+        "should_have_numbers": true,
+        "error_ok": false,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== Process Manager Usage Example ===\n\n--- Test 1: Process Control Concepts ---\nProcessManager provides:\n- Process execution with new process groups (PGID)\n- Process control: PAUSE (SIGSTOP), RESUME (SIGCONT), CANCEL (SIGTERM)\n- Proper cleanup of process groups\n- Timeout handling and graceful termination\n\n--- Test 2: Process Group ID (PGID) Demo ---\nStarted process: PID=1277712\nPID=1277712, PGID=1277712\n\u2713 Process completed\n\n--- Test 3: Signal Handling Demo ---\nPAUSE \u2192 Signal 19 (SIGSTOP)\nRESUME \u2192 Signal 18 (SIGCONT)\nCANCEL \u2192 Signal 15 (SIGTERM)\n\n--- Test 4: Quick Process Lifecycle ---\nProcess output:\nProcess started\nProcess finished\n\nExit code: 0\nDuration: 0.115s\n\n--- Test 5: Error Handling Scenarios ---\n\u2713 ProcessNotFoundError: Process 99999 not found (expected)\n\u2713 ValueError: Invalid control type 'INVALID' (expected)\n\n--- Test 6: ProcessManager Capabilities ---\n\u2713 Execute commands in new process groups\n\u2713 Control running processes (pause/resume/cancel)\n\u2713 Monitor process status\n\u2713 Clean up entire process groups\n\u2713 Handle timeouts gracefully\n\u2713 Prevent zombie processes\n\n\u2705 Process management concepts demonstrated!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/process_manager_20250704_110858.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.7014813423156738,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "process",
+          "pid",
+          "pgid",
+          "started",
+          "exit"
+        ],
+        "missing_indicators": [],
+        "line_count": 33,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "resource_monitor.py",
+      "expectations": {
+        "description": "System resource monitoring (CPU, memory, etc)",
+        "indicators": [
+          "cpu",
+          "memory",
+          "resource",
+          "usage",
+          "%"
+        ],
+        "min_lines": 5,
+        "should_have_numbers": true,
+        "error_ok": false,
+        "requires_packages": [
+          "psutil"
+        ]
+      },
+      "output": {
+        "stdout": "=== Resource Monitor Usage Example ===\n\n--- Test 1: Instant CPU Check ---\nCPU Usage (instant): 2.6%\n\n--- Test 2: GPU Check ---\nGPU Usage: 2.0%\n\n--- Test 3: Timeout Multiplier Scenarios ---\nLow load (CPU=10.0%): 30s \u2192 30.0s (x1.0)\nAt threshold (CPU=14.0%): 30s \u2192 30.0s (x1.0)\nAbove threshold (CPU=15.0%): 30s \u2192 90.0s (x3.0)\nHigh load (CPU=50.0%): 30s \u2192 90.0s (x3.0)\n\n--- Test 4: Current System State ---\nActual CPU: 2.6%\nActual GPU: 0.0%\nCurrent timeout multiplier: 1.0x\nExample: 60s timeout \u2192 60.0s\n\n\u2705 Resource monitor functioning correctly!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/resource_monitor_20250704_110859.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 3.331752300262451,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "cpu",
+          "resource",
+          "usage",
+          "%"
+        ],
+        "missing_indicators": [
+          "memory"
+        ],
+        "line_count": 17,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "session_manager.py",
+      "expectations": {
+        "description": "WebSocket session management with thread safety",
+        "indicators": [
+          "session",
+          "websocket",
+          "created",
+          "active",
+          "removed"
+        ],
+        "min_lines": 10,
+        "should_have_numbers": true,
+        "error_ok": false,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== Session Manager Usage Example ===\n\nCreated SessionManager with max_sessions=3\n\n--- Test 1: Creating Sessions ---\n\u2713 Created session-1 with <MockWebSocket 930cd185>\n\u2713 Created session-2 with <MockWebSocket 70d0dca3>\n\u2713 Created session-3 with <MockWebSocket ffbb073b>\n\u2717 Failed to create session-4 - limit reached\n\nActive sessions: 3/3\n\n--- Test 2: Updating Session with Process ---\nUpdated session-1 with process (PID=12345): True\nSession details: PID=12345, PGID=12345\n\n--- Test 3: Concurrent Access Test ---\n  Task 0.0s: Got session=True\n  Task 0.001s: Got session=True\n  Task 0.002s: Got session=True\n\n--- Test 4: Removing Sessions ---\nRemoved session-1: True\nRemoved session-2: True\n\nActive sessions after removal: 1/3\n\n--- Test 5: Session Timeout Test ---\nCleaned up 1 expired sessions\n\n--- Test 6: Final State ---\nRemaining sessions: ['session-3']\nFinal stats: 1 active, uptime: 0.0s\n\n\u2705 All operations completed without race conditions\n\u2705 Session limits enforced correctly\n\u2705 Cleanup mechanisms working\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/session_manager_20250704_110902.json\n",
+        "stderr": "2025-07-04 11:09:02.805 | INFO     | __main__:create_session:98 - Session created: session-1 (active: 1/3)\n2025-07-04 11:09:02.805 | INFO     | __main__:create_session:98 - Session created: session-2 (active: 2/3)\n2025-07-04 11:09:02.805 | INFO     | __main__:create_session:98 - Session created: session-3 (active: 3/3)\n2025-07-04 11:09:02.805 | WARNING  | __main__:create_session:85 - Session limit reached: 3/3\n2025-07-04 11:09:02.808 | INFO     | __main__:remove_session:168 - Session removed: session-1 (active: 2/3)\n2025-07-04 11:09:02.808 | INFO     | __main__:remove_session:168 - Session removed: session-2 (active: 1/3)\n2025-07-04 11:09:02.808 | INFO     | __main__:create_session:98 - Session created: old-session (active: 2/3)\n2025-07-04 11:09:02.808 | INFO     | __main__:cleanup_expired_sessions:206 - Expired session cleaned up: old-session\n",
+        "exit_code": 0,
+        "execution_time": 0.13478684425354004,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "session",
+          "websocket",
+          "created",
+          "active",
+          "removed"
+        ],
+        "missing_indicators": [],
+        "line_count": 36,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "simple_example.py",
+      "expectations": {
+        "description": "Component functionality test",
+        "indicators": [],
+        "min_lines": 1,
+        "should_have_numbers": false,
+        "error_ok": true,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== Simple Example Module ===\n\nThis demonstrates the OutputCapture pattern:\n1. Import OutputCapture from usage_helper\n2. Use it as a context manager\n3. All print statements are captured\n4. Output is automatically saved as prettified JSON\n\nBenefits:\n\u2022 Clean, consistent code\n\u2022 Automatic JSON formatting\n\u2022 Includes metadata (timestamp, duration, etc.)\n\u2022 No duplicate text files\n\n\u2705 Example completed successfully!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/simple_example_20250704_110902.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.02368950843811035,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [],
+        "missing_indicators": [],
+        "line_count": 13,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "stream_handler.py",
+      "expectations": {
+        "description": "Output stream processing and buffering",
+        "indicators": [
+          "stream",
+          "chunk",
+          "buffer",
+          "output"
+        ],
+        "min_lines": 3,
+        "should_have_numbers": false,
+        "error_ok": false,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== Stream Handler Usage Example ===\n\n--- Test 1: Basic Subprocess Streaming ---\n[stdout] Line 1\nLine 2\n[stderr] Error line\nExit code: 0\n\n--- Test 2: StreamHandler Capabilities ---\n\u2713 Max line size: 8,192 bytes\n\u2713 Default read buffer: 8,192 bytes\n\u2713 Handles stdout and stderr simultaneously\n\u2713 Supports streaming with timeouts\n\u2713 Prevents memory overflow with large outputs\n\n--- Test 3: Edge Cases Handled ---\n\u2022 Long lines: Lines over 8,192 bytes are truncated with '...'\n\u2022 No newlines: Partial lines at buffer boundaries handled correctly\n\u2022 Binary data: Non-UTF8 data decoded with 'replace' error handler\n\u2022 Fast producers: Back-pressure prevents memory overflow\n\u2022 Timeouts: Clean cancellation after specified duration\n\u2022 Buffer overflow: LimitOverrunError caught and handled gracefully\n\n--- Test 4: Line Handling Demo ---\nLong line (10000 chars) \u2192 Truncated to 8195 chars\n\n--- Test 5: Async Streaming Flow ---\n1. Create subprocess with PIPE for stdout/stderr\n2. StreamHandler.multiplex_streams() handles both streams\n3. Callback receives: (stream_type, data)\n4. Data flows in real-time, not buffered until end\n5. Timeout cancels streaming if needed\n\n--- Test 6: Performance Characteristics ---\n\u2022 Line reading: Efficient async I/O\n\u2022 Memory usage: Bounded by max_buffer_size\n\u2022 CPU usage: Minimal (async wait for data)\n\u2022 Cancellation: Clean shutdown on timeout\n\n\u2705 Stream handling concepts demonstrated!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/stream_handler_20250704_110902.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.08166289329528809,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "stream",
+          "buffer",
+          "output"
+        ],
+        "missing_indicators": [
+          "chunk"
+        ],
+        "line_count": 34,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "usage_helper.py",
+      "expectations": {
+        "description": "Component functionality test",
+        "indicators": [],
+        "min_lines": 1,
+        "should_have_numbers": false,
+        "error_ok": true,
+        "requires_packages": []
+      },
+      "output": {
+        "stdout": "=== Testing OutputCapture Helper ===\n\nTest 1: Basic capture test\nThis is a test message\nMultiple lines are captured\nIncluding special characters: \u2705 \u274c \ud83d\ude80\n\u2713 Captured 87 characters so far\n\nTest 2: Different output types\nNumbers: 42\nLists: [1, 2, 3]\nDicts: {'key': 'value'}\n\n\u2705 OutputCapture is working correctly!\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/usage_helper_20250704_110902.json\n\n\u2705 Verified file was saved: usage_helper_20250704_110902.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0.12448883056640625,
+        "duration": 0
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [],
+        "missing_indicators": [],
+        "line_count": 13,
+        "has_numbers": true,
+        "notes": []
+      }
+    },
+    {
+      "filename": "websocket_handler.py",
+      "expectations": {
+        "description": "\ud83d\udea8 THE CORE SCRIPT - WebSocket + Redis intelligent timeout system \ud83d\udea8",
+        "indicators": [
+          "websocket",
+          "imports",
+          "successful",
+          "dependencies"
+        ],
+        "min_lines": 5,
+        "should_have_numbers": false,
+        "error_ok": false,
+        "requires_packages": [
+          "websockets",
+          "fastapi",
+          "redis",
+          "anthropic"
+        ],
+        "CRITICAL": "Uses --test-only flag to verify imports without starting server",
+        "NOTE": "Full functionality tested separately with --simple/--medium/--long flags"
+      },
+      "output": {
+        "stdout": "=== WebSocket Handler Test Mode ===\n\u2713 Imports successful\n\u2713 WebSocketHandler class available\n\u2713 FastAPI app configured\n\u2713 Hook integration initialized\n\u2713 All dependencies loaded\n\nTest-only mode complete. Server not started.\n\n\ud83d\udcbe Response saved: src/cc_executor/core/tmp/responses/websocket_handler_20250704_110903.json\n",
+        "stderr": "",
+        "exit_code": 0,
+        "execution_time": 0,
+        "duration": 0.3607161045074463
+      },
+      "assessment": {
+        "reasonable": true,
+        "indicators_found": [
+          "websocket",
+          "imports",
+          "successful",
+          "dependencies"
+        ],
+        "missing_indicators": [],
+        "line_count": 8,
+        "has_numbers": true,
+        "notes": []
+      }
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "execution_uuid": "0c468d14-e723-4b8a-a353-96f62428229b"
+}

@@ -89,7 +89,6 @@ cat {claimed_file_path} | head -20
 **Conclusion**: {1-2 sentences on whether this task actually succeeded}
 
 #### Complete Raw JSON Output
-**CRITICAL: This is the ENTIRE output from the task execution - no truncation allowed!**
 ```json
 {
   "task_number": {number},
@@ -106,9 +105,17 @@ cat {claimed_file_path} | head -20
   "raw_output": "{complete_stdout_stderr_output}",
   "timestamp": "{iso_timestamp}",
   "session_id": "{session_id}",
-  "execution_id": "{unique_id}"
+  "execution_id": "{unique_id}",
+  "output_truncated": {boolean},
+  "execution_uuid": "{uuid4}"  // UUID4 at END for anti-hallucination
 }
 ```
+
+**Output Truncation Notes**:
+- Large outputs (>10KB) are truncated inline to prevent report bloat
+- Binary content shows as: `[BINARY DATA - {size} bytes total, preview: {hex}]`
+- Full output saved to: `reports/full_outputs/task_{number}_full_output.txt`
+- `output_truncated: true` indicates truncation occurred
 
 #### Key Output Extract (Human Readable)
 ```
@@ -348,6 +355,55 @@ cat todo_api/main.py | grep -E "(GET|POST|DELETE)"
 3. **Cross-reference task outputs** - Check consistency
 4. **Timestamp everything** - Detect temporal impossibilities
 5. **Session IDs** - Trace back to actual execution
+6. **UUID4 Verification** - Every execution generates a unique UUID4 that appears:
+   - At the END of JSON result files (hardest to fake)
+   - In the report's Anti-Hallucination Verification section
+   - Can be verified against transcript logs
+   - Proves the assessment actually ran
+
+## UUID4 Anti-Hallucination Verification
+
+### Implementation in Reports
+
+Every task list report MUST include:
+
+```markdown
+## Anti-Hallucination Verification
+**Report UUID**: `{uuid4_here}`
+
+This UUID4 is generated fresh for this report execution and can be verified against:
+- JSON response files saved during execution
+- Individual task execution JSON files
+- Transcript logs for this session
+
+If this UUID does not appear in the corresponding JSON files, the report may be hallucinated.
+```
+
+### Verification Process
+
+1. **Check report UUID against JSON**:
+   ```bash
+   REPORT_UUID=$(grep "Report UUID" TASK_LIST_REPORT_*.md | cut -d'`' -f2)
+   JSON_UUID=$(jq -r '.execution_uuid' TASK_LIST_RESULTS_*.json)
+   
+   if [ "$REPORT_UUID" = "$JSON_UUID" ]; then
+       echo "✅ UUID verification passed"
+   else
+       echo "❌ UUID mismatch - possible hallucination"
+   fi
+   ```
+
+2. **Verify in transcript**:
+   ```bash
+   rg "$REPORT_UUID" ~/.claude/projects/-*/*.jsonl
+   ```
+
+3. **Cross-check task UUIDs**:
+   ```bash
+   # Each task should have its own UUID in addition to report UUID
+   jq -r '.tasks[].execution_uuid' TASK_LIST_RESULTS_*.json | sort -u
+   ```
 
 ## Version History
 - v1.0 (2025-01-04): Initial template addressing need for rigorous task verification with raw JSON and agent assessments
+- v1.1 (2025-07-04): Added UUID4 anti-hallucination verification system

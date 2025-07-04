@@ -10,6 +10,7 @@ import subprocess
 import json
 import time
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 from datetime import datetime
@@ -549,13 +550,17 @@ class HookUsageAssessor:
         responses_dir = self.tmp_dir / "responses"
         responses_dir.mkdir(exist_ok=True)
         
+        # Generate UUID4 for anti-hallucination verification
+        execution_uuid = str(uuid.uuid4())
+        
         # Save as JSON for easy loading
         response_file = responses_dir / f"{filename}_{self.timestamp}.json"
         with open(response_file, 'w') as f:
             json.dump({
                 'filename': filename,
                 'timestamp': self.timestamp,
-                'output': output
+                'output': output,
+                'execution_uuid': execution_uuid  # UUID4 at END for anti-hallucination
             }, f, indent=2)
         
         # Also save raw text for easy reading
@@ -568,6 +573,8 @@ class HookUsageAssessor:
             f.write(output['stdout'])
             f.write("\n\n--- STDERR ---\n")
             f.write(output['stderr'])
+            f.write(f"\n\n--- EXECUTION UUID ---\n")
+            f.write(f"{execution_uuid}\n")
     
     def assess_hook_output(self, filename: str, output: Dict[str, Any],
                           expectations: Dict[str, Any], redis_delta: Dict[str, int],
@@ -855,12 +862,43 @@ class HookUsageAssessor:
             "- See core/ components for AI-friendly patterns"
         ])
         
+        # Add UUID4 verification section
+        report_uuid = str(uuid.uuid4())
+        report_lines.extend([
+            "\n## Anti-Hallucination Verification",
+            f"**Report UUID**: `{report_uuid}`",
+            "\nThis UUID4 is generated fresh for this report execution and can be verified against:",
+            "- JSON response files in tmp/responses/",
+            "- Raw text files in tmp/responses/",
+            "- Transcript logs for this session",
+            "\nIf this UUID does not appear in the corresponding JSON files, the report may be hallucinated.",
+            ""
+        ])
+        
         # Write report
         with open(self.report_path, 'w') as f:
             f.write('\n'.join(report_lines))
         
+        # Save assessment results with UUID to JSON
+        json_path = self.reports_dir / f"HOOKS_USAGE_RESULTS_{self.timestamp}.json"
+        with open(json_path, 'w') as f:
+            json.dump({
+                'session_id': self.test_session_id,
+                'timestamp': self.timestamp,
+                'results': self.results,
+                'summary': {
+                    'total': len(self.results),
+                    'passed': passed,
+                    'failed': failed,
+                    'success_rate': passed/len(self.results)*100 if self.results else 0
+                },
+                'execution_uuid': report_uuid  # UUID4 at END for anti-hallucination
+            }, f, indent=2)
+        
         print(f"\n✅ Report generated: {self.report_path}")
         print(f"📁 Temp files saved to: {self.temp_dir}")
+        print(f"💾 JSON results saved to: {json_path}")
+        print(f"\n🔐 Verification UUID: {report_uuid}")
         
         return passed, failed
     

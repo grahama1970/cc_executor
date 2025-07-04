@@ -1,32 +1,37 @@
-# CC_Execute — WebSocket-Based Task Executor
+# CC_Execute — WebSocket-Based Task Executor with Automatic Hooks
 
 ## 📊 TASK METRICS & HISTORY
 - **Success/Failure Ratio**: 10:1 ✅ GRADUATED!
-- **Last Updated**: 2025-07-03
+- **Last Updated**: 2025-07-04
 - **Evolution History**:
   | Version | Change & Reason                                    | Result |
   | :------ | :------------------------------------------------- | :----- |
   | v1      | Direct subprocess call | Failed - no sequential control |
   | v2      | WebSocket client approach | Failed - circular dependency |
   | v3      | Follow websocket_handler pattern | Success - clean execution |
-  | Final   | Simplified to core purpose | Graduated ✅ |
+  | v4      | Simplified to core purpose | Graduated ✅ |
+  | v5      | Added automatic UUID4 hooks | Enhanced ✅ |
 
 ---
 ## 🏛️ ARCHITECT'S BRIEFING (Immutable)
 
 ### 1. Purpose
-Enable the Claude Orchestrator to spawn fresh Claude instances (each with 200K context) for individual tasks, ensuring sequential execution through the WebSocket handler.
+Enable the Claude Orchestrator to spawn fresh Claude instances (each with 200K context) for individual tasks, using bidirectional WebSocket communication to handle long-running tasks reliably, with automatic anti-hallucination verification.
 
 ### 2. Core Principles & Constraints
 - Each task gets a fresh Claude instance with full 200K context
+- **Bidirectional WebSocket prevents timeouts on long-running tasks**
 - WebSocket handler ensures sequential execution (Task 2 waits for Task 1)
 - No context pollution between tasks
+- **Automatic UUID4 hooks for anti-hallucination verification (ALWAYS enabled)**
+- Heartbeats keep connection alive during 30-60s Claude "thinking" periods
 - Simple interface - just build command and execute
 
 ### 3. API Contract & Dependencies
 - **Input**: Task description from orchestrator
-- **Output**: Task execution results
+- **Output**: Task execution results with hook verification status
 - **Dependency**: websocket_handler.py manages the execution
+- **Hooks**: Pre/post execution hooks automatically applied
 
 ---
 ## 🤖 IMPLEMENTER'S WORKSPACE
@@ -38,13 +43,18 @@ When the orchestrator needs Task N executed with a fresh Claude instance:
 1. **Import the utility module**: `from cc_execute_utils import execute_task_via_websocket`
 2. **Parse the task** from the orchestrator's request
 3. **Build variables** (task description, timeout, tools list)
-4. **Call the function** which internally calls `./core/websocket_handler.py`
-5. **Return results** to the orchestrator
+4. **Call the function** which internally:
+   - Applies pre-hooks (UUID4 injection for anti-hallucination)
+   - Calls `./core/websocket_handler.py`
+   - Applies post-hooks (UUID4 verification)
+5. **Return results** to the orchestrator with verification status
 
 The implementation is in `cc_execute_utils.py` which handles:
+- **Automatic pre-hooks**: Inject UUID4 requirements into task
 - Building the Claude command with appropriate flags
 - Calling websocket_handler.py as a subprocess
 - Capturing and returning the output
+- **Automatic post-hooks**: Verify UUID4 presence in output
 
 Example usage:
 ```python
@@ -57,8 +67,9 @@ result = execute_task_via_websocket(
     tools=["Write", "Edit"]
 )
 
-# Result contains success status, output, and exit code
+# Result contains success status, output, exit code, AND hook verification
 print(f"Task {'succeeded' if result['success'] else 'failed'}")
+print(f"UUID verified: {result['hook_verification']['verification_passed']}")
 ```
 
 ### **Task Execution Plan & Log**
@@ -108,10 +119,11 @@ print(f"Task {'succeeded' if result['success'] else 'failed'}")
 ## 🎓 GRADUATION & VERIFICATION
 
 ### Key Insight
-This prompt enables the orchestrator pattern by following websocket_handler.py's established execution flow, ensuring each task gets a fresh Claude instance with proper sequential control.
+This prompt enables the orchestrator pattern by following websocket_handler.py's established execution flow, ensuring each task gets a fresh Claude instance with proper sequential control and automatic anti-hallucination verification.
 
 ### What This Achieves
 1. **Fresh Context**: Each task starts with 200K tokens
 2. **Sequential Execution**: WebSocket handler ensures order
-3. **Simple Interface**: Orchestrator just calls this function
-4. **Proven Pattern**: Reuses websocket_handler's tested approach
+3. **Anti-Hallucination**: Automatic UUID4 verification prevents fabricated results
+4. **Simple Interface**: Orchestrator just calls this function - hooks work transparently
+5. **Proven Pattern**: Reuses websocket_handler's tested approach with enhanced verification

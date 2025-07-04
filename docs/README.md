@@ -1,109 +1,157 @@
 # CC Executor Documentation
 
-Welcome to the CC Executor documentation. This guide helps you navigate the documentation structure and find the information you need.
+Welcome to the CC Executor documentation. This directory contains all technical documentation, guides, and architectural decisions for the project.
 
 ## Quick Links
 
-- [Quickstart Guide](quickstart.md) - Get up and running quickly
-- [Operating the Service](guides/OPERATING_THE_SERVICE.md) - Production deployment guide
-- [Troubleshooting](guides/troubleshooting.md) - Common issues and solutions
-- [Prompt Best Practices](PROMPT_BEST_PRACTICES.md) - Guidelines for effective prompting
+- **Getting Started**: [quickstart.md](quickstart.md)
+- **Architecture Overview**: [architecture/README.md](architecture/README.md)
+- **User Guides**: [guides/README.md](guides/README.md)
+- **Hook System**: [hooks/README.md](hooks/README.md)
 
 ## Documentation Structure
 
-### Core Documentation
-- **[LESSONS_LEARNED.md](LESSONS_LEARNED.md)** - Critical operational insights from production experience
-- **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)** - Current issues and workarounds
-- **[PROMPT_BEST_PRACTICES.md](PROMPT_BEST_PRACTICES.md)** - Essential prompting guidelines
+### 📚 Core Documentation
+
+- **[quickstart.md](quickstart.md)** - Get up and running quickly
+- **[GAMIFICATION_EXPLAINED.md](GAMIFICATION_EXPLAINED.md)** - Understanding self-improving features
+- **[LESSONS_LEARNED.md](LESSONS_LEARNED.md)** - Key insights from development
+- **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)** - Current limitations and workarounds
+- **[MEMORY_OPTIMIZATION.md](MEMORY_OPTIMIZATION.md)** - Memory usage strategies
 - **[FAVORITES.md](FAVORITES.md)** - Quick reference links
 
-### Architecture
-Documentation about system design and implementation:
-- **[Overview](architecture/how_claude_sees_code.md)** - Conceptual understanding
-- **[WebSocket MCP Protocol](architecture/websocket_mcp_protocol.md)** - Complete protocol specification
-- **[Orchestration Patterns](architecture/orchestration_control_patterns.md)** - Control flow patterns
-- **[WebSocket Limitations](architecture/websocket_limitations.md)** - Known limitations
+### 🏗️ Architecture (`architecture/`)
 
-### Guides
-Practical guides for users and developers:
-- **[Operating the Service](guides/OPERATING_THE_SERVICE.md)** - Production deployment
-- **[Troubleshooting](guides/troubleshooting.md)** - Debugging and problem solving
-- **[VSCode Debugging](guides/vscode_debugging.md)** - Advanced debugging with VSCode
-- **[Timeout Configuration](guides/timeout_configuration.md)** - Managing timeouts
-- **[Development Workflow](guides/development_workflow.md)** - Development best practices
+Technical architecture and design decisions:
+- **[architecture/README.md](architecture/README.md)** - Architecture overview
+- **[architecture/decisions/](architecture/decisions/)** - Key architectural decisions
+  - `cc_execute_pattern.md` - The cc_execute pattern (like numpy vs math)
+  - `mcp_evaluation.md` - Why prompts over MCP
+  - `MCP_ARCHITECTURE_DECISION.md` - MCP integration analysis
+  - `orchestrator_flexibility.md` - Tool integration patterns
+- **Core Architecture Docs**:
+  - `how_claude_sees_code.md` - Conceptual understanding
+  - `websocket_mcp_protocol.md` - Protocol specification
+  - `orchestration_control_patterns.md` - Control patterns
+  - `websocket_limitations.md` - Known limitations
 
-### Hook System
-Complete documentation for the hook integration system:
-- **[Hook System Overview](hooks/README.md)** - Comprehensive guide
-- **[Usage Guide](hooks/usage_guide.md)** - How to use hooks
-- **[Examples](hooks/examples.md)** - Practical hook examples
-- **[Integration](hooks/integration_overview.md)** - Integration details
-- **[Execution Flow](hooks/execution_flow.md)** - How hooks execute
-- **[Reliability Patterns](hooks/reliability_patterns.md)** - Ensuring reliable hook execution
+### 📖 Guides (`guides/`)
 
-### Technical Reference
+How-to guides and best practices:
+- **[project_setup.md](guides/project_setup.md)** - Setting up new Python projects
+- **[OPERATING_THE_SERVICE.md](guides/OPERATING_THE_SERVICE.md)** - Production deployment
+- **[development_workflow.md](guides/development_workflow.md)** - Development process
+- **[prompt_best_practices.md](guides/prompt_best_practices.md)** - Writing effective prompts
+- **[troubleshooting.md](guides/troubleshooting.md)** - Common issues and solutions
+- **[vscode_debugging.md](guides/vscode_debugging.md)** - Debugging with VS Code
+- **[timeout_configuration.md](guides/timeout_configuration.md)** - Timeout management
+
+### 🎯 Features (`features/`)
+
+Feature-specific documentation:
+- **[research_collaborator.md](features/research_collaborator.md)** - Research integration
+- **[unified_research_architecture.md](features/unified_research_architecture.md)** - Research patterns
+
+### 🪝 Hooks (`hooks/`)
+
+Hook system documentation:
+- **[hooks/README.md](hooks/README.md)** - Hook system overview
+- **[UUID_VERIFICATION_HOOK.md](hooks/UUID_VERIFICATION_HOOK.md)** - UUID4 anti-hallucination
+- **[uuid4_implementation_update.md](hooks/uuid4_implementation_update.md)** - Latest UUID4 updates
+- **[execution_flow.md](hooks/execution_flow.md)** - How hooks execute
+- **[usage_guide.md](hooks/usage_guide.md)** - Using hooks effectively
+- **[reliability_patterns.md](hooks/reliability_patterns.md)** - Reliable execution
+
+### 🔧 Technical (`technical/`)
+
 Deep technical documentation:
-- **[Timeout Management](technical/timeout_management.md)** - Complete timeout handling guide
-- **[Asyncio Timeout Guide](technical/asyncio_timeout_guide.md)** - Async-specific timeout handling
-- **[Environment Variables](technical/environment_variables.md)** - Configuration options
-- **[Logging Guide](technical/logging_guide.md)** - Comprehensive logging documentation
-- **[Resource Monitoring](technical/resource_monitoring.md)** - System resource tracking
-- **[Redis Integration](technical/redis_integration.md)** - Redis features and usage
-- **[Transcript Limitations](technical/transcript_limitations.md)** - Known transcript issues
+- **[asyncio_timeout_guide.md](technical/asyncio_timeout_guide.md)** - Async timeout patterns
+- **[redis_integration.md](technical/redis_integration.md)** - Redis usage
+- **[timeout_management.md](technical/timeout_management.md)** - Timeout strategies
+- **[resource_monitoring.md](technical/resource_monitoring.md)** - Resource tracking
+- **[environment_variables.md](technical/environment_variables.md)** - Configuration
+- **[logging_guide.md](technical/logging_guide.md)** - Logging system
+- **[transcript_limitations.md](technical/transcript_limitations.md)** - Transcript issues
 
-### Features
-Documentation for specific features:
-- **[Research Collaborator](features/research_collaborator.md)** - Research collaboration patterns
-- **[Unified Research Architecture](features/unified_research_architecture.md)** - Research system design
+### 📝 Templates (`templates/`)
 
-### Templates
-Prompt and code templates:
-- **[Self-Improving Prompt Template](templates/SELF_IMPROVING_PROMPT_TEMPLATE.md)** - Template for self-improving prompts
-- **[Prompt System Guidelines](templates/PROMPT_SYSTEM_GUIDELINES.md)** - Guidelines for prompt systems
-- **[Review Template](templates/REVIEW_PROMPT_AND_CODE_TEMPLATE.md)** - Code review templates
-- **[Reasonable Output Assessment](templates/REASONABLE_OUTPUT_ASSESSMENT.md)** - Output evaluation guide
-- **[Task List Template](templates/SELF_IMPROVING_TASK_LIST_TEMPLATE.md)** - Task list patterns
+Reusable templates and patterns:
+- **[task_list_guide.md](templates/task_list_guide.md)** - Creating task lists
+- **[TEMPLATES_README.md](templates/TEMPLATES_README.md)** - Template overview
+- Various code and prompt templates
 
-### Reports
-Test results and analyses:
-- **[Full Stress Test Report](FULL_STRESS_TEST_REPORT_FINAL.md)** - Comprehensive stress test results
-- **[Extended Stress Test Analysis](reports/extended_stress_test_timeout_analysis.md)** - Timeout analysis
-- **[Matrix Multiplication Analysis](reports/matrix_multiplication_analysis_final.md)** - Performance benchmarks
+### 📊 Reports (`reports/`)
 
-## Getting Started
+Assessment and test reports:
+- **[reports/README.md](reports/README.md)** - Report index
+- **[FULL_STRESS_TEST_REPORT_FINAL.md](FULL_STRESS_TEST_REPORT_FINAL.md)** - Stress test results
+- Comprehensive assessment reports
+- Performance analyses
 
-1. **New Users**: Start with the [Quickstart Guide](quickstart.md)
-2. **Developers**: Read [Development Workflow](guides/development_workflow.md) and [Architecture Overview](architecture/how_claude_sees_code.md)
-3. **Operations**: See [Operating the Service](guides/OPERATING_THE_SERVICE.md) and [Environment Variables](technical/environment_variables.md)
-4. **Debugging**: Check [Troubleshooting](guides/troubleshooting.md) and [Logging Guide](technical/logging_guide.md)
+### 📦 Archive (`archive/`)
+
+Historical documentation:
+- **`2025-06/`** - June 2025 development history
+- **`2025-07/`** - July 2025 updates
+- **`deprecated/`** - Deprecated approaches and decisions
+  - Old SDK comparisons
+  - Superseded integration approaches
+  - Historical architecture decisions
 
 ## Key Concepts
 
-### WebSocket-Based Architecture
-CC Executor uses WebSocket connections for real-time command execution and streaming output. See the [WebSocket MCP Protocol](architecture/websocket_mcp_protocol.md) for details.
+### The cc_execute Pattern
 
-### Hook System
-The hook system allows integration with Claude's execution lifecycle. See [Hook System Overview](hooks/README.md) for comprehensive documentation.
+CC Executor provides an optional execution pattern for complex tasks. Think of it like numpy vs math:
+- Use **direct execution** for simple tasks (like using Python's math module)
+- Use **cc_execute** for complex tasks needing fresh context (like using numpy for matrices)
 
-### Timeout Management
-Proper timeout handling is critical for long-running operations. See [Timeout Management](technical/timeout_management.md) for strategies and best practices.
+See [architecture/decisions/cc_execute_pattern.md](architecture/decisions/cc_execute_pattern.md) for details.
 
-### Logging Strategy
-Multi-layered logging captures different aspects of system operation. See [Logging Guide](technical/logging_guide.md) for details.
+### Automatic Features
 
-## Contributing
+When using cc_execute, you get:
+- **UUID4 verification** - Anti-hallucination hooks (always enabled)
+- **Error recovery** - Automatic retries (3 attempts)
+- **WebSocket reliability** - Long-running task support
+- **Fresh context** - 200K tokens per task
 
-When adding new documentation:
-1. Place it in the appropriate category directory
+## Recent Updates
+
+- **2025-07-04**: Documentation reorganization for clarity
+- **2025-07-04**: Simplified examples to basic/advanced patterns
+- **2025-07-03**: Integrated automatic UUID4 hooks
+- **2025-06-27**: WebSocket architecture finalized
+
+## Finding Information
+
+### By Topic
+- **Installation & Setup** → [quickstart.md](quickstart.md)
+- **Creating new projects** → [guides/project_setup.md](guides/project_setup.md)
+- **How cc_execute works** → [architecture/](architecture/)
+- **Writing task lists** → [templates/task_list_guide.md](templates/task_list_guide.md)
+- **Debugging issues** → [guides/troubleshooting.md](guides/troubleshooting.md)
+- **Hook system** → [hooks/](hooks/)
+
+### By User Type
+- **New Users** → Start with [quickstart.md](quickstart.md)
+- **Developers** → See [guides/development_workflow.md](guides/development_workflow.md)
+- **Architects** → Review [architecture/decisions/](architecture/decisions/)
+- **Contributors** → Check [templates/](templates/) for patterns
+
+## Contributing to Docs
+
+When adding documentation:
+1. Place it in the appropriate subdirectory
 2. Update this README with a link
-3. Include a "Last updated" date at the bottom
-4. Follow the existing format and style
+3. Follow existing naming conventions
+4. Include practical examples
+5. Save any outputs to prevent hallucination
 
-## Archive
+## Questions?
 
-Historical documentation is preserved in the `archive/` directory, organized by date. This includes:
-- Implementation notes from development
-- Superseded guides and solutions
-- Research reports that have been incorporated into the codebase
+- For bugs/issues → [KNOWN_ISSUES.md](KNOWN_ISSUES.md)
+- For architecture → [architecture/README.md](architecture/README.md)
+- For development → [guides/development_workflow.md](guides/development_workflow.md)
 
-Last updated: 2025-07-02
+Last updated: 2025-07-04

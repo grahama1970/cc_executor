@@ -172,6 +172,238 @@ claude -p "What is 2 + 2? Please include UUID: $UUID in your response"
 # Then verify UUID appears in output
 ```
 
+## UUID4 Anti-Hallucination Pattern
+
+### Overview
+Every prompt execution should generate a UUID4 at the beginning and include it at the END of outputs. This cryptographically secure identifier serves as proof that the execution actually occurred and wasn't hallucinated by an AI agent.
+
+### Why This Works
+- **Unique**: UUID4s are practically impossible to guess (2^122 possible values)
+- **Position Matters**: Placing at the END of output makes it hardest to fake
+- **Verifiable**: Can be searched in transcripts, logs, and JSON outputs
+- **Cross-Reference**: Same UUID appears in multiple places for validation
+
+### Implementation Pattern
+
+#### 1. Pre-Hook: Generate UUID at Start
+```python
+import uuid
+
+def pre_execution_hook():
+    """Generate UUID4 for anti-hallucination verification"""
+    execution_uuid = str(uuid.uuid4())
+    print(f"🔐 Execution UUID: {execution_uuid}")
+    return execution_uuid
+```
+
+#### 2. Main Execution: Pass UUID Through
+```python
+def main_execution(execution_uuid):
+    """Your actual prompt logic here"""
+    # ... do work ...
+    
+    # Include UUID in any JSON output - ALWAYS at the END
+    result = {
+        "data": "your_results",
+        "timestamp": datetime.now().isoformat(),
+        "execution_uuid": execution_uuid  # MUST be the LAST key
+    }
+    return result
+```
+
+#### 3. Post-Hook: Verify UUID
+```python
+def post_execution_hook(execution_uuid, output_file):
+    """Verify UUID appears in output"""
+    with open(output_file, 'r') as f:
+        content = f.read()
+    
+    if execution_uuid not in content:
+        raise ValueError("UUID verification failed - possible hallucination!")
+    
+    # Also verify it's at the END for JSON files
+    if output_file.endswith('.json'):
+        data = json.loads(content)
+        if 'execution_uuid' not in data or list(data.keys())[-1] != 'execution_uuid':
+            raise ValueError("UUID not at end of JSON - possible tampering!")
+```
+
+### Standard Prompt Structure with UUID4
+
+```python
+#!/usr/bin/env python3
+"""
+Your prompt description here
+"""
+
+import uuid
+import json
+from datetime import datetime
+from pathlib import Path
+
+class YourPromptExecutor:
+    def __init__(self):
+        # Generate UUID4 immediately
+        self.execution_uuid = str(uuid.uuid4())
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+    def run(self):
+        """Main execution logic"""
+        print(f"🔐 Starting execution with UUID: {self.execution_uuid}")
+        
+        # Your prompt logic here
+        results = self.execute_tasks()
+        
+        # Save results with UUID at END
+        output = {
+            "timestamp": self.timestamp,
+            "results": results,
+            "execution_uuid": self.execution_uuid  # ALWAYS LAST
+        }
+        
+        # Save to JSON
+        output_file = f"output_{self.timestamp}.json"
+        with open(output_file, 'w') as f:
+            json.dump(output, f, indent=2)
+        
+        # Verify UUID in output
+        self.verify_uuid(output_file)
+        
+        print(f"✅ Execution complete. UUID: {self.execution_uuid}")
+        
+    def verify_uuid(self, output_file):
+        """Verify UUID appears in output file"""
+        with open(output_file, 'r') as f:
+            content = f.read()
+            
+        if self.execution_uuid not in content:
+            raise ValueError(f"UUID {self.execution_uuid} not found in output!")
+            
+        # For JSON, verify it's the last key
+        if output_file.endswith('.json'):
+            with open(output_file, 'r') as f:
+                data = json.load(f)
+            if list(data.keys())[-1] != 'execution_uuid':
+                print("⚠️  Warning: UUID should be the last key in JSON")
+
+if __name__ == "__main__":
+    executor = YourPromptExecutor()
+    executor.run()
+```
+
+### In Assessment Reports
+
+When creating assessment reports, always include:
+
+```markdown
+## Anti-Hallucination Verification
+
+**Report UUID**: `{uuid4_here}`
+
+This UUID4 is generated fresh for this report execution and can be verified against:
+- JSON response files saved during execution
+- Transcript logs for this session
+- The END of all result files
+
+### Verification Commands
+```bash
+# Verify UUID in JSON file
+grep "{uuid4_here}" output_file.json
+
+# Check it's at the end (should be last line before closing brace)
+tail -3 output_file.json
+
+# Search in transcripts
+rg "{uuid4_here}" ~/.claude/projects/*/\*.jsonl
+```
+```
+
+### Best Practices
+
+1. **Generate Early**: Create UUID4 at the very start of execution
+2. **Include Everywhere**: Put it in console output, JSON files, and reports
+3. **Position at END**: In JSON/dict structures, make it the last key
+4. **Verify Always**: Add verification step to confirm UUID presence
+5. **Show in Reports**: Display prominently for manual verification
+
+### Example Output
+
+```json
+{
+  "session_id": "TASK_20250704_120000",
+  "timestamp": "2025-07-04T12:00:00",
+  "results": [
+    {"task": 1, "status": "success"},
+    {"task": 2, "status": "success"}
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "execution_uuid": "a4f5c2d1-8b3e-4f7a-9c1b-2d3e4f5a6b7c"
+}
+```
+
+Note how `execution_uuid` is the LAST key in the JSON.
+
+### Anti-Pattern Examples (What NOT to Do)
+
+❌ **Bad**: UUID in the middle of JSON
+```json
+{
+  "results": [],
+  "execution_uuid": "...",  // Should be at END!
+  "summary": {}
+}
+```
+
+❌ **Bad**: No UUID verification
+```python
+# Just generating without verification
+uuid_str = str(uuid.uuid4())
+# ... never check if it appears in output
+```
+
+❌ **Bad**: UUID only in console
+```python
+print(f"UUID: {uuid_str}")
+# But not included in saved outputs
+```
+
+### Integration with Hooks - Automatic and Transparent
+
+The UUID4 pattern integrates perfectly with CC Executor's hook system, and when properly implemented, it's **completely automatic**:
+
+1. **Pre-Hook**: 
+   - Generates UUID4
+   - **Automatically modifies the Claude prompt** to include UUID4 instructions
+   - Task authors don't need to mention UUID4 at all
+   
+2. **Main Execution**: 
+   - Claude sees the modified prompt with UUID4 requirements
+   - Claude generates code that includes UUID4 (because the hook told it to)
+   
+3. **Post-Hook**: 
+   - Verifies UUID presence and position
+   - Reports success/failure
+
+**Key Point**: With proper hooks, task descriptions remain clean and focused on the actual work. The anti-hallucination measures are injected transparently!
+
+Example of what happens:
+```
+User's task: "Create a TODO API"
+                ↓
+Pre-hook modifies to: "Create a TODO API
+[SYSTEM: Generate UUID4, include as last JSON key...]"
+                ↓
+Claude executes with UUID4 requirements
+                ↓
+Post-hook verifies UUID4 presence
+```
+
+See `/docs/hooks/UUID_VERIFICATION_HOOK.md` for implementation details.
+
 ## Common Pitfalls to Avoid
 
 ### 1. Long Multi-Step Prompts

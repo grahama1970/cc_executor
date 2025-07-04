@@ -80,11 +80,11 @@ class ErrorRecoveryExecutor:
             )
             
             # Check result
-            if result.get('status') == 'success':
+            if result.get('success', False):
                 return result
             
             # Record error
-            error_msg = result.get('error', 'Unknown error')
+            error_msg = result.get('stderr', result.get('error', 'Unknown error'))
             print(f"\n❌ Task failed: {error_msg}")
             
             # Try to extract fix from error
@@ -171,17 +171,26 @@ Use Optional fields for partial updates.''',
         with open(output_file, 'w') as f:
             json.dump(result, f, indent=2)
         
-        status = result.get('status', 'unknown')
-        duration = result.get('duration', 0)
+        success = result.get('success', False)
+        status = 'success' if success else 'failed'
+        attempts = result.get('attempts', 1)
+        
+        # Check hook verification
+        verification_passed = False
+        if 'hook_verification' in result:
+            verification_passed = result['hook_verification'].get('verification_passed', False)
+            print(f"\n🔐 UUID Verification: {'PASSED' if verification_passed else 'FAILED'}")
         
         results.append({
             'task': task['name'],
             'status': status,
-            'duration': duration,
+            'success': success,
+            'verification': verification_passed,
+            'attempts': attempts,
             'retries': len(executor.errors.get(task['name'], []))
         })
         
-        print(f"\n✅ Task completed: {status} ({duration:.1f}s)")
+        print(f"\n{'✅' if success else '❌'} Task completed: {status} (attempts: {attempts})")
         if results[-1]['retries'] > 0:
             print(f"   Required {results[-1]['retries']} retries")
         print(f"   Output saved to: {output_file}")
