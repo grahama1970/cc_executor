@@ -17,7 +17,7 @@ class WebSocketClient:
     def __init__(self, host: str = "localhost", port: int = 8003):
         self.host = host
         self.port = port
-        self.ws_url = f"ws://{host}:{port}/ws"
+        self.ws_url = f"ws://{host}:{port}/ws/mcp"
         
     async def execute_command(
         self, 

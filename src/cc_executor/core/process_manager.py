@@ -34,7 +34,7 @@ from loguru import logger
 
 try:
     from .config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
-    from ..hooks.hook_integration import get_hook_integration, ensure_hooks
+    from ..hooks.hook_integration import get_hook_integration, get_hook_integration_async, ensure_hooks
 except ImportError:
     # For standalone execution
     import sys
@@ -42,10 +42,11 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
     try:
-        from ..hooks.hook_integration import get_hook_integration, ensure_hooks
+        from ..hooks.hook_integration import get_hook_integration, get_hook_integration_async, ensure_hooks
     except ImportError:
         # Hook integration not available
         get_hook_integration = None
+        get_hook_integration_async = None
         ensure_hooks = lambda f: f
 
 
@@ -79,17 +80,23 @@ class ProcessManager:
         """
         logger.info(f"Executing command in new process group: {command[:100]}...")
         
-        # Apply programmatic hooks
+        # Use async-safe hook integration
         if get_hook_integration:
-            hook = get_hook_integration()
-            pre_result = await hook.pre_execution_hook(command, hook.enforcer.session_id)
-            
-            # Use wrapped command if available
-            if pre_result and 'pre-execute' in pre_result:
-                wrapped_command = pre_result['pre-execute'].get('wrapped_command')
-                if wrapped_command and wrapped_command != command:
-                    logger.info(f"Hook wrapped command: {wrapped_command[:100]}...")
-                    command = wrapped_command
+            try:
+                hook = await get_hook_integration_async()
+                if hook and hook.enabled:
+                    # Use async version that won't block the event loop
+                    pre_result = await hook.pre_execution_hook(command, os.environ.get('CLAUDE_SESSION_ID', 'default'))
+                    
+                    # Use wrapped command if available
+                    if pre_result and 'pre-execute' in pre_result:
+                        wrapped_command = pre_result['pre-execute'].get('wrapped_command')
+                        if wrapped_command and wrapped_command != command:
+                            logger.info(f"Hook wrapped command: {wrapped_command[:100]}...")
+                            command = wrapped_command
+            except Exception as e:
+                logger.warning(f"Hook pre-execution failed: {e}")
+                # Continue without hooks if they fail
         
         env = os.environ.copy()
         

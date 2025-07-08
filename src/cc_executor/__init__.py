@@ -1,9 +1,12 @@
 """
-CC-Executor: MCP WebSocket Service for remote command execution.
+CC Executor: Sequential task execution for Claude Code.
 
-A secure WebSocket service that implements the Model Context Protocol (MCP)
-for executing commands remotely with proper session management, process control,
-and output streaming.
+Two ways to use:
+1. Python API: from cc_executor.client import cc_execute  
+2. MCP Server: cc-executor start (for AI agents)
+
+A secure service that enables orchestration of complex AI workflows 
+with fresh context for each task.
 """
 
 __version__ = "1.0.0"
@@ -13,18 +16,28 @@ __email__ = "graham@grahama.co"
 # Public API
 __all__ = [
     "__version__",
-    "cc_execute_task_list",
+    # Python API
+    "cc_execute",
+    "cc_execute_list", 
+    "CCExecutorConfig",
+    # MCP Server components
     "WebSocketHandler",
     "SessionManager", 
     "ProcessManager",
     "StreamHandler",
-    "WebSocketClient",
 ]
 
-# Import main components for easier access
-from .core.websocket_handler import WebSocketHandler
-from .core.session_manager import SessionManager
-from .core.process_manager import ProcessManager
-from .core.stream_handler import StreamHandler
-from .client.client import WebSocketClient
-from .simple import cc_execute_task_list
+# Python API imports (for direct usage)
+try:
+    from .client import cc_execute, cc_execute_list, CCExecutorConfig
+except ImportError:
+    pass
+
+# MCP Server imports (for server mode)
+try:
+    from .core.websocket_handler import WebSocketHandler
+    from .core.session_manager import SessionManager
+    from .core.process_manager import ProcessManager
+    from .core.stream_handler import StreamHandler
+except ImportError:
+    pass

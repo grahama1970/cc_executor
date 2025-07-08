@@ -1,0 +1,4 @@
+{
+  "tasks": ["echo Docker deployment successful!"],
+  "timeout_per_task": 30
+}

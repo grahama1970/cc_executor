@@ -160,6 +160,37 @@ export REDIS_URL=redis://localhost:6379
 
 # Optional shell preference (defaults to zsh)
 export CC_EXECUTOR_SHELL=bash
+
+# For Docker deployments - disable venv wrapping
+export DISABLE_VENV_WRAPPING=1
+```
+
+## MCP (Model Context Protocol) Support
+
+CC Executor now supports MCP for easier tool integration:
+
+```python
+# 1. Start the WebSocket server with MCP support
+cc-executor server start
+
+# 2. The MCP manifest is automatically available at:
+# http://localhost:8001/.well-known/mcp/cc-executor.json
+
+# 3. Configure Claude or other LLMs to use CC Executor:
+# Add to .mcp.json in your project:
+{
+  "tools": {
+    "cc-executor": {
+      "server_url": "ws://localhost:8003/ws/mcp"
+    }
+  }
+}
+
+# 4. Use in Claude:
+# "Use cc-executor to run these tasks:
+#  Task 1: Create a FastAPI app
+#  Task 2: Add authentication
+#  Task 3: Write tests"
 ```
 
 ## That's It!

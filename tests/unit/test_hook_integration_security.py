@@ -21,7 +21,7 @@ import sys
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../src'))
 
-from cc_executor.core.hook_integration import HookIntegration
+from cc_executor.hooks.hook_integration import HookIntegration
 
 
 class TestHookIntegrationSecurity:

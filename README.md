@@ -1,8 +1,54 @@
 # CC Executor
 
-**WebSocket-based sequential task execution for Claude Code** - Solves Claude's inability to respect task order when spawning sub-instances.
+**Sequential task execution for Claude Code** - Enables orchestration of complex AI workflows with fresh context for each task.
 
-**Core Purpose**: Enable a Claude Orchestrator to spawn fresh Claude instances (each with 200K context) for each task, with WebSockets ensuring sequential execution.
+## 🚀 Quick Start: Choose Your Path
+
+### 🐍 Path 1: Python Developers
+**"I want to call Claude from my Python code"**
+
+```python
+# Install: pip install cc-executor
+from cc_executor.client import cc_execute
+import asyncio
+
+async def main():
+    result = await cc_execute("Create a fibonacci function")
+    print(result)
+
+asyncio.run(main())
+```
+📖 [Full Python API Documentation](docs/PYTHON_API.md)
+
+### 🤖 Path 2: AI Agent Developers  
+**"I need my AI agent to orchestrate complex workflows"**
+
+```bash
+# Start the MCP WebSocket server
+cc-executor start
+
+# Your agent connects to: ws://localhost:8003/ws/mcp
+# Then uses cc_execute.md prompt for orchestration
+```
+📖 [MCP Server Documentation](docs/MCP_SERVER.md)
+
+## Key Features
+
+### Python Client (NEW!)
+- **Direct Python API** - No WebSocket server needed
+- **Automatic prompt amendment** - Fixes problematic prompts automatically  
+- **Streaming support** - Real-time output as tasks execute
+- **JSON response mode** - Structured responses for programmatic use
+- **Assessment reports** - Detailed execution reports with verification
+- **Redis timeout estimation** - Smart timeout prediction based on task history
+- **No ANTHROPIC_API_KEY needed** - Uses browser authentication
+
+### MCP WebSocket Server
+- **Sequential orchestration** - Forces tasks to execute in order
+- **Fresh context per task** - Each task gets full 200K context
+- **Process control** - PAUSE/RESUME/CANCEL support
+- **Real-time streaming** - See output as it happens
+- **Hook integration** - UUID verification and custom hooks
 
 ## The Main Purpose: Orchestrator-Controlled Sequential Execution
 
@@ -22,10 +68,42 @@ This allows Claude to:
 5. **Handle massive workflows** - 10+ hour workflows with 50+ sequential tasks
 6. **True task dependencies** - Task N can use outputs from Tasks 1 through N-1
 
-### Try It Now - Immediate Working Example
+## Usage Examples
+
+### Python Direct API (No Server Needed!)
+
+```python
+# For Python developers who want to call Claude directly
+from cc_executor.client import cc_execute, cc_execute_list
+import asyncio
+
+async def main():
+    # Simple call - just like OpenAI/Anthropic SDKs
+    result = await cc_execute("Create a Python function to calculate prime numbers")
+    print(result)
+    
+    # Execute multiple tasks in sequence
+    results = await cc_execute_list([
+        "Create a REST API with FastAPI",
+        "Add authentication endpoints", 
+        "Write comprehensive tests"
+    ])
+    
+    # Advanced: Get structured JSON responses
+    result = await cc_execute(
+        "Create a todo list manager",
+        return_json=True,      # Returns: {"result": "...", "files_created": [...]}
+        stream=True,           # See output as it generates
+        generate_report=True   # Get detailed execution report
+    )
+
+asyncio.run(main())
+```
+
+### MCP WebSocket Server (For AI Agents)
 
 ```bash
-# Quick start - Run working examples
+# For complex agent workflows with WebSocket orchestration
 cc-executor server start  # Start the WebSocket server
 
 # Basic example - All tasks use cc_execute
@@ -297,6 +375,35 @@ Then use programmatically:
 from cc_executor import cc_execute_task_list
 
 # Use in your code
+```
+
+## MCP (Model Context Protocol) Support
+
+CC Executor now includes lightweight MCP support, making it easier to use as a tool with Claude or other LLMs that support the protocol.
+
+### MCP Features
+
+- **Tool Discovery**: Manifest endpoint at `/.well-known/mcp/cc-executor.json`
+- **Direct WebSocket**: Connect to `ws://localhost:8003/ws/mcp` for execution
+- **Standard Methods**: Supports `execute`, `control`, and `hook_status`
+- **Streaming Output**: Real-time command output via JSON-RPC
+- **Backward Compatible**: Original WebSocket interface still works
+
+### Using with Claude
+
+```bash
+# Configure Claude to discover CC Executor
+# Add to your .mcp.json or Claude configuration:
+{
+  "tools": {
+    "cc-executor": {
+      "url": "http://localhost:8001/.well-known/mcp/cc-executor.json"
+    }
+  }
+}
+
+# Then use in Claude:
+# "Use the cc-executor tool to run 'echo Hello from MCP'"
 results = cc_execute_task_list([
     "Task 1: Create API endpoints",
     "Task 2: Add authentication",
@@ -433,6 +540,69 @@ via LiteLLM and suggest improvements
 
 # Task 4: Direct - Simple test run
 Run pytest on the generated tests
+```
+
+## CC-Orchestration MCP Tools
+
+CC-Executor includes MCP tools that help orchestrators manage multi-step workflows intelligently:
+
+### Available Orchestration Tools
+
+```python
+# 1. Check WebSocket server health
+status = mcp__cc-orchestration__check_websocket_status()
+
+# 2. Analyze task complexity  
+complexity = mcp__cc-orchestration__get_task_complexity("Build FastAPI app")
+
+# 3. Validate task list before execution
+validation = mcp__cc-orchestration__validate_task_list(tasks)
+
+# 4. Get execution strategy recommendations
+strategy = mcp__cc-orchestration__suggest_execution_strategy(tasks)
+
+# 5. Monitor running executions via logs
+monitor = mcp__cc-orchestration__monitor_execution()
+
+# 6. Review execution history
+history = mcp__cc-orchestration__get_execution_history()
+
+# 7. Check hook status
+hooks = mcp__cc-orchestration__get_hook_status()
+```
+
+### Using MCP Tools in Orchestration
+
+```markdown
+## Task List Example with MCP Support
+
+Task 1: Check infrastructure
+  Use cc-orchestration tools to verify WebSocket server status
+
+Task 2: Analyze and plan
+  Validate task list and get execution strategy recommendations
+  
+Task 3: Execute based on strategy
+  For complex tasks: Use cc_execute.md (fresh 200K context)
+  For simple tasks: Execute directly
+
+Task 4: Monitor progress
+  Use monitor_execution() to track via logs
+```
+
+### Configuration
+
+Add to your `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "cc-orchestration": {
+      "command": "uv",
+      "args": ["run", "python", "src/cc_executor/servers/mcp_cc_execute.py"],
+      "env": {"CC_EXECUTOR_PORT": "8005"}
+    }
+  }
+}
 ```
 
 ## Advanced Workflow Examples (Task List Context)

@@ -97,11 +97,25 @@ except (PermissionError, OSError) as e:
     logger.warning(f"Cannot create log file in {log_dir}: {e}. File logging disabled.")
 
 try:
+    from .constants import (
+        COMPLETION_MARKERS,
+        FILE_CREATION_PATTERN,
+        TOKEN_LIMIT_PATTERNS,
+        ERROR_PARSE_ERROR,
+        ERROR_INVALID_REQUEST,
+        ERROR_METHOD_NOT_FOUND,
+        ERROR_INVALID_PARAMS,
+        ERROR_INTERNAL_ERROR,
+        ERROR_COMMAND_NOT_ALLOWED,
+        ERROR_PROCESS_NOT_FOUND,
+        ERROR_SESSION_LIMIT,
+        ERROR_TOKEN_LIMIT,
+        MAX_SESSIONS,
+        LOG_ROTATION_SIZE,
+        LOG_RETENTION_COUNT
+    )
     from .config import (
         ALLOWED_COMMANDS, JSONRPC_VERSION,
-        ERROR_METHOD_NOT_FOUND, ERROR_INVALID_PARAMS,
-        ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED,
-        ERROR_PROCESS_NOT_FOUND, ERROR_INTERNAL_ERROR,
         STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
     )
     from .models import (
@@ -247,7 +261,20 @@ class WebSocketHandler:
                     data = await websocket.receive_text()
                     message_count += 1
                     
-                    logger.debug(f"Received message {message_count} from {session_id}")
+                    # Log MCP message details
+                    try:
+                        msg_preview = json.loads(data)
+                        method = msg_preview.get("method", "unknown")
+                        msg_id = msg_preview.get("id", "no-id")
+                        logger.debug(f"[MCP] Session {session_id} - Message {message_count}: method={method}, id={msg_id}")
+                        
+                        # Log command details for execute requests
+                        if method == "execute" and "params" in msg_preview:
+                            command = msg_preview["params"].get("command", "")[:100]
+                            logger.info(f"[MCP] Execute command: {command}...")
+                    except:
+                        logger.debug(f"Received non-JSON message from {session_id}")
+                    
                     await self._handle_message(session_id, data)
                     
                 except WebSocketDisconnect as e:
@@ -364,25 +391,43 @@ class WebSocketHandler:
             
             # Log critical execution details that affect command success
             logger.info(f"[EXECUTE] Command: {req.command[:100]}...")
-            logger.info(f"[EXECUTE] Working directory: {cwd}")
-            logger.info(f"[EXECUTE] MCP config exists: {os.path.exists(os.path.join(cwd, '.mcp.json'))}")
+            logger.debug(f"[EXECUTE] Working directory: {cwd}")
+            logger.debug(f"[EXECUTE] MCP config exists: {os.path.exists(os.path.join(cwd, '.mcp.json'))}")
             
             # F6: Remove logging of sensitive data - don't log API key information
             # Check environment silently without logging sensitive info
             
-            # Execute pre-execution hook if available
-            if self.hooks and self.hooks.enabled:
+            # TEMPORARY FIX: Disable hooks to prevent hanging
+            # The hook system uses blocking subprocess.run() which hangs the async event loop
+            # TODO: Fix hook system to use async subprocess execution
+            if False and self.hooks and self.hooks.enabled:
                 try:
-                    # First try hook-based complexity analysis
-                    hook_complexity = await self.hooks.analyze_command_complexity(req.command)
+                    # First try hook-based complexity analysis with timeout
+                    try:
+                        hook_complexity = await asyncio.wait_for(
+                            self.hooks.analyze_command_complexity(req.command),
+                            timeout=2.0  # 2 second timeout for complexity analysis
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning("[HOOK TIMEOUT] Complexity analysis timed out")
+                        hook_complexity = None
+                    
                     if hook_complexity and req.timeout is None:
                         req.timeout = hook_complexity.get('estimated_timeout', 120)
                         logger.info(f"[HOOK TIMEOUT] Estimated timeout: {req.timeout}s "
                                   f"(complexity: {hook_complexity.get('complexity')}, "
                                   f"confidence: {hook_complexity.get('confidence', 0):.2f})")
                         
-                    # Execute pre-execution validation hook
-                    pre_result = await self.hooks.pre_execution_hook(req.command, session_id)
+                    # Execute pre-execution validation hook with timeout to prevent hanging
+                    try:
+                        pre_result = await asyncio.wait_for(
+                            self.hooks.pre_execution_hook(req.command, session_id),
+                            timeout=5.0  # 5 second timeout for hook execution
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning(f"[HOOK TIMEOUT] Pre-execution hook timed out after 5s for command: {req.command[:100]}")
+                        pre_result = None
+                    
                     if pre_result:
                         # Check if environment was setup
                         if 'pre-execute' in pre_result and pre_result['pre-execute'].get('success'):
@@ -696,24 +741,85 @@ class WebSocketHandler:
         
         # Collect output for post-execution hook
         collected_output = []
+        
+        # Early completion detection
+        early_completion_detected = False
+        completion_time = None
+        completion_marker_found = None  # Track which marker was detected
+        
+        # Use completion markers from constants
+        completion_markers = COMPLETION_MARKERS
+        
+        # File creation pattern from constants
+        file_creation_pattern = re.compile(
+            FILE_CREATION_PATTERN,
+            re.IGNORECASE
+        )
             
         async def send_output(stream_type: str, data: str):
             """Send output line to client, chunking if necessary."""
+            nonlocal early_completion_detected, completion_time, completion_marker_found
+            
             # Collect output for hooks (limit to prevent memory issues)
             if stream_type == "stdout" and len(collected_output) < 100:
                 collected_output.append(data[:1000])  # Limit each line
                 
+            # Early completion detection
+            if not early_completion_detected and stream_type == "stdout":
+                data_lower = data.lower()
+                
+                # Check for completion markers
+                for marker in completion_markers:
+                    if marker.lower() in data_lower:
+                        early_completion_detected = True
+                        completion_time = time.time()
+                        completion_marker_found = marker
+                        logger.info(f"Early completion detected: '{marker}' found after {completion_time - execution_start:.1f}s")
+                        
+                        # Send early completion notification
+                        try:
+                            await self._send_notification(
+                                session.websocket,
+                                "task.early_completion",
+                                {
+                                    "session_id": session_id,
+                                    "marker": marker,
+                                    "elapsed_time": completion_time - execution_start,
+                                    "output_line": data.strip()
+                                }
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send early completion notification: {e}")
+                        break
+                
+                # Check for file creation pattern
+                if not early_completion_detected:
+                    match = file_creation_pattern.search(data)
+                    if match:
+                        early_completion_detected = True
+                        completion_time = time.time()
+                        file_path = match.group(1)
+                        logger.info(f"Early completion detected: file '{file_path}' created after {completion_time - execution_start:.1f}s")
+                        
+                        try:
+                            await self._send_notification(
+                                session.websocket,
+                                "task.early_completion",
+                                {
+                                    "session_id": session_id,
+                                    "type": "file_created",
+                                    "file_path": file_path,
+                                    "elapsed_time": completion_time - execution_start,
+                                    "output_line": data.strip()
+                                }
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to send file creation notification: {e}")
+                
             # Check for token limit errors in the output
             if stream_type == "stdout":
-                # Token limit detection patterns
-                if any(pattern in data for pattern in [
-                    "Claude's response exceeded the",
-                    "maximum context length",
-                    "context length exceeded",
-                    "output token maximum",
-                    "This model's maximum context length is",
-                    "reduce the length of the messages"
-                ]):
+                # Token limit detection patterns from constants
+                if any(pattern in data.lower() for pattern in TOKEN_LIMIT_PATTERNS):
                     # Extract token limit if possible
                     limit_match = re.search(r'(\d+)(?:\s+(?:output\s+)?token|token|context)', data)
                     if not limit_match:
@@ -903,16 +1009,36 @@ class WebSocketHandler:
                 except Exception as e:
                     logger.error(f"Post-execution hook error: {e}")
             
-            # Notify completion
+            # Calculate time saved if early completion was detected
+            time_saved = 0
+            if early_completion_detected and completion_time:
+                time_saved = max(0, execution_time - (completion_time - execution_start))
+                if time_saved > 0:
+                    logger.info(f"[EARLY COMPLETION] Task completed {time_saved:.1f}s earlier than process termination")
+                else:
+                    logger.debug(f"[EARLY COMPLETION] Marker detected but process completed immediately")
+            
+            # Notify completion with early completion info
+            completion_data = StatusUpdate(
+                status=completion_status,
+                pid=process.pid,
+                pgid=session.pgid,
+                exit_code=exit_code
+            ).model_dump()
+            
+            # Add early completion info
+            completion_data.update({
+                "execution_time": execution_time,
+                "early_completion_detected": early_completion_detected,
+                "early_completion_time": completion_time - execution_start if completion_time else None,
+                "time_saved": time_saved,
+                "completion_marker": completion_marker_found if early_completion_detected else None
+            })
+            
             await self._send_notification(
                 session.websocket,
                 "process.completed",
-                StatusUpdate(
-                    status=completion_status,
-                    pid=process.pid,
-                    pgid=session.pgid,
-                    exit_code=exit_code
-                ).model_dump()
+                completion_data
 
             )
             

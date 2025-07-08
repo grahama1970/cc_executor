@@ -1,0 +1,53 @@
+{
+  "execution_uuid": "da3e2a50-64c4-49f5-aa02-a7779336dd2c",
+  "timestamp": "2025-07-08T08:51:19.166664",
+  "session_id": "test-session",
+  "prompt": "Write a python function that adds two numbers",
+  "checks": {
+    "environment": {
+      "anthropic_api_key_present": false,
+      "current_directory": "/home/graham/workspace/experiments/cc_executor/tests",
+      "virtual_environment": "/home/graham/workspace/experiments/cc_executor/.venv"
+    },
+    "mcp_config": {
+      "config_exists": false,
+      "servers_configured": 0
+    },
+    "redis": {
+      "available": true,
+      "error": null
+    },
+    "mcp_server": {
+      "running": true,
+      "status": 200,
+      "error": null
+    }
+  },
+  "execution_result": {
+    "success": true,
+    "execution_time_seconds": 27.794173,
+    "result_type": "<class 'dict'>",
+    "result": {
+      "result": "def add_numbers(a, b):\n    \"\"\"Add two numbers and return the result.\"\"\"\n    return a + b",
+      "files_created": [
+        "/home/graham/workspace/experiments/cc_executor/tests/add_numbers.py"
+      ],
+      "files_modified": [],
+      "summary": "Created a Python function that adds two numbers with test cases demonstrating integer, float, and negative number addition.",
+      "execution_uuid": "423597e0-1f43-469e-8255-843093448dc3"
+    }
+  },
+  "mcp_execution_result": {
+    "success": true,
+    "note": "MCP tools are available through Claude interface",
+    "available_tools": [
+      "mcp__cc-execute__check_websocket_status",
+      "mcp__cc-execute__execute_with_streaming",
+      "mcp__cc-execute__validate_task_list",
+      "mcp__cc-execute__monitor_execution_with_streaming",
+      "mcp__cc-execute__get_execution_history",
+      "mcp__cc-execute__suggest_execution_strategy"
+    ]
+  },
+  "errors": []
+}

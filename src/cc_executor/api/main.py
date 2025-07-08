@@ -98,7 +98,7 @@ async def check_auth_status():
     """
     # Check if credentials file exists in the mounted volume
     import os
-    creds_path = "/home/apiuser/.claude/.credentials.json"
+    creds_path = "/home/appuser/.claude/.credentials.json"
     
     if os.path.exists(creds_path):
         return {
@@ -148,6 +148,94 @@ async def authenticate_claude():
         "message": "This endpoint is deprecated because Claude authentication requires a browser",
         "alternative": "Use GET /auth/status to check authentication status and get setup instructions",
         "explanation": "Claude Code uses OAuth browser flow which cannot work in headless Docker containers"
+    }
+
+
+@app.get("/.well-known/mcp/cc-executor.json")
+async def get_mcp_manifest():
+    """
+    Serve MCP manifest for Claude tool discovery.
+    
+    This allows Claude to discover and use cc-executor as a native MCP tool.
+    """
+    # Determine the WebSocket URL based on environment
+    ws_host = os.environ.get("WEBSOCKET_HOST", "localhost")
+    ws_port = os.environ.get("WEBSOCKET_PORT", "8003")
+    ws_url = f"ws://{ws_host}:{ws_port}/ws"
+    
+    return {
+        "name": "cc-executor",
+        "description": "Execute commands and task lists via Claude Code with streaming output",
+        "version": "1.0.0",
+        "protocol_version": "2024-11-05",  # MCP protocol version
+        "server": {
+            "url": ws_url,
+            "type": "websocket"
+        },
+        "capabilities": {
+            "tools": True,
+            "resources": False,
+            "prompts": False,
+            "sampling": False
+        },
+        "tools": [
+            {
+                "name": "execute",
+                "description": "Execute a single command via Claude Code",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string",
+                            "description": "Command to execute"
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "description": "Timeout in seconds (default: 600)"
+                        }
+                    },
+                    "required": ["command"]
+                }
+            },
+            {
+                "name": "execute_task_list",
+                "description": "Execute a list of tasks sequentially",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "tasks": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of tasks to execute"
+                        },
+                        "timeout_per_task": {
+                            "type": "integer",
+                            "description": "Timeout per task in seconds (default: 600)"
+                        }
+                    },
+                    "required": ["tasks"]
+                }
+            },
+            {
+                "name": "control",
+                "description": "Control execution (pause/resume/cancel)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": ["pause", "resume", "cancel"],
+                            "description": "Control action"
+                        },
+                        "execution_id": {
+                            "type": "string",
+                            "description": "Execution ID to control"
+                        }
+                    },
+                    "required": ["type"]
+                }
+            }
+        ]
     }
 
 

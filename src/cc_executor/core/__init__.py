@@ -49,7 +49,19 @@ __all__ = [
     # Service metadata
     "SERVICE_NAME", 
     "SERVICE_VERSION",
+    
+    # Python client functions
+    "cc_execute",
+    "cc_execute_list", 
+    "CCExecutorConfig",
 ]
+
+# Import executor functions
+try:
+    from .executor import cc_execute, cc_execute_list, CCExecutorConfig
+except ImportError:
+    # Executor is optional
+    pass
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+{
+  "execution_uuid": "0c43d2eb-dec2-498b-9ce5-b9f13a373fe8",
+  "timestamp": "2025-07-08T07:55:14.883101",
+  "session_id": "test-session",
+  "prompt": "Write a python function that adds two numbers",
+  "checks": {
+    "environment": {
+      "anthropic_api_key_present": false,
+      "current_directory": "/home/graham/workspace/experiments/cc_executor",
+      "virtual_environment": "/home/graham/workspace/experiments/cc_executor/.venv"
+    },
+    "mcp_config": {
+      "config_exists": true,
+      "servers_configured": 10
+    },
+    "redis": {
+      "available": true,
+      "error": null
+    },
+    "mcp_server": {
+      "running": true,
+      "status": 200,
+      "error": null
+    }
+  },
+  "execution_result": {
+    "success": true,
+    "execution_time_seconds": 38.882251,
+    "result_type": "<class 'dict'>",
+    "result": {
+      "result": "def add_numbers(a, b):\n    \"\"\"Add two numbers and return the result.\"\"\"\n    return a + b",
+      "files_created": [],
+      "files_modified": [
+        "/home/graham/workspace/experiments/cc_executor/add_numbers.py"
+      ],
+      "summary": "Updated existing add_numbers.py file with additional test case for negative numbers",
+      "execution_uuid": "0eec61e6-d81e-4dd4-98b4-3c0fd980b33f"
+    }
+  },
+  "errors": []
+}

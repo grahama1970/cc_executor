@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cc_executor_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  cc_execute:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: cc_execute
+    ports:
+      - "8001:8000"  # FastAPI
+      - "8003:8003"  # WebSocket
+    environment:
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ~/.claude:/home/appuser/.claude:ro
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: cc_executor_network
+
+volumes:
+  redis_data:
+    driver: local

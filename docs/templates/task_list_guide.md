@@ -1,4 +1,21 @@
-# Task List Template Guide for Flexible Prompt-Driven Execution
+# Task List Template Guide
+
+## ⚠️ IMPORTANT: This Guide Has Been Updated
+
+A new unified version that combines self-improvement features with flexible execution patterns is now available.
+
+**Please use the updated guide**: [task_list_guide_v3.md](./task_list_guide_v3.md)
+
+The new v3 guide includes:
+- ✅ Self-improvement and evolution tracking from the archived template
+- ✅ Comprehensive cc_execute.md guidance from this version
+- ✅ Unified validation and auto-fix capabilities
+- ✅ Better debugging patterns and completion criteria
+- ✅ Practical examples with real execution logs
+
+---
+
+# Task List Template Guide for Flexible Prompt-Driven Execution (v2.1)
 
 ## Overview
 
@@ -6,6 +23,7 @@ This guide provides templates and best practices for creating flexible task list
 
 **Version**: 2.1 (Enhanced with cc_execute.md learnings)
 **Last Updated**: 2025-01-04
+**Status**: SUPERSEDED by v3.0 - See [task_list_guide_v3.md](./task_list_guide_v3.md)
 
 ## ⚠️ MANDATORY PRE-EXECUTION VALIDATION
 

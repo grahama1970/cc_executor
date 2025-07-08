@@ -27,21 +27,19 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Hook handler modules
+# Hook handler modules - only import what exists
 from . import (
     analyze_task_complexity,
     check_task_dependencies,
     update_task_status,
-    record_execution_metrics,
-    review_code_changes
+    record_execution_metrics
 )
 
 __all__ = [
     'analyze_task_complexity',
     'check_task_dependencies', 
     'update_task_status',
-    'record_execution_metrics',
-    'review_code_changes'
+    'record_execution_metrics'
 ]
 
 # Hook configuration defaults

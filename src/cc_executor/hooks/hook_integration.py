@@ -169,6 +169,10 @@ class ProgrammaticHookEnforcement:
         
     def wrap_command(self, command: str) -> str:
         """Wrap command with virtual environment activation if needed."""
+        # Skip venv wrapping if disabled (e.g., in Docker)
+        if os.environ.get('DISABLE_VENV_WRAPPING') == '1':
+            return command
+            
         if not self.venv_path or not create_activation_wrapper:
             return command
             
@@ -179,42 +183,10 @@ class ProgrammaticHookEnforcement:
         if not self.initialized:
             self.initialize()
             
-        # First, run the actual hook scripts
-        hooks_dir = Path(__file__).parent.parent / "hooks"
+        # NOTE: Hook scripts are DISABLED in sync mode to prevent blocking
+        # They can only run in async mode via async_pre_execute_hook
         
-        # Run setup_environment.py hook
-        setup_hook = hooks_dir / "setup_environment.py"
-        if setup_hook.exists():
-            try:
-                env = os.environ.copy()
-                env['PYTHONPATH'] = str(Path(__file__).parent.parent.parent)
-                result = subprocess.run(
-                    [sys.executable, str(setup_hook)],
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if result.returncode != 0:
-                    logger.warning(f"setup_environment hook failed: {result.stderr}")
-            except Exception as e:
-                logger.error(f"Failed to run setup_environment hook: {e}")
-        
-        # Run other relevant hooks
-        for hook_name in ['claude_instance_pre_check.py', 'analyze_task_complexity.py']:
-            hook_script = hooks_dir / hook_name
-            if hook_script.exists() and context and context.get('run_all_hooks'):
-                try:
-                    subprocess.run(
-                        [sys.executable, str(hook_script)],
-                        capture_output=True,
-                        text=True,
-                        timeout=10
-                    )
-                except Exception as e:
-                    logger.debug(f"Hook {hook_name} failed: {e}")
-            
-        # Then do programmatic enforcement
+        # Do programmatic enforcement
         result = {
             'command': command,
             'wrapped_command': self.wrap_command(command),
@@ -299,7 +271,72 @@ class ProgrammaticHookEnforcement:
             
     async def async_pre_execute_hook(self, command: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """Async version of pre-execute hook."""
-        return await asyncio.to_thread(self.pre_execute_hook, command, context)
+        if not self.initialized:
+            self.initialize()
+            
+        # First, run the actual hook scripts (async safe)
+        hooks_dir = Path(__file__).parent.parent / "hooks"
+        
+        # Run setup_environment.py hook
+        setup_hook = hooks_dir / "setup_environment.py"
+        if setup_hook.exists():
+            try:
+                env = os.environ.copy()
+                env['PYTHONPATH'] = str(Path(__file__).parent.parent.parent)
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, str(setup_hook),
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                try:
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+                    if proc.returncode != 0:
+                        logger.warning(f"setup_environment hook failed: {stderr.decode()}")
+                except asyncio.TimeoutError:
+                    logger.error("setup_environment hook timed out")
+                    proc.kill()
+            except Exception as e:
+                logger.error(f"Failed to run setup_environment hook: {e}")
+        
+        # Run other relevant hooks
+        for hook_name in ['claude_instance_pre_check.py', 'analyze_task_complexity.py']:
+            hook_script = hooks_dir / hook_name
+            if hook_script.exists() and context and context.get('run_all_hooks'):
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        sys.executable, str(hook_script),
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    try:
+                        await asyncio.wait_for(proc.communicate(), timeout=10)
+                    except asyncio.TimeoutError:
+                        logger.debug(f"Hook {hook_name} timed out")
+                        proc.kill()
+                except Exception as e:
+                    logger.debug(f"Hook {hook_name} failed: {e}")
+            
+        # Then do programmatic enforcement
+        result = {
+            'command': command,
+            'wrapped_command': self.wrap_command(command),
+            'venv_path': self.venv_path,
+            'session_id': self.session_id,
+            'timestamp': time.time(),
+            'context': context or {}
+        }
+        
+        # Store in Redis if available
+        if self.redis_client:
+            try:
+                key = f"hook:pre_execute:{self.session_id}:{int(time.time())}"
+                await asyncio.to_thread(self.redis_client.setex, key, 300, json.dumps(result))
+            except Exception as e:
+                logger.error(f"Could not store pre-execute data: {e}")
+                
+        logger.info(f"Pre-execute hook completed for: {command[:50]}...")
+        return result
         
     async def async_post_execute_hook(self, command: str, exit_code: int, output: str = "") -> None:
         """Async version of post-execute hook."""
