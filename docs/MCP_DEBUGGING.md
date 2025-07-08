@@ -154,7 +154,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-*When running **inside** the Docker container* the URI stays `ws://localhost:8003/ws/mcp` because the service shares the network namespace.  From the **host machine** hitting the container you typically use the mapped port (`127.0.0.1:8003`) as shown above.
+*When running **inside** the Docker container* the URI is `ws://localhost:8003/ws/mcp` (internal port). From the **host machine** hitting the container you use the mapped port `ws://127.0.0.1:8004/ws/mcp` (external port).
 
 ---
 
@@ -191,7 +191,7 @@ This will log every received and sent JSON-RPC envelope, making it easier to pin
 
 - [ ] `.mcp.json` present and valid JSON
 - [ ] `server_url` reachable from the client
-- [ ] WebSocket service active (port 8003 open)
+- [ ] WebSocket service active (port 8003 local, 8004 Docker)
 - [ ] Claude CLI authenticated if running full end-to-end flow
 - [ ] No corporate proxy stripping WebSocket upgrade headers
 - [ ] Adequate CPU/RAM limits in Docker (avoid OOM-kill)

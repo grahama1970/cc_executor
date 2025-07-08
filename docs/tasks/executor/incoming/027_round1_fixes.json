@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "title": "Async-safe subprocess execution",
+    "files": ["src/cc_executor/core/websocket_handler.py", "src/cc_executor/hooks/*"],
+    "priority": "critical",
+    "issue": "Blocking subprocess.run in async context",
+    "fix": "Introduce async helper using asyncio.create_subprocess_exec"
+  },
+  {
+    "id": 2,
+    "title": "Add WebSocket max_size limit",
+    "files": ["src/cc_executor/core/websocket_handler.py"],
+    "priority": "critical",
+    "issue": "Unbounded payload size",
+    "fix": "Set max_size=10485760 and expose CLI/env override"
+  },
+  {
+    "id": 3,
+    "title": "Configurable Redis connection pool",
+    "files": ["src/cc_executor/core/session_manager.py"],
+    "priority": "critical",
+    "issue": "Default pool size too small",
+    "fix": "Read REDIS_POOL_SIZE env and pass to ConnectionPool"
+  },
+  {
+    "id": 4,
+    "title": "Eliminate shell=True composite commands",
+    "files": ["src/cc_executor/hooks/claude_instance_pre_check.py"],
+    "priority": "critical",
+    "issue": "Potential command injection via shell=True",
+    "fix": "Use list-form subprocess call or validate inputs"
+  },
+  {
+    "id": 5,
+    "title": "Sanitise LLM-generated file paths",
+    "files": ["src/cc_executor/client/cc_execute.py"],
+    "priority": "critical",
+    "issue": "Path traversal via files_created",
+    "fix": "Resolve path and ensure it stays within WORK_DIR"
+  },
+  {
+    "id": 6,
+    "title": "Improve timeout estimation logic",
+    "files": ["src/cc_executor/client/cc_execute.py"],
+    "priority": "critical",
+    "issue": "Underestimation leads to orphan processes",
+    "fix": "Base + k*token_count formula and hard max"
+  }
+]

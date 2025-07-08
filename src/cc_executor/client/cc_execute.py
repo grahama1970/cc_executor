@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Core executor for complex Claude tasks.
 
@@ -6,6 +7,14 @@ Handles:
 - Streaming output for visibility
 - Proper error handling
 - Task list execution
+
+IMPORTANT: Claude CLI instances do NOT have access to:
+- Task/Todo tools (use direct questions instead)
+- UI features (drag & drop, buttons, etc.)
+- Rich formatting (markdown rendering, etc.)
+- Built-in productivity tools
+
+See docs/guides/CLAUDE_CLI_PROMPT_BEST_PRACTICES.md for details.
 """
 import asyncio
 import json
@@ -17,12 +26,29 @@ import signal
 import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, AsyncIterator, Dict, Any, Union
+from typing import Optional, List, AsyncIterator, Dict, Any, Union, Callable, Tuple
 from dataclasses import dataclass
 import subprocess
 from loguru import logger
+import re
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 import redis  # Always available in cc_executor environment
+
+
+# Custom exception for rate limits
+class RateLimitError(Exception):
+    """Raised when Claude API rate limit is hit."""
+    pass
+
+
+# Import report generator for assessment reports
+try:
+    from cc_executor.client.report_generator import generate_assessment_report, save_assessment_report
+except ImportError:
+    logger.warning("Could not import report_generator, report generation will be disabled")
+    generate_assessment_report = None
+    save_assessment_report = None
 
 # Import JSON utilities for robust parsing
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -81,52 +107,348 @@ def estimate_timeout(task: str, default: int = 120) -> int:
     keyword_count = sum(1 for kw in complex_keywords if kw in task.lower())
     base_timeout += keyword_count * 30
     
-    # IMPORTANT: Add significant buffer for MCP operations
-    # MCP server startup and tool loading adds overhead
-    mcp_overhead = 30  # 30 seconds for MCP initialization
-    base_timeout += mcp_overhead
+    # MCP operations need more time
+    if 'mcp' in task.lower() or 'perplexity' in task.lower():
+        base_timeout += 60
     
-    # Use Redis-based estimation
+    # Try Redis for historical data
     try:
         r = redis.Redis(decode_responses=True)
-        # Check for similar tasks
         task_hash = hashlib.md5(task.encode()).hexdigest()[:8]
+        timing_key = f"task:timing:{task_hash}"
         
-        # Look for exact match
-        exact_key = f"task:timing:{task_hash}"
-        if r.exists(exact_key):
-            avg_time = float(r.get(exact_key))
-            # Add 50% buffer and ensure minimum of base_timeout
-            redis_timeout = int(avg_time * 1.5)
-            # Don't trust Redis if it's unreasonably low
-            if redis_timeout < 30:
-                logger.warning(f"Redis returned suspiciously low timeout: {redis_timeout}s, using base: {base_timeout}s")
-                return max(base_timeout, 60)  # At least 60s for any MCP call
-            return max(redis_timeout, base_timeout)
-        
-        # Look for similar tasks (simplified BM25)
-        pattern = f"task:timing:*"
-        similar_times = []
-        for key in r.scan_iter(match=pattern, count=100):
-            try:
-                time_val = float(r.get(key))
-                # Skip suspiciously low values
-                if time_val >= 10:
-                    similar_times.append(time_val)
-            except:
-                continue
-        
-        if similar_times:
-            avg = sum(similar_times) / len(similar_times)
-            redis_timeout = int(avg * 1.5)
-            return max(redis_timeout, base_timeout)
+        if r.exists(timing_key):
+            avg_time = float(r.get(timing_key))
+            # Add 20% buffer
+            estimated = int(avg_time * 1.2)
+            logger.info(f"Redis timing history: {avg_time:.1f}s avg, using {estimated}s")
+            return max(estimated, 60)  # At least 60s
             
     except Exception as e:
-        logger.debug(f"Redis timeout estimation failed: {e}")
+        logger.debug(f"Redis timing lookup failed: {e}")
     
-    # Default to 5 minutes if no Redis data available
-    # This is reasonable for most Claude tasks with MCP
-    return max(base_timeout, 300)  # At least 5 minutes for any Claude call with MCP
+    return max(base_timeout, default)
+
+
+def check_token_limit(task: str, max_tokens: int = 190000) -> str:
+    """
+    Pre-check task length and truncate if needed to avoid token limit errors.
+    
+    Args:
+        task: The task/prompt to check
+        max_tokens: Maximum token limit (default 190k for Claude)
+        
+    Returns:
+        Original or truncated task
+    """
+    # Rough estimate: 1 token ≈ 4 characters
+    estimated_tokens = len(task) // 4
+    
+    if estimated_tokens > max_tokens:
+        logger.warning(f"Task exceeds token limit ({estimated_tokens} > {max_tokens}), truncating...")
+        # Leave room for response
+        safe_chars = (max_tokens - 10000) * 4  # Reserve 10k tokens for response
+        truncated = task[:safe_chars] + "\n\n[TRUNCATED due to token limit]"
+        return truncated
+    
+    return task
+
+
+def detect_ambiguous_prompt(task: str) -> Optional[str]:
+    """
+    Detect potentially problematic prompts and return warning.
+    Complements amend_prompt by providing quick heuristic checks.
+    
+    Args:
+        task: The task/prompt to check
+        
+    Returns:
+        Warning message if issues detected, None otherwise
+    """
+    issues = []
+    
+    # Check for command-style prompts that often timeout
+    command_verbs = ['Write', 'Create', 'Build', 'Make', 'Generate', 'Implement']
+    first_word = task.strip().split()[0] if task.strip() else ""
+    if first_word in command_verbs:
+        issues.append(f"Starts with '{first_word}' - consider question format: 'What is...'")
+    
+    # Check for overly brief prompts
+    if len(task.split()) < 5:
+        issues.append("Very brief prompt - may be too vague")
+    
+    # Check for complex multi-step without structure
+    if len(task) > 200 and "step by step" not in task.lower() and "\n" not in task:
+        issues.append("Long prompt without structure - consider adding 'step by step' or line breaks")
+    
+    # Check for interactive patterns that won't work
+    interactive_patterns = ['guide me', 'help me', 'walk me through', 'ask me']
+    if any(pattern in task.lower() for pattern in interactive_patterns):
+        issues.append("Interactive language detected - Claude CLI can't interact")
+    
+    # Check for vague references without clear antecedents
+    vague_patterns = ['that', 'this', 'it', 'those', 'these']
+    words = task.lower().split()
+    if len(words) > 0 and words[0] in vague_patterns:
+        issues.append("Starts with vague reference - specify what you're referring to")
+    
+    # Check for missing specifications
+    if any(phrase in task.lower() for phrase in ['generate a report', 'create a function', 'make a script'] 
+           ) and len(task.split()) < 10:
+        issues.append("Missing specifications - provide more details about requirements")
+    
+    return "; ".join(issues) if issues else None
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=5, max=60),  # Includes jitter by default
+    retry=retry_if_exception_type(RateLimitError),
+    before_sleep=lambda retry_state: logger.warning(f"Rate limit hit, retrying in {retry_state.next_action.sleep} seconds...")
+)
+async def _execute_claude_command(
+    command: str,
+    env: Dict[str, str],
+    session_id: str,
+    config: CCExecutorConfig,
+    stream: bool,
+    hooks: Any,
+    progress_callback: Optional[Callable[[str], Any]] = None
+) -> Tuple[List[str], List[str], Any]:
+    """
+    Execute Claude command with proper subprocess handling.
+    
+    Returns:
+        Tuple of (output_lines, error_lines, proc)
+    """
+    # Check if stdbuf is available for forcing unbuffered output
+    stdbuf_available = False
+    try:
+        stdbuf_check = await asyncio.create_subprocess_shell(
+            "which stdbuf",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await stdbuf_check.wait()
+        stdbuf_available = stdbuf_check.returncode == 0
+    except:
+        pass
+    
+    # Apply stdbuf wrapping for claude CLI to prevent buffering
+    if stdbuf_available and command.strip().startswith('claude'):
+        command = f"stdbuf -o0 -e0 {command}"
+        logger.info("Wrapping claude command with stdbuf for unbuffered output")
+    
+    # Run pre-execution hooks if available
+    if hooks and hooks.enabled:
+        try:
+            logger.info("[HOOKS] Running pre-execution hooks")
+            await hooks.pre_execution_hook(command, session_id)
+        except Exception as e:
+            logger.warning(f"[HOOKS] Pre-execution hook failed: {e}")
+            # Continue execution even if hooks fail
+    
+    # Create subprocess with best practices from ProcessManager
+    proc = await asyncio.create_subprocess_shell(
+        command,
+        stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=env,  # Use our enhanced environment (NO API KEY - browser auth)
+        # Match websocket_handler.py process group handling
+        preexec_fn=os.setsid if os.name != 'nt' else None,
+        limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
+    )
+    logger.info(f"[{session_id}] Subprocess created with PID: {proc.pid}")
+    
+    # Collect output
+    output_lines = []
+    error_lines = []
+    
+    try:
+        if stream and config.stream_output:
+            # Stream output in real-time with timeout
+            # Create tasks for reading stdout and stderr
+            async def read_stream(stream, target_list, prefix=""):
+                """Read from stream line by line."""
+                while True:
+                    line = await stream.readline()
+                    if not line:
+                        break
+                    decoded = line.decode('utf-8', errors='replace')
+                    target_list.append(decoded)
+                    # Stream to console with session ID
+                    print(f"[{session_id}] {decoded}", end='')
+                    
+                    # Report progress
+                    if progress_callback and any(indicator in decoded.lower() for indicator in 
+                                               ['complete', 'done', 'finish', 'success']):
+                        await progress_callback(f"Progress: {decoded.strip()[:100]}")
+                    
+                    # Smart logging - truncate large data
+                    log_line = decoded.strip()
+                    if len(log_line) > 200:
+                        # Check for base64/embeddings
+                        if any(marker in log_line for marker in ['data:image/', 'base64,', 'embedding:', 'vector:']):
+                            log_line = f"[BINARY/EMBEDDING DATA - {len(log_line)} chars]"
+                        else:
+                            log_line = log_line[:200] + f"... [{len(log_line)-200} chars truncated]"
+                    
+                    # Log progress indicators and truncated content
+                    if any(indicator in decoded.lower() for indicator in 
+                           ['complete', 'done', 'finish', 'success', 'fail', 'error']):
+                        logger.info(f"[{session_id}] Progress: {log_line}")
+                    elif log_line != decoded.strip():  # Was truncated
+                        logger.debug(f"[{session_id}] Output: {log_line}")
+            
+            # Create concurrent tasks for stdout/stderr
+            logger.debug(f"[{session_id}] Starting stream readers")
+            stdout_task = asyncio.create_task(
+                read_stream(proc.stdout, output_lines)
+            )
+            stderr_task = asyncio.create_task(
+                read_stream(proc.stderr, error_lines, "[STDERR] ")
+            )
+            
+            # Wait for process completion with timeout
+            try:
+                logger.debug(f"[{session_id}] Waiting for process with timeout={config.timeout}s")
+                await asyncio.wait_for(
+                    proc.wait(),
+                    timeout=config.timeout
+                )
+                # Ensure we've read all output
+                await stdout_task
+                await stderr_task
+                logger.info(f"[{session_id}] Process completed successfully")
+            except asyncio.TimeoutError:
+                logger.warning(f"[{session_id}] Process timed out after {config.timeout}s")
+                # Cancel read tasks
+                stdout_task.cancel()
+                stderr_task.cancel()
+                raise
+                
+        else:
+            # Non-streaming mode - wait for completion
+            if progress_callback:
+                await progress_callback("Waiting for Claude to complete (non-streaming mode)...")
+            
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(),
+                timeout=config.timeout
+            )
+            
+            if stdout:
+                output_lines = stdout.decode().splitlines(keepends=True)
+            if stderr:
+                error_lines = stderr.decode().splitlines(keepends=True)
+            
+            if progress_callback:
+                await progress_callback("Claude execution completed")
+    
+    except asyncio.TimeoutError:
+        logger.error(f"[{session_id}] TIMEOUT after {config.timeout}s!")
+        # Kill process group on timeout (matching websocket_handler.py)
+        if proc.returncode is None:
+            try:
+                # Kill the entire process group
+                pgid = os.getpgid(proc.pid)
+                logger.warning(f"[{session_id}] Killing process group {pgid}")
+                os.killpg(pgid, signal.SIGTERM)
+                await asyncio.sleep(0.5)
+                if proc.returncode is None:
+                    os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        
+        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (TIMEOUT) ===")
+        raise TimeoutError(
+            f"Task exceeded {config.timeout}s timeout. "
+            f"Partial output:\n{''.join(output_lines[-50:])}"
+        )
+    
+    # Check return code
+    if proc.returncode != 0:
+        error_msg = ''.join(error_lines) or "Unknown error"
+        logger.error(f"[{session_id}] Process failed with code {proc.returncode}")
+        logger.error(f"[{session_id}] Error: {error_msg[:500]}...")
+        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (EXIT {proc.returncode}) ===")
+        
+        # Check if it's a rate limit error
+        if any(pattern in error_msg.lower() for pattern in ['rate limit', '429', 'too many requests']):
+            raise RateLimitError(f"Claude rate limit hit: {error_msg}")
+        else:
+            raise RuntimeError(f"Claude failed with code {proc.returncode}: {error_msg}")
+    
+    return output_lines, error_lines, proc
+
+
+async def export_execution_history(
+    redis_client: Optional[Any] = None,
+    format: str = "json",
+    limit: int = 100
+) -> str:
+    """
+    Export execution history from Redis for analysis.
+    
+    Args:
+        redis_client: Optional Redis client (will create if None)
+        format: Output format ('json' or 'csv')
+        limit: Maximum number of records to export
+        
+    Returns:
+        Formatted execution history
+    """
+    if redis_client is None:
+        try:
+            import redis
+            redis_client = redis.Redis(decode_responses=True)
+        except:
+            return json.dumps({"error": "Redis not available"}, indent=2)
+    
+    history = []
+    
+    try:
+        # Scan for all task timing keys
+        for key in redis_client.scan_iter("task:timing:*", count=limit):
+            task_hash = key.split(":")[-1]
+            
+            # Get timing data
+            avg_time = redis_client.get(key)
+            if avg_time:
+                # Try to get additional metadata
+                last_run_key = f"task:last_run:{task_hash}"
+                success_key = f"task:success_rate:{task_hash}"
+                
+                record = {
+                    "task_hash": task_hash,
+                    "avg_time_seconds": float(avg_time),
+                    "last_run": redis_client.get(last_run_key) or "unknown",
+                    "success_rate": float(redis_client.get(success_key) or 1.0)
+                }
+                
+                history.append(record)
+        
+        # Sort by average time (longest first)
+        history.sort(key=lambda x: x['avg_time_seconds'], reverse=True)
+        
+        if format == "csv":
+            # Simple CSV format
+            lines = ["task_hash,avg_time_seconds,last_run,success_rate"]
+            for record in history:
+                lines.append(f"{record['task_hash']},{record['avg_time_seconds']},{record['last_run']},{record['success_rate']}")
+            return "\n".join(lines)
+        else:
+            # JSON format
+            return json.dumps({
+                "execution_history": history,
+                "total_records": len(history),
+                "export_time": datetime.now().isoformat()
+            }, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Failed to export history: {e}")
+        return json.dumps({"error": str(e)}, indent=2)
 
 
 async def cc_execute(
@@ -137,7 +459,9 @@ async def cc_execute(
     json_mode: bool = False,
     return_json: Optional[bool] = None,  # Deprecated - use json_mode
     generate_report: bool = False,
-    amend_prompt: bool = False
+    amend_prompt: bool = False,
+    validation_prompt: Optional[str] = None,  # If provided, validates response with fresh instance
+    progress_callback: Optional[Callable[[str], Any]] = None  # Progress reporting callback
 ) -> Union[str, Dict[str, Any]]:
     """
     Execute a complex Claude task with streaming output.
@@ -151,9 +475,13 @@ async def cc_execute(
         return_json: Deprecated - use json_mode instead
         generate_report: If True, generate an assessment report following CORE_ASSESSMENT_REPORT_TEMPLATE.md
         amend_prompt: If True, use Claude to amend the prompt for better reliability
+        validation_prompt: If provided, spawns fresh Claude instance to validate response.
+                          Only works with json_mode=True. Use {response} placeholder for the response.
+        progress_callback: Optional callback for progress updates
         
     Returns:
         Complete output from Claude (str if json_mode=False, dict if json_mode=True)
+        If validation_prompt provided, returns dict with 'result', 'validation', and 'is_valid'
         
     Example:
         # Get string output
@@ -161,13 +489,15 @@ async def cc_execute(
             "Create a complete REST API with SQLAlchemy models"
         )
         
-        # Get structured JSON output
+        # Get structured JSON output with validation
         result = await cc_execute(
             "Create a function to calculate fibonacci",
-            json_mode=True
+            json_mode=True,
+            validation_prompt="Validate this code: {response}. Return {{'is_valid': bool, 'issues': []}}"
         )
-        print(result['result'])  # The actual code
-        print(result['summary'])  # What was done
+        print(result['result'])     # The actual code
+        print(result['is_valid'])   # Whether validation passed
+        print(result['validation']) # Validation details
     """
     if config is None:
         config = CCExecutorConfig()
@@ -363,154 +693,42 @@ The execution_uuid MUST be the LAST key in the JSON object."""
         logger.info("Removing ANTHROPIC_API_KEY (using browser auth)")
         del env['ANTHROPIC_API_KEY']
     
+    # Apply token limit check
+    task = check_token_limit(task)
+    
+    # Check for ambiguous prompts (warning only)
+    ambiguity_warning = detect_ambiguous_prompt(task)
+    if ambiguity_warning and not amend_prompt:
+        logger.warning(f"[{session_id}] Ambiguous prompt detected: {ambiguity_warning}")
+        if progress_callback:
+            await progress_callback(f"⚠️  Warning: {ambiguity_warning}")
+    
     # Log the command for debugging
     logger.info(f"Executing command: {command}")
     
-    # Create process using best practices from ProcessManager
-    logger.info(f"[{session_id}] Creating subprocess...")
+    # Report progress
+    if progress_callback:
+        await progress_callback("Starting Claude execution...")
     
-    # Check if stdbuf is available for forcing unbuffered output
-    stdbuf_available = False
+    # Execute command with automatic rate limit retry via tenacity
     try:
-        stdbuf_check = await asyncio.create_subprocess_shell(
-            "which stdbuf",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL
+        output_lines, error_lines, proc = await _execute_claude_command(
+            command=command,
+            env=env,
+            session_id=session_id,
+            config=config,
+            stream=stream,
+            hooks=hooks,
+            progress_callback=progress_callback
         )
-        await stdbuf_check.wait()
-        stdbuf_available = stdbuf_check.returncode == 0
-    except:
-        pass
-    
-    # Apply stdbuf wrapping for claude CLI to prevent buffering
-    if stdbuf_available and command.strip().startswith('claude'):
-        command = f"stdbuf -o0 -e0 {command}"
-        logger.info("Wrapping claude command with stdbuf for unbuffered output")
-    
-    # Run pre-execution hooks if available
-    if hooks and hooks.enabled:
-        try:
-            logger.info("[HOOKS] Running pre-execution hooks")
-            await hooks.pre_execution_hook(command, session_id)
-        except Exception as e:
-            logger.warning(f"[HOOKS] Pre-execution hook failed: {e}")
-            # Continue execution even if hooks fail
-    
-    # Create subprocess with best practices from ProcessManager
-    proc = await asyncio.create_subprocess_shell(
-        command,
-        stdin=asyncio.subprocess.DEVNULL,  # CRITICAL: Prevent stdin deadlock
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=env,  # Use our enhanced environment (NO API KEY - browser auth)
-        # Match websocket_handler.py process group handling
-        preexec_fn=os.setsid if os.name != 'nt' else None,
-        limit=8 * 1024 * 1024  # 8MB buffer limit for large outputs
-    )
-    logger.info(f"[{session_id}] Subprocess created with PID: {proc.pid}")
-    
-    # Collect output
-    output_lines = []
-    error_lines = []
-    
-    try:
-        if stream and config.stream_output:
-            # Stream output in real-time with timeout
-            # Create tasks for reading stdout and stderr
-            async def read_stream(stream, target_list, prefix=""):
-                """Read from stream line by line."""
-                while True:
-                    line = await stream.readline()
-                    if not line:
-                        break
-                    decoded = line.decode('utf-8', errors='replace')
-                    target_list.append(decoded)
-                    # Stream to console with session ID
-                    print(f"[{session_id}] {decoded}", end='')
-                    
-                    # Smart logging - truncate large data
-                    log_line = decoded.strip()
-                    if len(log_line) > 200:
-                        # Check for base64/embeddings
-                        if any(marker in log_line for marker in ['data:image/', 'base64,', 'embedding:', 'vector:']):
-                            log_line = f"[BINARY/EMBEDDING DATA - {len(log_line)} chars]"
-                        else:
-                            log_line = log_line[:200] + f"... [{len(log_line)-200} chars truncated]"
-                    
-                    # Log progress indicators and truncated content
-                    if any(indicator in decoded.lower() for indicator in 
-                           ['complete', 'done', 'finish', 'success', 'fail', 'error']):
-                        logger.info(f"[{session_id}] Progress: {log_line}")
-                    elif log_line != decoded.strip():  # Was truncated
-                        logger.debug(f"[{session_id}] Output: {log_line}")
-            
-            # Create concurrent tasks for stdout/stderr
-            logger.debug(f"[{session_id}] Starting stream readers")
-            stdout_task = asyncio.create_task(
-                read_stream(proc.stdout, output_lines)
-            )
-            stderr_task = asyncio.create_task(
-                read_stream(proc.stderr, error_lines, "[STDERR] ")
-            )
-            
-            # Wait for process completion with timeout
-            try:
-                logger.debug(f"[{session_id}] Waiting for process with timeout={config.timeout}s")
-                await asyncio.wait_for(
-                    proc.wait(),
-                    timeout=config.timeout
-                )
-                # Ensure we've read all output
-                await stdout_task
-                await stderr_task
-                logger.info(f"[{session_id}] Process completed successfully")
-            except asyncio.TimeoutError:
-                logger.warning(f"[{session_id}] Process timed out after {config.timeout}s")
-                # Cancel read tasks
-                stdout_task.cancel()
-                stderr_task.cancel()
-                raise
-                
-        else:
-            # Non-streaming mode - wait for completion
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(),
-                timeout=config.timeout
-            )
-            
-            if stdout:
-                output_lines = stdout.decode().splitlines(keepends=True)
-            if stderr:
-                error_lines = stderr.decode().splitlines(keepends=True)
-    
-    except asyncio.TimeoutError:
-        logger.error(f"[{session_id}] TIMEOUT after {config.timeout}s!")
-        # Kill process group on timeout (matching websocket_handler.py)
-        if proc.returncode is None:
-            try:
-                # Kill the entire process group
-                pgid = os.getpgid(proc.pid)
-                logger.warning(f"[{session_id}] Killing process group {pgid}")
-                os.killpg(pgid, signal.SIGTERM)
-                await asyncio.sleep(0.5)
-                if proc.returncode is None:
-                    os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-        
-        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (TIMEOUT) ===")
-        raise TimeoutError(
-            f"Task exceeded {config.timeout}s timeout. "
-            f"Partial output:\n{''.join(output_lines[-50:])}"
-        )
-    
-    # Check return code
-    if proc.returncode != 0:
-        error_msg = ''.join(error_lines) or "Unknown error"
-        logger.error(f"[{session_id}] Process failed with code {proc.returncode}")
-        logger.error(f"[{session_id}] Error: {error_msg[:500]}...")
-        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (EXIT {proc.returncode}) ===")
-        raise RuntimeError(f"Claude failed with code {proc.returncode}: {error_msg}")
+    except RateLimitError as e:
+        # Tenacity exhausted all retries
+        logger.error(f"[{session_id}] Rate limit persists after all retries: {e}")
+        raise
+    except Exception as e:
+        # Other errors bubble up
+        logger.error(f"[{session_id}] Execution failed: {e}")
+        raise
     
     # Combine output
     full_output = ''.join(output_lines)
@@ -570,6 +788,9 @@ The execution_uuid MUST be the LAST key in the JSON object."""
             else:
                 r.set(timing_key, execution_time, ex=86400 * 7)
             
+            # Also update last run time
+            r.set(f"task:last_run:{task_hash}", datetime.now().isoformat(), ex=86400 * 7)
+            
             logger.info(f"Saved execution time {execution_time:.1f}s for future estimation")
         except Exception as e:
             logger.debug(f"Failed to save timing to Redis: {e}")
@@ -588,96 +809,30 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     logger.info(f"[{session_id}] === CC_EXECUTE LIFECYCLE COMPLETE ===")
     
     # Generate assessment report if requested
-    if generate_report:
-        report_uuid = str(uuid.uuid4())
-        report_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        report_file = config.response_dir / f"CC_EXECUTE_ASSESSMENT_REPORT_{timestamp}.md"
+    if generate_report and generate_assessment_report:
+        report_file, report_content = generate_assessment_report(
+            session_id=session_id,
+            task=task,
+            execution_uuid=execution_uuid,
+            proc_returncode=proc.returncode,
+            execution_time=execution_time,
+            full_output=full_output,
+            output_lines=output_lines,
+            error_lines=error_lines,
+            response_file=response_file,
+            response_data=response_data,
+            config_timeout=config.timeout,
+            stream=stream,
+            json_mode=json_mode,
+            amend_prompt=amend_prompt,
+            estimate_timeout_func=estimate_timeout
+        )
         
-        # Build report following CORE_ASSESSMENT_REPORT_TEMPLATE.md
-        report_content = f"""# CC_EXECUTE Assessment Report
-Generated: {report_timestamp}
-Session ID: {session_id}
-Execution UUID: {execution_uuid}
-Report UUID: {report_uuid}
-Template: docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md v1.3
-
-## Summary
-- Task: {task}
-- Exit Code: {proc.returncode}
-- Execution Time: {execution_time:.2f}s
-- Output Size: {len(full_output)} characters
-- Timeout Used: {config.timeout}s
-- Stream Mode: {stream}
-- JSON Mode: {json_mode}
-- Prompt Amended: {amend_prompt}
-
-## Task Execution Assessment
-
-### Automated Results
-- **Exit Code**: {proc.returncode}
-- **Execution Time**: {execution_time:.2f}s
-- **Output Lines**: {len(output_lines)}
-- **Error Output**: {"Yes" if error_lines else "No"}
-- **Response Saved**: {response_file}
-
-### Complete JSON Response File
-```json
-{json.dumps(response_data, indent=2)}
-```
-
-### Output Analysis
-"""
-        
-        if json_mode and isinstance(full_output, str) and 'json' in full_output.lower():
-            report_content += f"""#### JSON Structure Detected
-- JSON parsing was requested and output appears to contain JSON
-- Clean JSON extraction was successful
-"""
-        
-        if error_lines:
-            report_content += f"""#### Error Output
-```
-{''.join(error_lines[:20])}{"..." if len(error_lines) > 20 else ""}
-```
-"""
-        
-        report_content += f"""### Performance Metrics
-- Redis Timeout Estimation: {estimate_timeout(task)}s
-- Actual Execution Time: {execution_time:.2f}s
-- Efficiency: {(execution_time / config.timeout * 100):.1f}% of allocated timeout
-
-### Anti-Hallucination Verification
-**Report UUID**: `{report_uuid}`
-**Execution UUID**: `{execution_uuid}`
-
-These UUIDs can be verified against:
-- JSON response file: {response_file}
-- Transcript logs for session: {session_id}
-
-## Verification Commands
-```bash
-# Verify response file exists
-ls -la {response_file}
-
-# Check execution UUID in response
-jq -r '.execution_uuid' {response_file}
-
-# Search transcripts for this execution
-rg "{execution_uuid}" ~/.claude/projects/*/$(date +%Y%m%d)*.jsonl
-```
-
-## Task Completion Status
-{"✅ COMPLETED" if proc.returncode == 0 else "❌ FAILED"}
-
-Generated by cc_execute() with report generation enabled.
-"""
-        
-        # Write report
-        with open(report_file, 'w') as f:
-            f.write(report_content)
-        
+        save_assessment_report(report_file, report_content)
         logger.info(f"[{session_id}] Assessment report saved: {report_file}")
         print(f"\n📋 Assessment report generated: {report_file}")
+    elif generate_report and not generate_assessment_report:
+        logger.warning("Report generation requested but report_generator module not available")
     
     # Parse JSON if requested
     if json_mode:
@@ -691,354 +846,179 @@ Generated by cc_execute() with report generation enabled.
                     # Verify execution UUID
                     if result_dict.get('execution_uuid') != execution_uuid:
                         logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
+                    
+                    # Validation with fresh instance if requested
+                    if validation_prompt:
+                        await _perform_validation(result_dict, validation_prompt, session_id, config)
+                    
                     return result_dict
                 else:
-                    logger.warning(f"[{session_id}] clean_json_string returned non-dict: {type(result_dict)}")
-                    # Fall back to manual parsing
-                    
-            # Fallback: Manual parsing if clean_json_string not available or failed
-            json_output = full_output.strip()
-            
-            # Remove markdown code blocks if present
-            if json_output.startswith("```json"):
-                json_output = json_output[7:]  # Remove ```json
-                if json_output.endswith("```"):
-                    json_output = json_output[:-3]  # Remove ```
-            elif json_output.startswith("```"):
-                json_output = json_output[3:]  # Remove ```
-                if json_output.endswith("```"):
-                    json_output = json_output[:-3]  # Remove ```
-            
-            # Parse the JSON
-            result_dict = json.loads(json_output.strip())
-            
-            # Verify execution UUID
-            if result_dict.get('execution_uuid') != execution_uuid:
-                logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
-            
-            return result_dict
-            
+                    raise ValueError(f"Expected dict, got {type(result_dict)}")
+            else:
+                # Basic JSON parsing
+                return json.loads(full_output)
+                
         except Exception as e:
-            logger.warning(f"[{session_id}] Failed to parse JSON output: {e}")
-            logger.info(f"[{session_id}] Converting text response to JSON structure")
+            logger.error(f"[{session_id}] Failed to parse JSON: {e}")
+            logger.debug(f"Raw output:\n{full_output[:1000]}...")
             
-            # Convert text response to JSON structure
-            # This is a fallback when Claude returns plain text instead of JSON
-            try:
-                # Basic structure for text responses
-                fallback_json = {
-                    "result": full_output.strip(),
-                    "summary": f"Response to: {task[:100]}...",
-                    "files_created": [],
-                    "files_modified": [],
-                    "execution_uuid": execution_uuid
-                }
-                
-                # Try to detect files from the output
-                import re
-                
-                # Look for file creation patterns
-                created_pattern = r"(?:created?|wrote|saved?|generated?)\s+(?:file\s+)?['\"`]?([^\s'\"`,]+\.[a-zA-Z]+)"
-                created_files = re.findall(created_pattern, full_output, re.IGNORECASE)
-                if created_files:
-                    fallback_json["files_created"] = list(set(created_files))
-                
-                # Look for file modification patterns  
-                modified_pattern = r"(?:modified?|updated?|edited?|changed?)\s+(?:file\s+)?['\"`]?([^\s'\"`,]+\.[a-zA-Z]+)"
-                modified_files = re.findall(modified_pattern, full_output, re.IGNORECASE)
-                if modified_files:
-                    fallback_json["files_modified"] = list(set(modified_files))
-                
-                # Extract a better summary if possible
-                lines = full_output.strip().split('\n')
-                if lines:
-                    # Use first non-empty line as summary
-                    for line in lines:
-                        if line.strip() and not line.strip().startswith('```'):
-                            fallback_json["summary"] = line.strip()[:200]
-                            break
-                
-                logger.info(f"[{session_id}] Successfully converted text to JSON structure")
-                return fallback_json
-                
-            except Exception as conv_error:
-                logger.error(f"[{session_id}] Failed to convert to JSON structure: {conv_error}")
-                # Last resort - return as string
-                return full_output
+            # Attempt recovery by extracting JSON from markdown
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n({.*?})\s*\n```', full_output, re.DOTALL)
+            if json_match:
+                try:
+                    fallback_json = json.loads(json_match.group(1))
+                    logger.info(f"[{session_id}] Recovered JSON from markdown block")
+                    
+                    # Validation if requested
+                    if validation_prompt:
+                        await _perform_validation(fallback_json, validation_prompt, session_id, config)
+                    
+                    return fallback_json
+                except:
+                    pass
+            
+            # Final fallback - return basic structure
+            logger.warning(f"[{session_id}] Returning fallback JSON structure")
+            return {
+                "result": full_output,
+                "error": f"Failed to parse JSON: {e}",
+                "execution_uuid": execution_uuid
+            }
     
+    # Return raw output for non-JSON mode
     return full_output
 
 
-async def cc_execute_list(
+async def _perform_validation(
+    result_dict: Dict[str, Any],
+    validation_prompt: str,
+    session_id: str,
+    config: CCExecutorConfig
+) -> None:
+    """
+    Perform validation with fresh Claude instance.
+    Updates result_dict in-place with validation results.
+    """
+    try:
+        logger.info(f"[{session_id}] Running validation with fresh Claude instance...")
+        
+        # Replace placeholder with the response
+        actual_validation_prompt = validation_prompt.replace(
+            "{response}",
+            json.dumps(result_dict, indent=2)
+        )
+        
+        # Run validation with fresh instance (no amend_prompt to avoid loops)
+        validation_result = await cc_execute(
+            actual_validation_prompt,
+            config=CCExecutorConfig(timeout=120),  # 2 min for validation
+            stream=False,
+            json_mode=True,
+            amend_prompt=False  # Don't amend validation prompts
+        )
+        
+        # Add validation results to the dict
+        if isinstance(validation_result, dict):
+            result_dict['validation'] = validation_result
+            result_dict['is_valid'] = validation_result.get('is_valid', True)
+            logger.info(f"[{session_id}] Validation complete: is_valid={result_dict['is_valid']}")
+        else:
+            result_dict['validation'] = {"error": "Invalid validation response"}
+            result_dict['is_valid'] = True  # Default to true on validation errors
+            
+    except Exception as e:
+        logger.error(f"[{session_id}] Validation failed: {e}")
+        result_dict['validation'] = {"error": str(e)}
+        result_dict['is_valid'] = True  # Default to true on validation errors
+
+
+# Convenience functions for backward compatibility
+async def cc_execute_task_list(
     tasks: List[str],
     config: Optional[CCExecutorConfig] = None,
-    sequential: bool = True,
-    json_mode: bool = False,
-    return_json: Optional[bool] = None,  # Deprecated
-    amend_prompt: bool = True  # Default to True for lists
-) -> List[Union[str, Dict[str, Any]]]:
+    stream: bool = True
+) -> List[Dict[str, Any]]:
     """
-    Execute a list of complex tasks.
+    Execute a list of tasks sequentially.
     
     Args:
         tasks: List of task descriptions
         config: Executor configuration
-        sequential: If True, run tasks one after another
+        stream: Whether to stream output
         
     Returns:
-        List of outputs for each task
-        
-    Example:
-        results = await cc_execute_list([
-            "1. Create FastAPI project structure",
-            "2. Add SQLAlchemy models for users and posts",
-            "3. Implement JWT authentication",
-            "4. Add comprehensive test suite"
-        ])
+        List of results for each task
     """
-    if sequential:
-        # Run tasks one by one (safer for dependent tasks)
-        results = []
-        for i, task in enumerate(tasks):
-            print(f"\n{'='*60}")
-            print(f"Executing task {i+1}/{len(tasks)}: {task[:100]}...")
-            print(f"{'='*60}\n")
-            
-            result = await cc_execute(task, config, json_mode=json_mode, amend_prompt=amend_prompt)
-            results.append(result)
-            
-            # Brief pause between tasks
-            if i < len(tasks) - 1:
-                await asyncio.sleep(1)
+    results = []
+    
+    for i, task in enumerate(tasks):
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Executing Task {i+1}/{len(tasks)}")
+        logger.info(f"{'='*60}\n")
         
-        return results
-    else:
-        # Run tasks concurrently (faster but use with caution)
-        tasks_coroutines = [
-            cc_execute(task, config, json_mode=json_mode, amend_prompt=amend_prompt) for task in tasks
-        ]
-        return await asyncio.gather(*tasks_coroutines)
-
-
-async def _stream_output(proc: asyncio.subprocess.Process) -> AsyncIterator[str]:
-    """Stream output from subprocess line by line."""
-    while True:
-        line = await proc.stdout.readline()
-        if not line:
-            break
-        
-        decoded_line = line.decode('utf-8', errors='replace')
-        yield decoded_line
-    
-    # Also check for any stderr
-    if proc.stderr:
-        stderr = await proc.stderr.read()
-        if stderr:
-            yield f"\n[STDERR]: {stderr.decode('utf-8', errors='replace')}\n"
-
-
-# Convenience function for testing
-async def test_simple():
-    """Test basic execution."""
-    # Test with amendment to convert command to question
-    result = await cc_execute(
-        "Write a Python function that calculates fibonacci numbers",
-        amend_prompt=True  # This will convert to "What is a Python function..."
-    )
-    print(f"Result length: {len(result)} characters")
-    return result
-
-
-async def test_complex():
-    """Test complex multi-step execution."""
-    # Original imperative commands - will be amended automatically
-    tasks = [
-        "Create a Python class for managing a todo list with add, remove, and list methods",
-        "Add persistence to the todo list using JSON file storage",
-        "Add unit tests for the todo list class using pytest"
-    ]
-    
-    results = await cc_execute_list(tasks)
-    
-    for i, (task, result) in enumerate(zip(tasks, results)):
-        print(f"\n{'='*60}")
-        print(f"Task {i+1}: {task}")
-        print(f"Result preview: {result[:200]}...")
-        print(f"{'='*60}")
+        try:
+            output = await cc_execute(task, config, stream)
+            results.append({
+                "task_num": i + 1,
+                "task": task,
+                "output": output,
+                "success": True,
+                "error": None
+            })
+        except Exception as e:
+            logger.error(f"Task {i+1} failed: {e}")
+            results.append({
+                "task_num": i + 1,
+                "task": task,
+                "output": None,
+                "success": False,
+                "error": str(e)
+            })
+            # Continue with next task
     
     return results
 
 
-async def test_game_engine_algorithm_competition():
-    """Test complex orchestration with multiple Claude instances competing on algorithms."""
-    print("\n🎮 GAME ENGINE ALGORITHM COMPETITION TEST")
-    print("="*80)
-    print("Spawning 4 Claude instances to create algorithms better than fast inverse square root...")
-    print("Each with different parameters: --max-turns and temperature/creativity")
-    print("="*80)
+# Synchronous wrapper for simple use cases
+def cc_execute_sync(task: str, **kwargs) -> str:
+    """Synchronous wrapper for cc_execute."""
+    import asyncio
+    return asyncio.run(cc_execute(task, **kwargs))
+
+
+# Export the history function for direct use
+def export_history_sync(format: str = "json", limit: int = 100) -> str:
+    """Export execution history synchronously."""
+    import asyncio
+    return asyncio.run(export_execution_history(format=format, limit=limit))
+
+
+if __name__ == "__main__":
+    # Example usage
+    import asyncio
     
-    # Complex orchestration task using Task tool and MCP
-    competition_task = """Use your Task tool to spawn 4 concurrent Claude instances to create game engine algorithms more efficient than the fast inverse square root algorithm.
-
-REQUIREMENTS:
-1. First, run 'which gcc' and 'gcc --version' to check the C compiler environment
-
-2. Each instance should create a DIFFERENT algorithm approach
-3. Each instance uses different parameters:
-   - Instance 1: Conservative (--max-turns 1, low creativity)
-   - Instance 2: Balanced (--max-turns 2, medium creativity)  
-   - Instance 3: Creative (--max-turns 3, high creativity)
-   - Instance 4: Experimental (--max-turns 3, maximum creativity)
-
-4. Each algorithm must include:
-   - The algorithm implementation in C/C++
-   - COMPILE and RUN the code to verify it works
-   - Performance benchmarks vs original (with actual timing measurements)
-   - Use case in game engines
-   - Mathematical explanation
-   - Include any compilation errors/warnings and fix them
-
-5. After all 4 complete, use the perplexity-ask MCP tool to evaluate all algorithms and pick the best one with detailed rationale.
-
-6. Return a JSON response with this exact schema:
-{
-  "algorithms": [
-    {
-      "instance": 1,
-      "name": "Algorithm name",
-      "code": "C/C++ implementation",
-      "compilation_output": "gcc output or errors",
-      "test_results": "Execution results showing it works",
-      "performance_gain": "X% faster (with actual measurements)",
-      "benchmark_data": "Timing comparisons with original",
-      "use_case": "Description",
-      "explanation": "Mathematical basis"
-    },
-    // ... for all 4 instances
-  ],
-  "perplexity_evaluation": {
-    "winner": 1,  // instance number
-    "rationale": "Detailed explanation of why this algorithm won",
-    "comparison": "How algorithms compare to each other"
-  },
-  "summary": "Overall summary of the competition",
-  "execution_uuid": "Will be provided"
-}
-
-Execute this complex orchestration task now."""
-    
-    try:
-        start_time = time.time()
-        
-        # Execute with extended timeout for complex orchestration
+    async def main():
+        # Test basic execution
         result = await cc_execute(
-            competition_task,
-            config=CCExecutorConfig(timeout=900),  # 15 minutes for complex orchestration
-            stream=True,
-            json_mode=True,
-            generate_report=True  # Generate assessment report
+            "Create a Python function to calculate fibonacci numbers",
+            stream=True
         )
+        print(f"\nResult: {result[:200]}...")
         
-        elapsed = time.time() - start_time
+        # Test JSON mode
+        result_json = await cc_execute(
+            "Create a Python function to calculate prime numbers. Return as JSON with 'code' and 'explanation' keys.",
+            json_mode=True
+        )
+        print(f"\nJSON Result: {json.dumps(result_json, indent=2)[:500]}...")
         
-        print(f"\n{'='*80}")
-        print(f"✅ COMPETITION COMPLETE in {elapsed:.1f}s")
-        print(f"{'='*80}")
-        
-        if isinstance(result, dict):
-            # Display results
-            algorithms = result.get('algorithms', [])
-            print(f"\n📊 ALGORITHMS CREATED: {len(algorithms)}")
-            for algo in algorithms:
-                print(f"\n  Instance {algo.get('instance')}: {algo.get('name')}")
-                print(f"  Performance: {algo.get('performance_gain')}")
-                print(f"  Use case: {algo.get('use_case')[:100]}...")
-            
-            # Show winner
-            eval_data = result.get('perplexity_evaluation', {})
-            winner = eval_data.get('winner')
-            print(f"\n🏆 WINNER: Instance {winner}")
-            print(f"Rationale: {eval_data.get('rationale', 'N/A')[:200]}...")
-            
-            print(f"\nSummary: {result.get('summary', 'N/A')}")
-            
-            # Verify UUID
-            if result.get('execution_uuid'):
-                print(f"\n✅ UUID verified: {result['execution_uuid']}")
-            else:
-                print("\n⚠️  No execution UUID found!")
-            
-            # Report info
-            print(f"\n📋 Assessment report generated in: tmp/responses/")
-            print("Look for: CC_EXECUTE_ASSESSMENT_REPORT_*.md")
-                
-        else:
-            print(f"\n⚠️  Unexpected result type: {type(result)}")
-            print(f"Result: {str(result)[:500]}...")
-            
-        return result
-        
-    except Exception as e:
-        print(f"\n❌ Competition failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
-
-# For module testing only
-if __name__ == "__main__" and False:  # Disabled in production
-    # Test the executor
-    print("Testing CC Executor...")
-    print("="*60)
+        # Test with validation
+        result_validated = await cc_execute(
+            "Create a Python function to sort a list",
+            json_mode=True,
+            validation_prompt="Check if this code is correct: {response}. Return {'is_valid': true/false, 'issues': []}"
+        )
+        print(f"\nValidated Result: {json.dumps(result_validated, indent=2)[:500]}...")
     
-    async def run_all_tests():
-        """Run all tests and report results."""
-        results = []
-        
-        try:
-            print("\n1. Running simple test...")
-            await test_simple()
-            results.append(("Simple Test", "PASSED"))
-        except Exception as e:
-            results.append(("Simple Test", f"FAILED: {e}"))
-            import traceback
-            traceback.print_exc()
-        
-        try:
-            print("\n2. Running complex test...")
-            await test_complex()
-            results.append(("Complex Test", "PASSED"))
-        except Exception as e:
-            results.append(("Complex Test", f"FAILED: {e}"))
-            import traceback
-            traceback.print_exc()
-        
-        try:
-            print("\n3. Running game engine algorithm competition test...")
-            await test_game_engine_algorithm_competition()
-            results.append(("Game Engine Competition", "PASSED"))
-        except Exception as e:
-            results.append(("Game Engine Competition", f"FAILED: {e}"))
-            import traceback
-            traceback.print_exc()
-        
-        # Summary
-        print("\n" + "="*60)
-        print("TEST SUMMARY")
-        print("="*60)
-        for test_name, result in results:
-            status = "✅" if "PASSED" in result else "❌"
-            print(f"{status} {test_name}: {result}")
-        
-        # Check if all passed
-        all_passed = all("PASSED" in r for _, r in results)
-        return all_passed
-    
-    # Run all tests
-    success = asyncio.run(run_all_tests())
-    
-    if not success:
-        print("\n⚠️  Some tests failed!")
-        sys.exit(1)
-    else:
-        print("\n✅ All tests passed!")
+    asyncio.run(main())

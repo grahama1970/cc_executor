@@ -4,9 +4,11 @@ This directory contains everything needed to deploy CC Executor in a safe, conta
 
 ## Quick Start
 
-1. **Set your Claude API key** (if using API, not Claude Max):
+1. **Ensure Claude is authenticated** (Claude CLI uses OAuth, not API keys):
    ```bash
-   export ANTHROPIC_API_KEY=your-api-key
+   # On your host machine (not in Docker):
+   claude --version  # Should show version if authenticated
+   # If not authenticated, run: claude /login
    ```
 
 2. **Start the services**:
@@ -16,8 +18,8 @@ This directory contains everything needed to deploy CC Executor in a safe, conta
 
 3. **Check health**:
    ```bash
-   curl http://localhost:8003/health  # WebSocket service
-   curl http://localhost:8000/health  # REST API (optional)
+   curl http://localhost:8001/health  # REST API
+   # WebSocket is on port 8004 (ws://localhost:8004/ws/mcp)
    ```
 
 ## Architecture
@@ -25,14 +27,14 @@ This directory contains everything needed to deploy CC Executor in a safe, conta
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
 │   REST API      │────▶│ WebSocket Server │────▶│    Redis    │
-│  (Port 8000)    │     │   (Port 8003)    │     │ (Port 6379) │
+│  (Port 8001)    │     │   (Port 8004)    │     │ (Port 6380) │
 └─────────────────┘     └──────────────────┘     └─────────────┘
         │                        │
         └────────────┬───────────┘
                      │
               ┌──────▼──────┐
               │ Claude CLI   │
-              │ (isolated)   │
+              │ (OAuth Auth) │
               └─────────────┘
 ```
 
@@ -88,7 +90,7 @@ from cc_executor import WebSocketClient
 import asyncio
 
 async def run_tasks():
-    client = WebSocketClient(url="ws://localhost:8003/ws/mcp")
+    client = WebSocketClient(host="localhost", port=8004)
     await client.connect()
     
     result = await client.execute_command('claude -p "Create a function"')
@@ -101,8 +103,10 @@ asyncio.run(run_tasks())
 
 ## Environment Variables
 
-### Required
-- `ANTHROPIC_API_KEY`: Your Claude API key (if not using Claude Max)
+### Authentication
+- Claude CLI uses **OAuth authentication** from mounted `~/.claude` directory
+- No `ANTHROPIC_API_KEY` needed - Claude uses browser-based authentication
+- The `~/.claude` directory from your host is mounted in the container
 
 ### Optional
 - `LOG_LEVEL`: Logging level (default: INFO)
@@ -137,9 +141,9 @@ For production deployments:
 ## Troubleshooting
 
 ### Service won't start
-- Check logs: `docker-compose logs websocket`
-- Verify Claude CLI is installed in container
-- Ensure ANTHROPIC_API_KEY is set
+- Check logs: `docker-compose logs cc_execute`
+- Verify Claude is authenticated on host: `claude --version`
+- Check ~/.claude directory exists and is mounted
 
 ### Connection refused
 - Check service health: `docker-compose ps`

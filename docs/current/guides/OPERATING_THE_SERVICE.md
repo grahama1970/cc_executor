@@ -18,7 +18,9 @@ cd /home/graham/workspace/experiments/cc_executor/src/cc_executor
 docker compose up -d
 
 # Check the health of the running service
-curl http://localhost:8003/health
+# Note: Docker deployment uses different ports
+curl http://localhost:8001/health  # Docker REST API
+# WebSocket is on ws://localhost:8004/ws/mcp for Docker
 
 # View live logs from the container
 docker logs -f cc_executor_mcp

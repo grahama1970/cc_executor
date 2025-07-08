@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 # Install system dependencies and uv
 RUN apt-get update && apt-get install -y \
-    curl git \
+    curl git nodejs npm \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && npm install -g @anthropic-ai/claude-code
 
 # Add uv to PATH (uv installs to .local/bin, not .cargo/bin)
 ENV PATH="/root/.local/bin:$PATH"
@@ -21,8 +22,9 @@ RUN uv pip install --system -e .
 RUN mkdir -p /app/logs /app/data && \
     chown -R appuser:appuser /app
 
-# Set environment variable to disable venv wrapping in Docker
+# Set environment variables for Docker
 ENV DISABLE_VENV_WRAPPING=1
+ENV RUNNING_IN_DOCKER=1
 
 USER appuser
 

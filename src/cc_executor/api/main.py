@@ -266,9 +266,8 @@ async def execute_task_list(request: TaskListRequest, background_tasks: Backgrou
     results = []
     failed_count = 0
     
-    # In Docker, connect to the websocket service by name
-    ws_host = "websocket" if os.environ.get("WEBSOCKET_URL") else "localhost"
-    client = WebSocketClient(host=ws_host)
+    # Connect to the local WebSocket server (running in same container)
+    client = WebSocketClient(host="localhost")
     
     for i, task in enumerate(request.tasks, 1):
         task_start = datetime.utcnow()

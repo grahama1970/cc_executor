@@ -67,10 +67,13 @@ class ProgrammaticHookEnforcement:
             
         logger.info("Initializing programmatic hook enforcement system")
         
-        # 1. Ensure virtual environment
-        if not self._ensure_venv():
-            logger.error("Failed to ensure virtual environment")
-            return False
+        # 1. Ensure virtual environment (skip if disabled)
+        if os.environ.get('DISABLE_VENV_WRAPPING') != '1':
+            if not self._ensure_venv():
+                logger.error("Failed to ensure virtual environment")
+                return False
+        else:
+            logger.info("Virtual environment wrapping disabled")
             
         # 2. Check Redis connection
         if not self._check_redis():

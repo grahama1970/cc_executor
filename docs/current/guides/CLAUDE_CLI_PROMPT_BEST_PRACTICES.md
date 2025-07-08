@@ -127,16 +127,76 @@ claude -p "Use MCP tools to search GitHub"
 claude -p "What are examples of Python web scrapers?"
 ```
 
+## Critical: Claude CLI Tool Limitations
+
+### Tools NOT Available in Claude CLI
+Unlike the web interface, Claude CLI instances do **NOT** have access to:
+
+**❌ Productivity Tools:**
+- `Task` tool - Cannot use task management
+- `TodoRead`/`TodoWrite` - No todo list functionality
+- Built-in workflow management tools
+
+**❌ UI/Interactive Features:**
+- File upload/download via drag & drop
+- Image analysis via direct upload
+- Interactive buttons or elements
+- Session/thread management UI
+
+**❌ Rich Formatting:**
+- Rendered markdown tables
+- Syntax-highlighted code blocks (only raw text)
+- Inline images or graphics
+- Formatted output display
+
+### What Claude CLI CAN Do
+
+**✅ Code/File Operations:**
+- Direct file editing and creation
+- Reading project files
+- Filesystem navigation
+
+**✅ Shell Integration:**
+- Execute terminal commands
+- Git operations
+- Command chaining
+
+**✅ MCP Tools (automatically detected):**
+- cc_executor automatically finds and uses `.mcp.json`
+- Searches: current dir, `~/.claude/claude_code/`, `~/`
+- Available tools depend on your MCP configuration
+- Common tools: perplexity-ask, github, ripgrep, etc.
+
+### Implications for Prompts
+
+**❌ Never write prompts that assume:**
+```bash
+# These will fail - tools not available
+claude -p "Use the Task tool to break this down"
+claude -p "Add this to your todo list"
+claude -p "Create a task list for this project"
+```
+
+**✅ Instead, ask for the output directly:**
+```bash
+# Work around missing tools
+claude -p "What are the steps to implement this feature?"
+claude -p "What is a task breakdown for this project?"
+claude -p "What should be the implementation order?"
+```
+
 ## Critical Flags for Non-Interactive Use
 
 When using Claude CLI programmatically (in cc_executor):
 
 ```bash
 claude -p "Your prompt" \
-  --output-format stream-json \      # Prevents buffer overflow
   --dangerously-skip-permissions \   # Skips interactive confirmations
-  --allowedTools none               # Prevents tool-related hangs
+  --mcp-config .mcp.json            # Only if MCP tools needed
+  # Note: --output-format and --allowedTools may not be valid flags
 ```
+
+**Important:** The exact flags depend on your Claude CLI version. Always check with `claude --help`.
 
 ## The Golden Rule
 
@@ -177,9 +237,17 @@ Before using any prompt in cc_executor:
 - [ ] No "Execution error" messages
 - [ ] Response time < 180s
 - [ ] Add safety flags for programmatic use
+- [ ] Don't assume Task/Todo tools are available
+- [ ] Don't rely on UI features or rich formatting
 
 ## Summary
 
-Claude CLI is powerful but fragile. Unlike the main Claude interface which can handle ambiguity gracefully, Claude CLI needs explicit, unambiguous question-format prompts to function reliably. This isn't a bug—it's a fundamental characteristic of how the CLI interprets commands versus questions.
+Claude CLI is powerful but fragile. Unlike the main Claude interface which can handle ambiguity gracefully, Claude CLI:
+1. Needs explicit, unambiguous question-format prompts
+2. Lacks access to productivity tools (Task, Todo, etc.)
+3. Cannot use UI/interactive features
+4. Is designed for code automation, not general productivity
 
-By following these patterns, we can achieve near-100% success rates with Claude CLI in automated environments like cc_executor.
+This isn't a bug—it's a fundamental characteristic of how the CLI is designed for programmatic use rather than interactive sessions.
+
+By following these patterns and understanding the limitations, we can achieve near-100% success rates with Claude CLI in automated environments like cc_executor.

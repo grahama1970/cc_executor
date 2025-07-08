@@ -32,14 +32,26 @@ Once published to PyPI:
 pip install cc-executor
 ```
 
-### Then Use It For Task Lists (NOT Individual Calls!)
+### Using the Python API
 
-⚠️ **CRITICAL**: CC Executor exists specifically for multi-task workflows. Using it for single calls defeats its entire purpose.
+CC Executor now provides a simple Python API for both single tasks and workflows:
 
 ```python
-from cc_executor import cc_execute_task_list
+from cc_executor.client.cc_execute import cc_execute
 
-# Define your multi-step workflow
+# Single task (simple string response)
+result = cc_execute("Create a Python function to calculate fibonacci")
+print(result)
+
+# Single task with JSON mode (structured response)
+result = cc_execute(
+    "Create a FastAPI endpoint for user registration",
+    json_mode=True  # Returns dict with 'result', 'files_created', etc.
+)
+print(f"Files created: {result['files_created']}")
+print(f"Summary: {result['summary']}")
+
+# For multi-task workflows, use the orchestrator pattern
 tasks = [
     "Task 1: Create a FastAPI project structure with user authentication",
     "Task 2: Set up SQLAlchemy models for users and sessions",

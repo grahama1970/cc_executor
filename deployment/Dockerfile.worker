@@ -1,0 +1,41 @@
+# Secure worker container for code execution
+FROM python:3.11-slim
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create worker user with minimal privileges
+RUN useradd -m -s /bin/false -u 2000 worker && \
+    mkdir -p /workspace /output /app && \
+    chown worker:worker /workspace /output
+
+WORKDIR /app
+
+# Copy only necessary files for execution
+COPY --chown=worker:worker src/cc_executor/worker /app/worker
+COPY --chown=worker:worker requirements-worker.txt /app/
+
+# Install minimal Python dependencies
+RUN pip install --no-cache-dir -r requirements-worker.txt && \
+    rm -rf /root/.cache
+
+# Security hardening
+RUN chmod -R 755 /app && \
+    find /app -type f -name "*.py" -exec chmod 644 {} \;
+
+# Switch to worker user
+USER worker
+
+# Set secure environment
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH=/home/worker/.local/bin:$PATH
+
+# No exposed ports - internal only
+# No CMD - will be specified by docker-compose or orchestrator
+
+# Run worker process
+CMD ["python", "-m", "worker.main"]

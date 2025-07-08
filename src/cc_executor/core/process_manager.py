@@ -106,11 +106,15 @@ class ProcessManager:
         env['NODE_NO_READLINE'] = '1'  # For Node.js based CLIs
         
         # Remove ANTHROPIC_API_KEY for Claude Max (it uses browser auth, not API keys)
-        if 'ANTHROPIC_API_KEY' in env:
-            logger.info("ANTHROPIC_API_KEY found in environment, removing it (using Claude Max)")
-            del env['ANTHROPIC_API_KEY']
+        # But keep it in Docker since Claude CLI needs it there
+        if os.environ.get('RUNNING_IN_DOCKER') != '1':
+            if 'ANTHROPIC_API_KEY' in env:
+                logger.info("ANTHROPIC_API_KEY found in environment, removing it (using Claude Max)")
+                del env['ANTHROPIC_API_KEY']
+            else:
+                logger.info("ANTHROPIC_API_KEY not present in environment (expected for Claude Max)")
         else:
-            logger.info("ANTHROPIC_API_KEY not present in environment (expected for Claude Max)")
+            logger.info("Running in Docker, keeping ANTHROPIC_API_KEY for Claude CLI")
 
         # Check if stdbuf is available for forcing unbuffered output
         stdbuf_check = await asyncio.create_subprocess_shell(

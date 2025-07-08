@@ -114,6 +114,58 @@ try:
         LOG_ROTATION_SIZE,
         LOG_RETENTION_COUNT
     )
+except ImportError:
+    # Define missing constants for Docker/standalone execution
+    COMPLETION_MARKERS = [
+        "Task completed successfully",
+        "Done!",
+        "✨ Done",
+        "All done!",
+        "Completed!",
+        "Finished!",
+        "Success!",
+        "The task is complete",
+        "I've completed",
+        "has been created",
+        "has been updated",
+        "has been modified",
+        "has been saved",
+        "File created:",
+        "File updated:",
+        "Created file:",
+        "Updated file:",
+        "Saved to:",
+        "Written to:"
+    ]
+    
+    FILE_CREATION_PATTERN = r'(?:created?|updated?|modified|saved|written)\s+(?:to\s+)?(?:file\s+)?["\']?([^\s"\']+)["\']?'
+    
+    TOKEN_LIMIT_PATTERNS = [
+        "token limit",
+        "max tokens",
+        "maximum tokens",
+        "context length exceeded",
+        "too many tokens",
+        "output limit"
+    ]
+    
+    # Error codes
+    ERROR_PARSE_ERROR = -32700
+    ERROR_INVALID_REQUEST = -32600
+    ERROR_METHOD_NOT_FOUND = -32601
+    ERROR_INVALID_PARAMS = -32602
+    ERROR_INTERNAL_ERROR = -32603
+    ERROR_COMMAND_NOT_ALLOWED = -32001
+    ERROR_PROCESS_NOT_FOUND = -32002
+    ERROR_SESSION_LIMIT = -32003
+    ERROR_TOKEN_LIMIT = -32004
+    
+    # Limits
+    MAX_SESSIONS = 100
+    LOG_ROTATION_SIZE = 10 * 1024 * 1024  # 10MB
+    LOG_RETENTION_COUNT = 5
+    
+try:
     from .config import (
         ALLOWED_COMMANDS, JSONRPC_VERSION,
         STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
@@ -509,25 +561,30 @@ class WebSocketHandler:
             if "claude" in req.command.lower():
                 logger.info("[HOOKS] Setting up environment for Claude command")
                 
-                # 1. Run hook scripts first
-                hooks_dir = Path(__file__).parent.parent / "hooks"
-                for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
-                    hook_path = hooks_dir / hook
-                    if hook_path.exists():
-                        try:
-                            subprocess.run([sys.executable, str(hook_path)], check=True)
-                            logger.info(f"[HOOKS] {hook} completed")
-                        except subprocess.CalledProcessError as e:
-                            logger.warning(f"[HOOKS] {hook} failed: {e}")
+                # 1. Run pre-execution hooks (async-safe)
+                if self.hooks:
+                    try:
+                        # Use async version to avoid blocking event loop
+                        hook_result = await self.hooks.async_pre_execute_hook(
+                            req.command, 
+                            {"session_id": session_id, "cwd": cwd}
+                        )
+                        logger.info(f"[HOOKS] Pre-execution hooks completed: {hook_result.get('status', 'unknown')}")
+                    except Exception as e:
+                        logger.warning(f"[HOOKS] Pre-execution hooks failed: {e}")
+                        # Continue execution even if hooks fail
                 
                 # 2. Setup environment variables for subprocess
-                venv_path = Path(__file__).parent.parent.parent / ".venv"
                 env = os.environ.copy()
-                if venv_path.exists():
-                    env["VIRTUAL_ENV"] = str(venv_path)
-                    env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
-                    env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent / "src")
-                    logger.info("[HOOKS] Virtual environment configured")
+                
+                # Skip venv wrapping if disabled (e.g., in Docker)
+                if os.environ.get('DISABLE_VENV_WRAPPING') != '1':
+                    venv_path = Path(__file__).parent.parent.parent / ".venv"
+                    if venv_path.exists():
+                        env["VIRTUAL_ENV"] = str(venv_path)
+                        env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
+                        env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent / "src")
+                        logger.info("[HOOKS] Virtual environment configured")
             else:
                 env = None
             
@@ -1233,16 +1290,25 @@ async def execute_claude_command(
     if "claude" in command.lower():
         logger.info("[EXECUTE] Setting up environment for Claude command")
         
-        # Run pre-execution hooks
+        # Run pre-execution hooks (async-safe)
         hooks_dir = Path(__file__).parent.parent / "hooks"
         for hook in ["setup_environment.py", "claude_instance_pre_check.py"]:
             hook_path = hooks_dir / hook
             if hook_path.exists():
                 try:
-                    subprocess.run([sys.executable, str(hook_path)], check=True, cwd=cwd)
-                    logger.info(f"[EXECUTE] {hook} completed")
-                except subprocess.CalledProcessError as e:
-                    logger.warning(f"[EXECUTE] {hook} failed: {e}")
+                    proc = await asyncio.create_subprocess_exec(
+                        sys.executable, str(hook_path),
+                        cwd=cwd,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, stderr = await proc.communicate()
+                    if proc.returncode != 0:
+                        logger.warning(f"[EXECUTE] {hook} failed: {stderr.decode()}")
+                    else:
+                        logger.info(f"[EXECUTE] {hook} completed")
+                except Exception as e:
+                    logger.warning(f"[EXECUTE] {hook} error: {e}")
         
         # Setup virtual environment
         venv_path = Path(cwd) / ".venv"
@@ -1305,17 +1371,22 @@ async def execute_claude_command(
                     else:
                         cmd = [sys.executable, str(hook_path)]
                     
-                    result = subprocess.run(
-                        cmd,
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
                         env=hook_env,
-                        capture_output=True,
-                        text=True,
-                        timeout=10
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
                     )
-                    if result.returncode == 0:
-                        logger.info(f"[EXECUTE] Post-hook {hook} completed")
-                    else:
-                        logger.warning(f"[EXECUTE] Post-hook {hook} failed: {result.stderr}")
+                    try:
+                        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+                        if proc.returncode == 0:
+                            logger.info(f"[EXECUTE] Post-hook {hook} completed")
+                        else:
+                            logger.warning(f"[EXECUTE] Post-hook {hook} failed: {stderr.decode()}")
+                    except asyncio.TimeoutError:
+                        proc.kill()
+                        await proc.wait()
+                        logger.warning(f"[EXECUTE] Post-hook {hook} timed out")
                 except Exception as e:
                     logger.error(f"[EXECUTE] Failed to run post-hook {hook}: {e}")
     

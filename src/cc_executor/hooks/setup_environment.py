@@ -74,6 +74,11 @@ def check_venv_status() -> dict:
 
 def kill_existing_websocket_servers():
     """Kill any existing websocket servers to prevent port conflicts."""
+    # Skip this entirely in Docker environments
+    if os.path.exists('/.dockerenv') or os.environ.get('RUNNING_IN_DOCKER'):
+        logger.info("Running in Docker - skipping port cleanup")
+        return
+        
     # Kill processes on common websocket ports
     ports = [8003, 8004]  # Add other ports as needed
     

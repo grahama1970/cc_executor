@@ -20,12 +20,13 @@ services:
     container_name: cc_execute
     ports:
       - "8001:8000"  # FastAPI for auth/health
-      - "8003:8003"  # WebSocket for execution
+      - "8004:8003"  # WebSocket for execution (8004 external, 8003 internal)
     environment:
       LOG_LEVEL: INFO
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis:6379
       DISABLE_VENV_WRAPPING: "1"  # Disable venv wrapping in Docker
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}  # Pass through from host
     volumes:
       # NOTE: We no longer bind-mount the entire source tree into the container.
       # This avoids accidental override of files packaged in the image (e.g. start_services.py).
@@ -34,7 +35,7 @@ services:
 
       - ./logs:/app/logs
       - ./data:/app/data
-      - ~/.claude:/home/appuser/.claude:ro
+      - ~/.claude:/home/appuser/.claude
     restart: unless-stopped
     depends_on:
       redis:

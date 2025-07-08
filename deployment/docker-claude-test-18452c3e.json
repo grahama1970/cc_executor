@@ -1,0 +1,41 @@
+{
+  "timestamp": 1752014578.3387845,
+  "tests": [
+    {
+      "test": "Claude Version",
+      "success": true,
+      "duration": 1.0703785419464111,
+      "stdout": "1.0.44 (Claude Code)\n",
+      "stderr": ""
+    },
+    {
+      "test": "Check API Key",
+      "success": true,
+      "duration": 0.19631481170654297,
+      "stdout": "\n",
+      "stderr": ""
+    },
+    {
+      "test": "Direct Claude Test",
+      "success": false,
+      "duration": 0.9634733200073242,
+      "stdout": "",
+      "stderr": "error: unknown option '--no-sse'\n"
+    },
+    {
+      "test": "API Claude Test",
+      "success": true,
+      "duration": 5.664788007736206,
+      "stdout": "{\"execution_id\":\"ce09553a-4b7b-4959-8a53-57bda2a7daa5\",\"total_tasks\":1,\"completed_tasks\":1,\"failed_tasks\":0,\"results\":[{\"task_number\":1,\"task_description\":\"Say hello\",\"exit_code\":0,\"stdout\":\"Hello! I'm ready to help you with your software engineering tasks. What would you like to work on today?\\n\",\"stderr\":null,\"execution_time\":5.655255,\"completed_at\":\"2025-07-08T22:42:58.224099\"}],\"started_at\":\"2025-07-08T22:42:52.568834\",\"completed_at\":\"2025-07-08T22:42:58.224168\",\"total_execution_time\":5.655334}",
+      "stderr": ""
+    },
+    {
+      "test": "Claude Config",
+      "success": false,
+      "duration": 0.11184930801391602,
+      "stdout": "",
+      "stderr": "ls: cannot access '/home/graham/.claude/': No such file or directory\n"
+    }
+  ],
+  "execution_uuid": "18452c3e-f1bb-41ca-a2de-29cf5e9ce19e"
+}

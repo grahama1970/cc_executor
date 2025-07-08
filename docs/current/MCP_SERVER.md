@@ -19,7 +19,9 @@ cc-executor start --port 8005
 
 ## Connecting Your Agent
 
-1. Connect to WebSocket endpoint: `ws://localhost:8003/ws/mcp`
+1. Connect to WebSocket endpoint: 
+   - Local: `ws://localhost:8003/ws/mcp`
+   - Docker: `ws://localhost:8004/ws/mcp`
 2. Use the `cc_execute.md` prompt for orchestration
 3. Tasks execute sequentially with fresh context
 

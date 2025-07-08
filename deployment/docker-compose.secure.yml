@@ -1,0 +1,122 @@
+# Secure Docker Compose configuration for CC Executor
+# This configuration implements security best practices for code execution
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cc_executor_redis
+    ports:
+      - "127.0.0.1:6380:6379"  # Bind only to localhost
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  cc_executor:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: cc_executor_api
+    ports:
+      - "127.0.0.1:8001:8000"  # API - localhost only
+      - "127.0.0.1:8003:8003"  # WebSocket - localhost only
+    environment:
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+      WORKER_MODE: "queue"  # Use job queue instead of direct execution
+    volumes:
+      # Read-only mounts
+      - ~/.claude:/home/appuser/.claude:ro
+      # Writable but limited
+      - ./logs:/app/logs:rw
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 100M
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - internal
+      - frontend
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    read_only: true
+    
+  cc_worker:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.worker
+    container_name: cc_executor_worker
+    environment:
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+      EXECUTION_TIMEOUT: "300"  # 5 minutes max
+    volumes:
+      # Execution workspace - tmpfs only
+      - type: tmpfs
+        target: /workspace
+        tmpfs:
+          size: 500M
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 100M
+      # Output directory with quota
+      - ./worker_output:/output:rw
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - internal  # No external network access
+    # Strict security options
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./seccomp-profile.json
+    cap_drop:
+      - ALL
+    pids_limit: 50
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: "0.5"
+    read_only: true
+    # Disable network for execution
+    # network_mode: none  # Enable after testing
+
+networks:
+  internal:
+    internal: true  # No external connectivity
+  frontend:
+    name: cc_executor_frontend
+
+volumes:
+  redis_data:
+    driver: local
+  worker_output:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./worker_output

@@ -1,3 +1,10 @@
+and do any docs in /home/graham/workspace/experiments/cc_executor/docs need to be deprecated, amended, or reorganized 
+
+
+
+you need to use uv venv --python=3.10.11 .venv and uv pip install -e .
+
+
 create a new code review request
 following @docs/templates/CODE_REVIEW_REQUEST_TEMPLATE.md
 the code review request needs to thoroughly check the MCP endpoint

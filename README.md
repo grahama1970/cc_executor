@@ -9,14 +9,18 @@
 
 ```python
 # Install: pip install cc-executor
-from cc_executor.client import cc_execute
-import asyncio
+from cc_executor.client.cc_execute import cc_execute
 
-async def main():
-    result = await cc_execute("Create a fibonacci function")
-    print(result)
+# Simple usage - returns string
+result = cc_execute("Create a fibonacci function")
+print(result)
 
-asyncio.run(main())
+# JSON mode - returns structured dict
+result = cc_execute(
+    "Create a fibonacci function",
+    json_mode=True  # Returns dict with 'result', 'files_created', etc.
+)
+print(result['files_created'])
 ```
 📖 [Full Python API Documentation](docs/PYTHON_API.md)
 
@@ -42,6 +46,11 @@ cc-executor start
 - **Assessment reports** - Detailed execution reports with verification
 - **Redis timeout estimation** - Smart timeout prediction based on task history
 - **No ANTHROPIC_API_KEY needed** - Uses browser authentication
+- **Token limit protection** - Auto-truncates prompts exceeding 190k tokens
+- **Rate limit retry** - Automatic retry with exponential backoff using tenacity
+- **Ambiguous prompt detection** - Warns about problematic prompts
+- **Execution history export** - Export task history from Redis in JSON/CSV
+- **Progress callbacks** - Real-time progress updates during execution
 
 ### MCP WebSocket Server
 - **Sequential orchestration** - Forces tasks to execute in order
@@ -89,13 +98,20 @@ async def main():
         "Write comprehensive tests"
     ])
     
-    # Advanced: Get structured JSON responses
+    # Advanced: Get structured JSON responses with new features
     result = await cc_execute(
         "Create a todo list manager",
-        return_json=True,      # Returns: {"result": "...", "files_created": [...]}
+        json_mode=True,        # Returns: {"result": "...", "files_created": [...]}
         stream=True,           # See output as it generates
-        generate_report=True   # Get detailed execution report
+        generate_report=True,  # Get detailed execution report
+        progress_callback=lambda msg: print(f"[Progress] {msg}"),  # Real-time updates
+        amend_prompt=True      # Auto-fix ambiguous prompts
     )
+    
+    # Export execution history for analysis
+    from cc_executor.client.cc_execute import export_execution_history
+    history = await export_execution_history(format="json", limit=10)
+    print(f"Recent executions: {history}")
 
 asyncio.run(main())
 ```
@@ -177,6 +193,31 @@ Task 4: Apply improvements and test → Final iteration
 - **Orchestrator Claude**: Manages workflow, tracks progress, handles errors
 - **Worker Claudes**: Fresh 200K context each, focused on single tasks
 - **WebSocket**: Forces orchestrator to wait between spawning instances
+
+## Recent Improvements (v1.2.0)
+
+### 🎯 New Reliability Features
+- **Token limit protection**: Automatically truncates prompts exceeding 190k tokens to prevent failures
+- **Rate limit retry**: Automatic retry with exponential backoff (5-60s) using tenacity
+- **Ambiguous prompt detection**: Warns about problematic prompts before execution
+- **Execution history export**: Export Redis-stored task history in JSON/CSV formats
+- **Progress callbacks**: Real-time progress updates during long-running tasks
+
+### 🚀 Performance & Reliability (v1.1.0)
+- **Non-blocking async execution**: All subprocess calls now use `asyncio.create_subprocess_exec` to prevent event loop blocking
+- **Industry-standard API**: Migrated from `return_json` to `json_mode` parameter (matching OpenAI/LiteLLM conventions)
+- **Robust JSON parsing**: Automatic handling of markdown-wrapped JSON and malformed responses with `clean_json_string`
+
+### 🧹 Project Cleanup
+- **43 unreferenced files archived**: Cleaner, more maintainable codebase
+- **Duplicate implementations removed**: Single canonical source for each component
+- **Test structure reorganized**: Clear separation of unit, integration, and proof-of-concept tests
+
+### 🔍 Validation Feature
+- **validation_prompt parameter**: Spawn fresh Claude instance to validate results
+- **Simple design**: No internal retry logic - orchestrator controls retry strategy
+- **Non-blocking**: Defaults to `is_valid=True` on validation errors
+- **Example**: See `examples/validation_pattern.py` for best practices
 
 ## Why This Exists
 
@@ -297,9 +338,7 @@ flowchart LR
 
 CC Executor can be installed locally or deployed via Docker. Choose the method that best suits your needs.
 
-### Option 1: Docker Deployment (Experimental)
-
-**⚠️ EXPERIMENTAL**: Docker support is newly added and still being tested. Use for evaluation purposes.
+### Option 1: Docker Deployment
 
 Docker provides isolation, easier deployment, and better security for running CC Executor as a service.
 
@@ -331,7 +370,7 @@ curl http://localhost:8001/health | jq .
 
 **Docker Endpoints:**
 - `http://localhost:8001` - REST API (FastAPI)
-- `ws://localhost:8003/ws` - WebSocket (direct)
+- `ws://localhost:8004/ws/mcp` - WebSocket (direct)
 - `http://localhost:6380` - Redis (if needed)
 
 ### Option 2: Local Installation (Recommended)
@@ -419,7 +458,7 @@ results = cc_execute_task_list([
 | Setup complexity | Medium (needs Docker) | Simple (just Python) |
 | Resource usage | Higher (containers) | Lower (native) |
 | Port management | Managed by Docker | Manual configuration |
-| Production ready | ⚠️ Experimental | ⚠️ Development only |
+| Production ready | ✅ Ready | ⚠️ Development only |
 | REST API wrapper | ✅ Included (port 8001) | ❌ WebSocket only |
 | Auto-restart | ✅ Via restart policies | ❌ Manual |
 
@@ -427,8 +466,8 @@ results = cc_execute_task_list([
 
 - **Claude authentication**: Must authenticate Claude on host first (`claude /login`)
 - **Docker & Docker Compose**: Version 20.10+ recommended
-- **Ports**: 8001 (API), 8003 (WebSocket), 6380 (Redis)
-- **Volume**: `~/.claude` directory mounted for authentication
+- **Ports**: 8001 (API), 8004 (WebSocket), 6380 (Redis)
+- **Volume**: `~/.claude` directory mounted for OAuth authentication
 
 ### Authentication for New Users
 
@@ -674,9 +713,7 @@ with benchmarks and real-world examples.'"
 
 ## Usage
 
-### Docker Usage (REST API) - Experimental
-
-**⚠️ EXPERIMENTAL**: Docker deployment is still being tested and refined.
+### Docker Usage (REST API)
 
 When using Docker deployment, interact via the FastAPI REST endpoints:
 
@@ -775,14 +812,11 @@ asyncio.run(main())
 ### Docker vs Local Client Connection
 
 ```python
-# Docker deployment (through internal network)
-client = WebSocketClient(host="websocket", port=8003)  # If inside Docker network
-
 # Docker deployment (from host)
-client = WebSocketClient(host="localhost", port=8003)  # Default
+client = WebSocketClient(host="localhost", port=8004)  # Docker WebSocket port
 
 # Local installation
-client = WebSocketClient(host="localhost", port=8003)  # Same as Docker from host
+client = WebSocketClient(host="localhost", port=8003)  # Local WebSocket port
 ```
 
 ## Orchestration and Tool Integration

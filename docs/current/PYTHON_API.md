@@ -13,14 +13,16 @@ pip install cc-executor
 ## Quick Start
 
 ```python
-from cc_executor.client import cc_execute
-import asyncio
+from cc_executor.client.cc_execute import cc_execute
 
-async def main():
-    result = await cc_execute("What is 2+2?")
-    print(result)  # "4"
+# Simple usage - synchronous, returns string
+result = cc_execute("What is 2+2?")
+print(result)  # "4"
 
-asyncio.run(main())
+# With JSON mode - returns structured data
+result = cc_execute("Create a TODO list app", json_mode=True)
+print(result['files_created'])  # List of created files
+print(result['summary'])        # Summary of what was done
 ```
 
 ## API Reference
@@ -30,14 +32,19 @@ asyncio.run(main())
 Execute a single task with Claude.
 
 ```python
-async def cc_execute(
+def cc_execute(
     task: str,
     config: Optional[CCExecutorConfig] = None,
     stream: bool = True,
     agent_predict_timeout: bool = False,
-    return_json: bool = False,
+    json_mode: bool = False,
+    return_json: Optional[bool] = None,  # Deprecated
     generate_report: bool = False,
-    amend_prompt: bool = False
+    amend_prompt: bool = False,
+    validation_prompt: Optional[str] = None,
+    session_id: Optional[str] = None,
+    timeout: Optional[int] = None,
+    execution_uuid: Optional[str] = None
 ) -> Union[str, Dict[str, Any]]
 ```
 
@@ -45,12 +52,32 @@ async def cc_execute(
 - `task`: The task/prompt to execute
 - `config`: Optional configuration object
 - `stream`: Stream output in real-time (default: True)
-- `return_json`: Return structured JSON response (default: False)
+- `json_mode`: Return structured JSON response (default: False)
+- `return_json`: **Deprecated** - use `json_mode` instead
 - `generate_report`: Generate execution assessment report (default: False)
 - `amend_prompt`: Automatically fix problematic prompts (default: False)
+- `validation_prompt`: Optional validation prompt to check the response. Use {response} placeholder.
+                     Spawns fresh Claude instance to validate. Only works with json_mode=True.
+                     No internal retry - orchestrator handles retry logic.
+- `session_id`: Track execution in a specific session (default: auto-generated)
+- `timeout`: Override timeout in seconds (default: smart estimation based on task)
+- `execution_uuid`: Provide specific UUID for anti-hallucination verification
 
 **Returns:**
-- String response (default) or dictionary (if return_json=True)
+- String response (default) 
+- Dictionary with structured data (if `json_mode=True`):
+  ```python
+  {
+      "result": str,               # Main output/answer
+      "files_created": List[str],  # Files created during execution
+      "files_modified": List[str], # Files modified
+      "summary": str,              # Brief summary of what was done
+      "execution_uuid": str,       # UUID for verification
+      # If validation_prompt provided:
+      "validation": dict,          # Validation response
+      "is_valid": bool            # True if validation passed (defaults to True on errors)
+  }
+  ```
 
 ### cc_execute_list()
 
@@ -163,11 +190,33 @@ except Exception as e:
 
 ## Best Practices
 
-1. **Use return_json=True** for programmatic processing
+1. **Use json_mode=True** for programmatic processing (returns structured data)
 2. **Enable streaming** for long-running tasks to see progress
 3. **Set appropriate timeouts** for complex tasks
 4. **Use amend_prompt=True** to automatically fix problematic prompts
 5. **Generate reports** for important tasks to verify execution
+
+## Key Features
+
+### Robust JSON Parsing
+When using `json_mode=True`, CC Executor automatically handles:
+- Markdown-wrapped JSON (````json ... ````)
+- Malformed JSON that can be repaired
+- Mixed text and JSON content
+- Nested JSON structures
+
+### Non-Blocking Execution
+All subprocess operations use async patterns to prevent blocking:
+- WebSocket server remains responsive during execution
+- Multiple concurrent connections supported
+- Hooks execute without freezing the event loop
+
+### Smart Timeout Estimation
+CC Executor analyzes your task and estimates appropriate timeouts:
+- Simple queries: 30-60 seconds
+- Code generation: 60-120 seconds
+- Complex refactoring: 120-300 seconds
+- Override with `timeout` parameter when needed
 
 ## Differences from MCP Server
 

@@ -1,0 +1,98 @@
+{
+  "mcpServers": {
+    "perplexity-ask": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "server-perplexity-ask"
+      ],
+      "env": {
+        "PERPLEXITY_API_KEY": "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"
+      }
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search",
+        "--api-key",
+        "BSAOZdRjze1-gozOpVoTbsoOyh3lqzw"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
+    },
+    "ripgrep": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-ripgrep@latest"
+      ]
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "env": {
+        "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/google-chrome",
+        "PUPPETEER_HEADLESS": "true"
+      }
+    },
+    "arxiv-cc": {
+      "command": "python",
+      "args": [
+        "/home/graham/workspace/experiments/cc_executor/src/cc_executor/servers/arxiv_mcp_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "/home/graham/workspace/experiments/cc_executor/src"
+      }
+    },
+    "poc-test": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "src/cc_executor/servers/poc_mcp.py"
+      ]
+    },
+    "cc-executor": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "src/cc_executor/servers/mcp_server_fastmcp.py"
+      ],
+      "env": {
+        "CC_EXECUTOR_PORT": "8005"
+      }
+    },
+    "cc-executor-enhanced": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "src/cc_executor/servers/mcp_cc_execute_enhanced.py"
+      ],
+      "env": {
+        "PYTHONPATH": "/home/graham/workspace/experiments/cc_executor/src"
+      }
+    },
+    "cc-orchestration": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "src/cc_executor/servers/mcp_cc_execute.py"
+      ],
+      "env": {
+        "CC_EXECUTOR_PORT": "8005"
+      }
+    }
+  }
+}
