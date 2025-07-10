@@ -374,10 +374,9 @@ class WebSocketHandler:
             # F6: Remove logging of sensitive data - don't log API key information
             # Check environment silently without logging sensitive info
             
-            # TEMPORARY FIX: Disable hooks to prevent hanging
-            # The hook system uses blocking subprocess.run() which hangs the async event loop
-            # TODO: Fix hook system to use async subprocess execution
-            if False and self.hooks and self.hooks.enabled:
+            # Hook system fixed: Redis check is now deferred to prevent blocking
+            # The issue was synchronous Redis.ping() in initialize() blocking the event loop
+            if self.hooks and self.hooks.enabled:
                 try:
                     # First try hook-based complexity analysis with timeout
                     try:

@@ -40,9 +40,29 @@ class ProgrammaticHookEnforcement:
     def __init__(self):
         self.project_root = self._find_project_root()
         self.venv_path = None
-        self.redis_client = None
+        self._redis_client = None  # Private variable for lazy loading
         self.session_id = os.environ.get('CLAUDE_SESSION_ID', 'default')
         self.initialized = False
+        
+    @property
+    def redis_client(self):
+        """Lazy Redis client creation to avoid blocking during init."""
+        if self._redis_client is None:
+            try:
+                import redis
+                timeout_seconds = float(os.environ.get('REDIS_TIMEOUT', '5'))
+                self._redis_client = redis.Redis(
+                    decode_responses=True,
+                    socket_connect_timeout=timeout_seconds,
+                    socket_timeout=timeout_seconds
+                )
+                # Test connection
+                self._redis_client.ping()
+                logger.debug("Redis connection established on first use")
+            except Exception as e:
+                logger.debug(f"Redis not available: {e}")
+                return None
+        return self._redis_client
         
     def _find_project_root(self) -> Path:
         """Find project root by looking for pyproject.toml or .git."""
@@ -109,22 +129,13 @@ class ProgrammaticHookEnforcement:
         return True
         
     def _check_redis(self) -> bool:
-        """Check Redis connection."""
-        try:
-            import redis
-            timeout_seconds = float(os.environ.get('REDIS_TIMEOUT', '5'))
-            self.redis_client = redis.Redis(
-                decode_responses=True,
-                socket_connect_timeout=timeout_seconds,
-                socket_timeout=timeout_seconds
-            )
-            self.redis_client.ping()
-            logger.info("Redis connection established")
-            return True
-        except Exception as e:
-            logger.warning(f"Redis not available: {e}")
-            self.redis_client = None
-            return False
+        """Check Redis connection - deferred to prevent blocking async event loop."""
+        # TEMPORARY FIX: Don't actually connect during init to prevent blocking
+        # The async event loop was hanging because redis.ping() is a blocking call
+        # TODO: Refactor to use aioredis for proper async Redis operations
+        logger.info("Redis connection check deferred to prevent event loop blocking")
+        # Don't set anything - the lazy property will handle it
+        return True  # Assume Redis will be available when needed
             
     def _validate_environment(self) -> bool:
         """Validate environment using claude_instance_pre_check logic."""

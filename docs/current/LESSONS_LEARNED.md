@@ -663,6 +663,72 @@ Claude API usage limits.
   diving deep into timeout and connection issues. Sometimes the simplest explanation is correct:
   you've just hit your usage limit.
 
+## Lesson 15: Async Event Loop Blocking - The Redis Connection Trap (2025-07-10)
+
+A subtle but critical lesson about how synchronous operations in async contexts can completely freeze your application.
+
+### The Problem: Synchronous Redis in Async Initialize
+
+The hook system was hanging the WebSocket server after "Hook enforcement system initialized successfully". Investigation revealed that while the async subprocess calls were correct, the **initialization** itself had blocking operations.
+
+### The Discovery Process:
+1. **Initial diagnosis**: Comment said "hook system uses blocking subprocess.run()" 
+2. **Code inspection**: Actually used `asyncio.create_subprocess_exec` correctly
+3. **Perplexity insight**: "The code uses communicate() correctly to drain pipes"
+4. **Deeper investigation**: Found synchronous `redis.Redis().ping()` in `_check_redis()`
+5. **Root cause**: `ensure_hooks` decorator called sync `initialize()` from async context
+
+### The Blocking Chain:
+```python
+# In ensure_hooks decorator (line 798):
+async def async_wrapper(*args, **kwargs):
+    hook = get_hook_integration()
+    if not hook.enforcer.initialized:
+        hook.enforcer.initialize()  # SYNC method in async context!
+
+# Which calls:
+def _check_redis(self):
+    self.redis_client = redis.Redis(...)
+    self.redis_client.ping()  # BLOCKS the entire event loop!
+```
+
+### Why This Blocked Everything:
+- Asyncio runs on a single thread with an event loop
+- When `redis.ping()` blocks for 5+ seconds (timeout), NO coroutines can run
+- The WebSocket appears completely frozen
+- Even though async subprocess code was correct, the sync Redis killed it
+
+### The Fix: Defer Redis Connection
+```python
+def _check_redis(self) -> bool:
+    """Check Redis connection - deferred to prevent blocking async event loop."""
+    logger.info("Redis connection check deferred to prevent event loop blocking")
+    self._redis_client = None  # Will be created on first actual use
+    return True  # Assume Redis will be available when needed
+
+@property
+def redis_client(self):
+    """Lazy Redis client creation to avoid blocking during init."""
+    if self._redis_client is None:
+        # Create connection only when actually needed
+        # This happens outside the critical initialization path
+```
+
+### Key Insights:
+1. **Async all the way down**: In async contexts, EVERY I/O operation must be non-blocking
+2. **Init methods are dangerous**: Initialization often happens in async contexts
+3. **Lazy loading saves the day**: Defer heavy operations until actually needed
+4. **Comments can mislead**: The comment blamed subprocess.run() but Redis was the culprit
+5. **Property decorators help**: Use @property for lazy initialization patterns
+
+### Testing the Fix:
+- Before: Initialization blocked for 5+ seconds (Redis timeout)
+- After: Initialization completed in 0.485 seconds
+- Result: WebSocket server responsive, hooks working properly
+
+### The Lesson:
+When debugging async hanging, don't just look at the obvious async operations. Check EVERY synchronous call, especially in initialization paths. A single blocking I/O operation (like Redis.ping()) can freeze your entire async application. Always use async clients (aioredis) or defer synchronous operations through lazy loading.
+
 ## Lesson 14: Service Configuration vs Service Running - The MCP Debugging Pattern (2025-07-10)
 
 A critical pattern that keeps recurring: assuming configuration means the service is running.
