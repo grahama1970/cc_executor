@@ -4,6 +4,12 @@
 
 ## 🚀 Quick Start: Choose Your Path
 
+### ⚡ Claude Max Plan Users
+**[Quick Start Guide](docs/QUICK_START_CLAUDE_MAX.md)** - Get running in 2 minutes!
+- No API keys needed
+- Special authentication handling
+- Docker deployment guide
+
 ### 🐍 Path 1: Python Developers
 **"I want to call Claude from my Python code"**
 
@@ -195,6 +201,11 @@ Advanced Usage:
 > - `examples/medium/` - Concurrent execution patterns
 > - `examples/advanced/` - Production patterns with mixed execution
 > - `docs/GAMIFICATION_EXPLAINED.md` - Understanding self-improving features
+> 
+> **Claude Max Plan?** See:
+> - `docs/QUICK_START_CLAUDE_MAX.md` - 2-minute setup
+> - `docs/DEPLOYMENT_GUIDE_CLAUDE_MAX.md` - Complete guide
+> - `docs/CLAUDE_MAX_AUTHENTICATION_FIX.md` - Troubleshooting
 
 ### For Advanced Users - Full Workflow Example
 

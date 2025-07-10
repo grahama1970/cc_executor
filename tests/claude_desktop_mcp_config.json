@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "cc-executor": {
+      "command": "/home/graham/workspace/experiments/cc_executor/.venv/bin/python",
+      "args": [
+        "-m",
+        "cc_executor.servers.mcp_cc_execute"
+      ],
+      "cwd": "/home/graham/workspace/experiments/cc_executor",
+      "env": {
+        "PYTHONPATH": "/home/graham/workspace/experiments/cc_executor/src"
+      }
+    }
+  }
+}

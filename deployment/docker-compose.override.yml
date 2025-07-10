@@ -1,0 +1,6 @@
+services:
+  cc_execute:
+    user: "1000:1000"
+    environment:
+      # Claude Max Plan - no API key needed
+      ANTHROPIC_API_KEY: ""

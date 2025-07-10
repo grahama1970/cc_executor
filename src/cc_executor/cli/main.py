@@ -927,9 +927,17 @@ def config_validate():
         server_info = "Not running"
     checks.append(("WebSocket Server", server_check, server_info))
     
-    # Check API keys
+    # Check authentication
     anthropic_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    checks.append(("ANTHROPIC_API_KEY", anthropic_key, "Set" if anthropic_key else "Not set"))
+    claude_creds = os.path.exists(os.path.expanduser("~/.claude/.credentials.json"))
+    auth_ok = anthropic_key or claude_creds
+    auth_details = []
+    if claude_creds:
+        auth_details.append("Claude Max")
+    if anthropic_key:
+        auth_details.append("API Key")
+    auth_status = " + ".join(auth_details) if auth_details else "Not configured"
+    checks.append(("Authentication", auth_ok, auth_status))
     
     # Display results
     table = Table(title="Configuration Validation")
@@ -988,8 +996,10 @@ def init_environment():
         console.print("\n[yellow]No .env file found. Creating template...[/yellow]")
         env_template = """# CC Executor Environment Configuration
 
-# API Keys
-ANTHROPIC_API_KEY=your_key_here
+# Authentication
+# Claude Max Plan: Uses ~/.claude/.credentials.json automatically
+# API Key users: Uncomment and set the following
+# ANTHROPIC_API_KEY=your_key_here
 # OPENAI_API_KEY=your_key_here
 
 # Redis Configuration

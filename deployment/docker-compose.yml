@@ -36,6 +36,11 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
       - ~/.claude:/home/appuser/.claude
+    # For Claude Max Plan users, add one of these options:
+    # Option 1: Run as your user (recommended)
+    # user: "${UID:-1000}:${GID:-1000}"
+    # Option 2: Use host network for auth
+    # network_mode: host
     restart: unless-stopped
     depends_on:
       redis:
