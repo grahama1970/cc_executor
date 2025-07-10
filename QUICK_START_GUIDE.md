@@ -38,36 +38,64 @@ CC Executor now provides a simple Python API for both single tasks and workflows
 
 ```python
 from cc_executor.client.cc_execute import cc_execute
+import asyncio
 
 # Single task (simple string response)
-result = cc_execute("Create a Python function to calculate fibonacci")
-print(result)
+async def example():
+    result = await cc_execute("Create a Python function to calculate fibonacci")
+    print(result)
+
+asyncio.run(example())
 
 # Single task with JSON mode (structured response)
-result = cc_execute(
-    "Create a FastAPI endpoint for user registration",
-    json_mode=True  # Returns dict with 'result', 'files_created', etc.
-)
-print(f"Files created: {result['files_created']}")
-print(f"Summary: {result['summary']}")
+async def json_example():
+    result = await cc_execute(
+        "Create a FastAPI endpoint for user registration",
+        json_mode=True  # Returns dict with 'result', 'files_created', etc.
+    )
+    print(f"Files created: {result['files_created']}")
+    print(f"Summary: {result['summary']}")
 
-# For multi-task workflows, use the orchestrator pattern
-tasks = [
-    "Task 1: Create a FastAPI project structure with user authentication",
-    "Task 2: Set up SQLAlchemy models for users and sessions",
-    "Task 3: Implement JWT authentication endpoints",
-    "Task 4: Add middleware for auth validation",
-    "Task 5: Create unit tests for all auth endpoints"
-]
+asyncio.run(json_example())
 
-# Execute all tasks sequentially
-results = cc_execute_task_list(tasks)
+# For multi-task workflows
+from cc_executor.client.cc_execute import cc_execute_task_list
 
-# Check results
-for i, result in enumerate(results):
-    status = "✅" if result['exit_code'] == 0 else "❌"
-    print(f"{status} Task {i+1}: {result['task'][:50]}...")
+async def task_list_example():
+    tasks = [
+        "Task 1: Create a FastAPI project structure with user authentication",
+        "Task 2: Set up SQLAlchemy models for users and sessions",
+        "Task 3: Implement JWT authentication endpoints",
+        "Task 4: Add middleware for auth validation",
+        "Task 5: Create unit tests for all auth endpoints"
+    ]
+    
+    # Execute all tasks sequentially
+    results = await cc_execute_task_list(tasks)
+    
+    # Check results (results is a list of strings)
+    for i, result in enumerate(results):
+        # Truncate long results for display
+        display_result = result if len(result) < 50 else result[:50] + "..."
+        print(f"✅ Task {i+1} completed: {display_result}")
+
+asyncio.run(task_list_example())
 ```
+
+## Recent Updates (v1.3.0)
+
+### 🧠 Intelligent Timeout Prediction (Now Default!)
+- **RedisTaskTimer**: Sophisticated ML-style timeout prediction is now the default
+- **Task Classification**: Automatically categorizes tasks (calculation, code, data, general, file)
+- **Complexity Assessment**: Determines task complexity (trivial, low, medium, high, extreme)
+- **Historical Learning**: Learns from past executions to improve timeout predictions
+- **90th Percentile**: Uses outlier-resistant calculations for reliable timeouts
+- **System Load Awareness**: Adjusts timeouts based on current system load
+
+### 🧹 Project Cleanup
+- Temporary files moved to `archive/temp_files_20250109/`
+- Cleaner project root for better maintainability
+- All core functionality preserved
 
 ## Basic Usage - Task List Execution
 
@@ -75,12 +103,12 @@ for i, result in enumerate(results):
 
 ```python
 import asyncio
-from cc_executor import WebSocketClient
+from cc_executor.client.client import WebSocketClient
 
 async def execute_task_list(task_list_path: str):
     """Execute a multi-step task list maintaining context."""
-    client = WebSocketClient()
-    await client.connect()
+    # WebSocketClient connects to an already-running server
+    client = WebSocketClient(host="localhost", port=8003)
     
     # Execute each task in sequence with fresh context
     tasks = [
@@ -105,7 +133,6 @@ async def execute_task_list(task_list_path: str):
             print(f"❌ Task {i} failed")
             break
     
-    await client.disconnect()
     return results
 
 # Execute a complete workflow
@@ -117,17 +144,16 @@ print(f"✅ Completed {len(results)} tasks")
 
 ```python
 import asyncio
-from cc_executor.client import WebSocketClient
+from cc_executor.client.client import WebSocketClient
 
 async def main():
-    client = WebSocketClient()
-    await client.connect()
+    # Connect to running server
+    client = WebSocketClient(host="localhost", port=8003)
     
-    # Execute command
+    # Execute command via WebSocket
     result = await client.execute_command("echo 'Hello World'")
     print(f"Exit code: {result['exit_code']}")
-    
-    await client.disconnect()
+    print(f"Output: {result['output_data']}")
 
 asyncio.run(main())
 ```
@@ -161,7 +187,7 @@ cc-executor server status
 ## Minimal Setup Requirements
 
 1. **Python 3.10+**
-2. **Redis** (optional, will fallback to in-memory if not available)
+2. **Redis** (recommended for timeout prediction, will fallback to simple estimates if not available)
 3. **Claude Code** (cc-executor calls the Claude CLI under the hood)
 
 ## Environment Variables (Optional)
@@ -209,9 +235,11 @@ cc-executor server start
 
 No complex configuration needed. CC Executor handles:
 - ✅ Automatic UUID4 anti-hallucination hooks
+- ✅ Intelligent timeout prediction with RedisTaskTimer (default)
 - ✅ Token limit detection and retry
 - ✅ Session management with Redis fallback
 - ✅ Process control and streaming output
+- ✅ Task execution history tracking and learning
 
 ## Examples
 

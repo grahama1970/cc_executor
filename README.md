@@ -44,7 +44,7 @@ cc-executor start
 - **Streaming support** - Real-time output as tasks execute
 - **JSON response mode** - Structured responses for programmatic use
 - **Assessment reports** - Detailed execution reports with verification
-- **Redis timeout estimation** - Smart timeout prediction based on task history
+- **Intelligent timeout prediction** - RedisTaskTimer with ML-style learning (default)
 - **No ANTHROPIC_API_KEY needed** - Uses browser authentication
 - **Token limit protection** - Auto-truncates prompts exceeding 190k tokens
 - **Rate limit retry** - Automatic retry with exponential backoff using tenacity
@@ -194,9 +194,18 @@ Task 4: Apply improvements and test → Final iteration
 - **Worker Claudes**: Fresh 200K context each, focused on single tasks
 - **WebSocket**: Forces orchestrator to wait between spawning instances
 
-## Recent Improvements (v1.2.0)
+## Recent Improvements (v1.3.0)
 
-### 🎯 New Reliability Features
+### 🧠 Intelligent Timeout Prediction (Now Default!)
+- **RedisTaskTimer**: Sophisticated ML-style timeout prediction is now the default system
+- **Automatic Classification**: Tasks categorized as calculation, code, data, general, or file operations
+- **Complexity Analysis**: Determines task complexity from trivial to extreme
+- **Historical Learning**: Builds knowledge from past executions to improve predictions
+- **90th Percentile Calculations**: Outlier-resistant predictions for reliability
+- **System Load Awareness**: Dynamic adjustments based on current system performance
+- **Redis Integration**: Execution times automatically saved for continuous improvement
+
+### 🎯 Enhanced Reliability Features (v1.2.0)
 - **Token limit protection**: Automatically truncates prompts exceeding 190k tokens to prevent failures
 - **Rate limit retry**: Automatic retry with exponential backoff (5-60s) using tenacity
 - **Ambiguous prompt detection**: Warns about problematic prompts before execution
@@ -208,10 +217,12 @@ Task 4: Apply improvements and test → Final iteration
 - **Industry-standard API**: Migrated from `return_json` to `json_mode` parameter (matching OpenAI/LiteLLM conventions)
 - **Robust JSON parsing**: Automatic handling of markdown-wrapped JSON and malformed responses with `clean_json_string`
 
-### 🧹 Project Cleanup
+### 🧹 Project Cleanup (v1.3.0)
+- **Temporary files archived**: All test scripts and temporary files moved to `archive/temp_files_20250109/`
 - **43 unreferenced files archived**: Cleaner, more maintainable codebase
 - **Duplicate implementations removed**: Single canonical source for each component
 - **Test structure reorganized**: Clear separation of unit, integration, and proof-of-concept tests
+- **Clean project root**: Only essential configuration and documentation files remain
 
 ### 🔍 Validation Feature
 - **validation_prompt parameter**: Spawn fresh Claude instance to validate results
