@@ -663,6 +663,94 @@ Claude API usage limits.
   diving deep into timeout and connection issues. Sometimes the simplest explanation is correct:
   you've just hit your usage limit.
 
+## Lesson 14: Service Configuration vs Service Running - The MCP Debugging Pattern (2025-07-10)
+
+A critical pattern that keeps recurring: assuming configuration means the service is running.
+
+### The Problem: "It's Configured So It Should Work"
+
+The cc-execute MCP server was configured in `.mcp.json` but agents couldn't use it. We spent hours debugging integration, tool prefixes, and registration when the issue was simple: **the server wasn't running**.
+
+### The Pattern We Keep Hitting:
+
+1. **Configuration exists** → We assume it works
+2. **Service isn't running** → So it doesn't work  
+3. **We debug complex issues** → When the fix is "start/reload the service"
+
+### Examples from This Project:
+
+- **MCP Server**: Configured in `.mcp.json` but not running until Claude Code reload
+- **Docker Auth**: Configured but wrong permissions until container restart
+- **WebSocket**: Running but wrong message format until we checked actual protocol
+- **Redis**: Connected but wrong password until we verified with `redis-cli`
+
+### The Basic Competent Minimum Checklist:
+
+```bash
+# 1. Is it actually running?
+ps aux | grep [service_name]
+pgrep -f [service_name]
+
+# 2. Can we connect to it?
+curl http://localhost:PORT/health
+telnet localhost PORT
+nc -zv localhost PORT
+
+# 3. Are permissions correct?
+ls -la [config_files]
+docker exec [container] whoami
+
+# 4. Is it the right version/format?
+[service] --version
+curl -X POST [endpoint] -d '{"test": "data"}'
+```
+
+### The "Reload Fixes It" Pattern:
+
+| Service Type | Reload Command | When Needed |
+|--------------|----------------|-------------|
+| MCP Servers | Reload Claude Code | After .mcp.json changes |
+| Docker | `docker compose restart` | After docker-compose.yml changes |
+| System Services | `systemctl reload [service]` | After config file changes |
+| WebSocket Servers | Kill and restart process | After code changes |
+
+### Documentation Template for Every Service:
+
+```markdown
+## [Service Name]
+
+### How to Start
+```bash
+[exact command to start service]
+```
+
+### How to Verify Running
+```bash
+[command to check if running]
+[command to test connectivity]
+```
+
+### How to Reload/Restart
+```bash
+[command to reload after config changes]
+```
+
+### Required Permissions
+- File: [path] needs [permissions]
+- User: Runs as [user]
+- Ports: Listens on [ports]
+```
+
+### The Lesson:
+
+Before debugging complex integration issues, always verify the basics:
+1. **Is it running?** (process check)
+2. **Can I connect?** (network check)
+3. **Do I have permission?** (auth check)
+4. **Is it the right format?** (protocol check)
+
+The fix is often just "reload the service" - but we need to check first. Configuration is not execution.
+
 ## Lesson 13: Claude Code MCP Configuration - Global vs Project Config (2025-07-05)
 
 A critical lesson about how Claude Code loads MCP server configurations.
