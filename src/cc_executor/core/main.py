@@ -31,27 +31,14 @@ from fastapi import FastAPI, WebSocket
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-try:
-    from .config import (
-        SERVICE_NAME, SERVICE_VERSION, DEFAULT_PORT,
-        LOG_LEVEL, LOG_FORMAT, DEBUG_MODE
-    )
-    from .session_manager import SessionManager
-    from .process_manager import ProcessManager
-    from .stream_handler import StreamHandler
-    from .websocket_handler import WebSocketHandler
-except ImportError:
-    # For standalone execution
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from config import (
-        SERVICE_NAME, SERVICE_VERSION, DEFAULT_PORT,
-        LOG_LEVEL, LOG_FORMAT, DEBUG_MODE
-    )
-    from session_manager import SessionManager
-    from process_manager import ProcessManager
-    from stream_handler import StreamHandler
-    from websocket_handler import WebSocketHandler
+from .config import (
+    SERVICE_NAME, SERVICE_VERSION, DEFAULT_PORT,
+    LOG_LEVEL, LOG_FORMAT, DEBUG_MODE
+)
+from .session_manager import SessionManager
+from .process_manager import ProcessManager
+from .stream_handler import StreamHandler
+from .websocket_handler import WebSocketHandler
 
 
 # Configure logging
@@ -210,13 +197,12 @@ if __name__ == "__main__":
     """
     import json
     import os
-    from usage_helper import OutputCapture
     
     # Check if being run with --server flag to start actual server
     if len(sys.argv) > 1 and "--server" in sys.argv:
         main()
     else:
-        with OutputCapture(__file__) as capture:
+        try:
             print("=== CC Executor Main Service Usage ===\n")
             
             # Test 1: Service configuration
@@ -285,3 +271,5 @@ if __name__ == "__main__":
             print("  python main.py --server --port 8003")
             print("\nFor full integration tests:")
             print("  python examples/test_websocket_handler.py")
+        except Exception as e:
+            print(f"Error during usage demonstration: {e}")

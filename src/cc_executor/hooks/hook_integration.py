@@ -29,15 +29,8 @@ from contextlib import contextmanager
 
 # Import hook modules for direct execution
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-try:
-    from setup_environment import find_venv_path, setup_environment_vars, create_activation_wrapper
-    from claude_instance_pre_check import EnvironmentValidator
-except ImportError:
-    logger.warning("Could not import hook modules - some features will be limited")
-    find_venv_path = None
-    setup_environment_vars = None
-    create_activation_wrapper = None
-    EnvironmentValidator = None
+from setup_environment import find_venv_path, setup_environment_vars, create_activation_wrapper
+from claude_instance_pre_check import EnvironmentValidator
 
 
 class ProgrammaticHookEnforcement:
@@ -96,28 +89,23 @@ class ProgrammaticHookEnforcement:
             return True
             
         # Find project venv
-        if find_venv_path:
-            venv_path = find_venv_path(str(self.project_root))
-            if not venv_path:
-                logger.error("No .venv directory found in project hierarchy")
-                return False
-                
-            self.venv_path = venv_path
-            
-            # Update environment variables
-            if setup_environment_vars:
-                env_updates = setup_environment_vars(venv_path)
-                for key, value in env_updates.items():
-                    if value:
-                        os.environ[key] = value
-                    else:
-                        os.environ.pop(key, None)
-                        
-            logger.info(f"Virtual environment configured: {venv_path}")
-            return True
-        else:
-            logger.warning("Hook modules not available - cannot ensure venv")
+        venv_path = find_venv_path(str(self.project_root))
+        if not venv_path:
+            logger.error("No .venv directory found in project hierarchy")
             return False
+            
+        self.venv_path = venv_path
+        
+        # Update environment variables
+        env_updates = setup_environment_vars(venv_path)
+        for key, value in env_updates.items():
+            if value:
+                os.environ[key] = value
+            else:
+                os.environ.pop(key, None)
+                
+        logger.info(f"Virtual environment configured: {venv_path}")
+        return True
         
     def _check_redis(self) -> bool:
         """Check Redis connection."""

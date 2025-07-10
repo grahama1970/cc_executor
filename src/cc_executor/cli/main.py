@@ -21,6 +21,8 @@ import asyncio
 import json
 import sys
 import os
+import time
+import signal
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Callable
 from datetime import datetime
@@ -43,6 +45,8 @@ from cc_executor.core.config import (
     MAX_SESSIONS, SESSION_TIMEOUT, MAX_BUFFER_SIZE,
     STREAM_TIMEOUT, LOG_LEVEL, DEBUG_MODE
 )
+# Import ServerManager for proper process management
+from cc_executor.utils.server_manager import ServerManager
 
 # Initialize Typer app
 app = typer.Typer(
@@ -88,153 +92,222 @@ def with_hooks(command_name: str):
 # SERVER COMMANDS WITH HOOKS
 # ============================================
 
+# Define paths for PID and log files
+PID_FILE = "/tmp/cc_executor.pid"
+LOG_FILE = "/tmp/cc_executor_local.log"
+
 @server_app.command("start")
 @with_hooks("server.start")
 def server_start(
     port: int = typer.Option(8003, "--port", "-p", help="Port to listen on"),
-    host: str = typer.Option("0.0.0.0", "--host", "-h", help="Host to bind to"),
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
-    background: bool = typer.Option(False, "--background", "-b", help="Run in background"),
-    hooks: Optional[str] = typer.Option(None, "--hooks", help="Additional hooks to load")
+    background: bool = typer.Option(True, "--background", "-b", help="Run in background (default: True)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force kill existing processes")
 ):
-    """Start the CC Executor WebSocket server with hook support."""
-    console.print(f"[bold green]Starting CC Executor server on {host}:{port}[/bold green]")
+    """Start the CC Executor WebSocket server as a daemon."""
+    # Initialize server manager for cleanup
+    manager = ServerManager(server_name="cc_executor", default_port=port)
     
-    # Load additional hooks if specified
-    if hooks:
-        console.print(f"[yellow]Hook loading not yet implemented[/yellow]")
+    console.print(f"[bold blue]Preparing to start CC Executor on {host}:{port}[/bold blue]")
     
-    # Ensure we're in the right environment
-    env = os.environ.copy()
-    if 'VIRTUAL_ENV' not in env:
-        venv_path = Path(__file__).parents[4] / ".venv"
-        if venv_path.exists():
-            env['VIRTUAL_ENV'] = str(venv_path)
-            env['PATH'] = f"{venv_path}/bin:{env['PATH']}"
+    # Find and kill existing processes
+    existing = manager.find_server_processes()
+    if existing:
+        console.print(f"[yellow]Found {len(existing)} existing server process(es)[/yellow]")
+        for proc in existing:
+            console.print(f"  PID: {proc['pid']}, Age: {proc['age']/60:.1f} minutes")
+        
+        if force or typer.confirm("Kill existing processes?"):
+            killed = asyncio.run(manager.kill_server_processes(force=force))
+            console.print(f"[green]✓ Killed {killed} process(es)[/green]")
+        else:
+            console.print("[red]✗ Cannot start with existing processes running[/red]")
+            raise typer.Exit(1)
     
-    # Set debug mode
-    if debug:
-        env['DEBUG'] = 'true'
-        env['LOG_LEVEL'] = 'DEBUG'
-    
-    # Build command
-    cmd = [
-        sys.executable,
-        "-m", "cc_executor.core.main",
-        "--port", str(port),
-        "--host", host,
-        "--server"  # Add server flag to prevent usage function
-    ]
-    
-    if background:
-        # Run in background using subprocess
+    # Check if already running via PID file
+    pid_file = Path(PID_FILE)
+    if pid_file.exists():
         try:
-            # Use proper process group management
+            old_pid = int(pid_file.read_text().strip())
+            # Check if process is actually running
+            os.kill(old_pid, 0)
+            if not force:
+                console.print(f"[yellow]Server already running (PID: {old_pid})[/yellow]")
+                raise typer.Exit(1)
+            else:
+                console.print(f"[yellow]Stopping existing server (PID: {old_pid})[/yellow]")
+                os.kill(old_pid, signal.SIGTERM)
+                time.sleep(2)
+        except (ProcessLookupError, ValueError):
+            # Process doesn't exist or PID file is corrupt
+            pid_file.unlink(missing_ok=True)
+    
+    # Start the server
+    if background:
+        # Simple subprocess with proper detachment
+        log_dir = Path.home() / ".cc_executor"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / "server.log"
+        
+        cmd = [
+            sys.executable,
+            "-m", "uvicorn",
+            "cc_executor.core.main:app",
+            "--host", host,
+            "--port", str(port)
+        ]
+        
+        # Open log file for appending
+        with open(log_file, 'a') as log_f:
+            # Start process with proper detachment
             process = subprocess.Popen(
                 cmd,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True,
-                preexec_fn=os.setsid if hasattr(os, 'setsid') else None
+                stdout=log_f,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,  # This creates a new session, detaching from parent
+                cwd=str(Path(__file__).parents[3])  # Project root
             )
-            console.print(f"[green]✓[/green] Server started in background (PID: {process.pid})")
-            
-            # Save PID for later
-            pid_file = Path.home() / ".cc_executor.pid"
-            pid_file.write_text(str(process.pid))
-            
-            # Save server info to Redis
-            try:
-                r = redis.Redis(decode_responses=True)
-                r.hset("cc_executor:server", mapping={
-                    "pid": process.pid,
-                    "host": host,
-                    "port": port,
-                    "started_at": datetime.now().isoformat()
-                })
-            except:
-                pass  # Redis optional for server start
-            
-        except Exception as e:
-            console.print(f"[red]✗[/red] Failed to start server: {e}")
+        
+        # Save PID
+        pid_file = Path(PID_FILE)
+        pid_file.write_text(str(process.pid))
+        
+        # Give it a moment to start
+        time.sleep(2)
+        
+        # Check if it started successfully
+        if process.poll() is None:
+            console.print(f"[green]✓ Server started in background (PID: {process.pid})[/green]")
+            console.print(f"  WebSocket URL: ws://{host}:{port}/ws/mcp")
+            console.print(f"  Log file: {log_file}")
+        else:
+            console.print(f"[red]✗ Server failed to start[/red]")
+            console.print(f"  Check log file: {log_file}")
             raise typer.Exit(1)
     else:
-        # Run in foreground
+        # Run in foreground - just use uvicorn directly
+        console.print(f"[bold green]Starting server in foreground on {host}:{port}[/bold green]")
         try:
-            subprocess.run(cmd, env=env)
+            import uvicorn
+            from cc_executor.core.main import app
+            uvicorn.run(app, host=host, port=port)
         except KeyboardInterrupt:
             console.print("\n[yellow]Server stopped by user[/yellow]")
         except Exception as e:
-            console.print(f"[red]✗[/red] Server error: {e}")
+            console.print(f"[red]✗ Server error: {e}[/red]")
             raise typer.Exit(1)
 
 
 @server_app.command("stop")
 @with_hooks("server.stop")
-def server_stop():
-    """Stop the CC Executor server running in background."""
-    pid_file = Path.home() / ".cc_executor.pid"
+def server_stop(
+    force: bool = typer.Option(False, "--force", "-f", help="Force kill processes")
+):
+    """Stop the CC Executor WebSocket server."""
+    pid_file = Path(PID_FILE)
     
-    if not pid_file.exists():
-        console.print("[yellow]No server PID file found[/yellow]")
-        raise typer.Exit(1)
-    
-    try:
-        pid = int(pid_file.read_text().strip())
-        
-        # Kill process group to ensure all children are terminated
-        if hasattr(os, 'killpg') and hasattr(os, 'getpgid'):
-            try:
-                pgid = os.getpgid(pid)
-                os.killpg(pgid, 15)  # SIGTERM
-            except:
-                os.kill(pid, 15)  # Fallback to single process
-        else:
-            os.kill(pid, 15)
-            
-        pid_file.unlink()
-        console.print(f"[green]✓[/green] Server stopped (PID: {pid})")
-        
-        # Clear Redis info
+    # First try to stop via PID file
+    if pid_file.exists():
         try:
-            r = redis.Redis(decode_responses=True)
-            r.delete("cc_executor:server")
-        except:
-            pass
-            
-    except ProcessLookupError:
-        console.print("[yellow]Server not running[/yellow]")
-        pid_file.unlink()
-    except Exception as e:
-        console.print(f"[red]✗[/red] Failed to stop server: {e}")
-        raise typer.Exit(1)
+            pid = int(pid_file.read_text().strip())
+            os.kill(pid, signal.SIGTERM)
+            console.print(f"[green]✓ Stopped server (PID: {pid})[/green]")
+            pid_file.unlink()
+        except (ProcessLookupError, ValueError):
+            console.print("[yellow]Server PID file exists but process not found[/yellow]")
+            pid_file.unlink(missing_ok=True)
+    
+    # Also use ServerManager to clean up any stray processes
+    manager = ServerManager(server_name="cc_executor")
+    existing = manager.find_server_processes()
+    if existing:
+        console.print(f"[yellow]Found {len(existing)} additional process(es)[/yellow]")
+        killed = asyncio.run(manager.kill_server_processes(force=force))
+        if killed:
+            console.print(f"[green]✓ Cleaned up {killed} stray process(es)[/green]")
 
 
 @server_app.command("status")
 @with_hooks("server.status")
 def server_status():
-    """Check server status with detailed information."""
-    import requests
+    """Check the status of the CC Executor server."""
+    pid_file = Path(PID_FILE)
+    is_running = False
     
     # Check PID file
-    pid_file = Path.home() / ".cc_executor.pid"
     if pid_file.exists():
-        pid = pid_file.read_text().strip()
-        console.print(f"[dim]PID file found: {pid}[/dim]")
+        try:
+            pid = int(pid_file.read_text().strip())
+            os.kill(pid, 0)  # Signal 0 doesn't kill, just checks
+            console.print(f"[green]✓ Server is running (PID: {pid})[/green]")
+            is_running = True
+        except (ProcessLookupError, ValueError):
+            console.print("[yellow]Server PID file exists but process not found[/yellow]")
+            pid_file.unlink(missing_ok=True)
     
-    # Check Redis for server info
-    try:
-        r = redis.Redis(decode_responses=True)
-        server_info = r.hgetall("cc_executor:server")
-        if server_info:
-            console.print("[dim]Redis server info:[/dim]")
-            for key, value in server_info.items():
-                console.print(f"  {key}: {value}")
-    except:
-        pass
+    # Also check with ServerManager for additional info
+    manager = ServerManager(server_name="cc_executor")
+    processes = manager.find_server_processes()
+    
+    if processes:
+        console.print(f"\n[bold]Process info:[/bold]")
+        for proc in processes:
+            console.print(f"  PID: {proc['pid']}, Command: {' '.join(proc['cmdline'][:3])}...")
+            console.print(f"  Age: {proc['age']/60:.1f} minutes")
+    elif not is_running:
+        console.print("[yellow]Server is not running[/yellow]")
+    
+    return is_running
+
+
+@server_app.command("restart")
+@with_hooks("server.restart")
+def server_restart(
+    port: int = typer.Option(8003, "--port", "-p", help="Port to listen on"),
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind to"),
+    background: bool = typer.Option(True, "--background", "-b", help="Run in background"),
+    force: bool = typer.Option(True, "--force", "-f", help="Force kill existing processes")
+):
+    """Restart the CC Executor server."""
+    # Stop existing server
+    server_stop(force=force)
+    time.sleep(1)  # Give it a moment to fully stop
+    
+    # Start new server
+    server_start(port=port, host=host, background=background, force=force)
+    """Show status of CC Executor processes."""
+    import requests
+    
+    # Use ServerManager to find processes
+    manager = ServerManager(server_name="cc_executor")
+    processes = manager.find_server_processes()
+    
+    if not processes:
+        console.print("[yellow]No CC Executor processes running[/yellow]")
+        
+        # Clean up stale PID file
+        pid_file = Path.home() / ".cc_executor.pid"
+        if pid_file.exists():
+            console.print("[dim]Cleaning up stale PID file[/dim]")
+            pid_file.unlink()
+    else:
+        console.print(f"[bold]Found {len(processes)} CC Executor process(es):[/bold]")
+        for proc in processes:
+            console.print(f"\n[cyan]Process {proc['pid']}:[/cyan]")
+            console.print(f"  Command: {proc['cmdline']}")
+            console.print(f"  Age: {proc['age']/60:.1f} minutes")
+    
+    # Check ports
+    console.print(f"\n[bold]Port Status:[/bold]")
+    for port in [8003, 8004]:
+        if manager.is_port_in_use(port):
+            console.print(f"  Port {port}: [yellow]IN USE[/yellow]")
+        else:
+            console.print(f"  Port {port}: [green]available[/green]")
     
     # Check health endpoint
+    console.print(f"\n[bold]Health Check:[/bold]")
     try:
         response = requests.get("http://localhost:8003/health", timeout=2)
         if response.status_code == 200:
@@ -270,11 +343,11 @@ Uptime: {data.get('uptime_seconds', 0):.1f}s"""
             
             console.print(Panel(panel_content, title="Server Status"))
         else:
-            console.print("[red]Server returned error status[/red]")
+            console.print("  [red]Server returned error status[/red]")
     except requests.ConnectionError:
-        console.print("[red]✗[/red] Server is not running or not accessible")
+        console.print("  [red]✗ Server is not accessible on port 8003[/red]")
     except Exception as e:
-        console.print(f"[red]✗[/red] Error checking status: {e}")
+        console.print(f"  [red]✗ Error checking health: {e}[/red]")
 
 
 # ============================================

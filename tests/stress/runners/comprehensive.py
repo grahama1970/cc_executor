@@ -32,11 +32,7 @@ import uuid
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(project_root, 'src'))
 
-try:
-    from loguru import logger
-except ImportError:
-    print("Please install loguru: pip install loguru")
-    sys.exit(1)
+from loguru import logger
 
 # Configure logging
 logger.remove()

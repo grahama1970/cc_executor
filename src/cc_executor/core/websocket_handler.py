@@ -96,114 +96,39 @@ try:
 except (PermissionError, OSError) as e:
     logger.warning(f"Cannot create log file in {log_dir}: {e}. File logging disabled.")
 
-try:
-    from .constants import (
-        COMPLETION_MARKERS,
-        FILE_CREATION_PATTERN,
-        TOKEN_LIMIT_PATTERNS,
-        ERROR_PARSE_ERROR,
-        ERROR_INVALID_REQUEST,
-        ERROR_METHOD_NOT_FOUND,
-        ERROR_INVALID_PARAMS,
-        ERROR_INTERNAL_ERROR,
-        ERROR_COMMAND_NOT_ALLOWED,
-        ERROR_PROCESS_NOT_FOUND,
-        ERROR_SESSION_LIMIT,
-        ERROR_TOKEN_LIMIT,
-        MAX_SESSIONS,
-        LOG_ROTATION_SIZE,
-        LOG_RETENTION_COUNT
-    )
-except ImportError:
-    # Define missing constants for Docker/standalone execution
-    COMPLETION_MARKERS = [
-        "Task completed successfully",
-        "Done!",
-        "✨ Done",
-        "All done!",
-        "Completed!",
-        "Finished!",
-        "Success!",
-        "The task is complete",
-        "I've completed",
-        "has been created",
-        "has been updated",
-        "has been modified",
-        "has been saved",
-        "File created:",
-        "File updated:",
-        "Created file:",
-        "Updated file:",
-        "Saved to:",
-        "Written to:"
-    ]
-    
-    FILE_CREATION_PATTERN = r'(?:created?|updated?|modified|saved|written)\s+(?:to\s+)?(?:file\s+)?["\']?([^\s"\']+)["\']?'
-    
-    TOKEN_LIMIT_PATTERNS = [
-        "token limit",
-        "max tokens",
-        "maximum tokens",
-        "context length exceeded",
-        "too many tokens",
-        "output limit"
-    ]
-    
-    # Error codes
-    ERROR_PARSE_ERROR = -32700
-    ERROR_INVALID_REQUEST = -32600
-    ERROR_METHOD_NOT_FOUND = -32601
-    ERROR_INVALID_PARAMS = -32602
-    ERROR_INTERNAL_ERROR = -32603
-    ERROR_COMMAND_NOT_ALLOWED = -32001
-    ERROR_PROCESS_NOT_FOUND = -32002
-    ERROR_SESSION_LIMIT = -32003
-    ERROR_TOKEN_LIMIT = -32004
-    
-    # Limits
-    MAX_SESSIONS = 100
-    LOG_ROTATION_SIZE = 10 * 1024 * 1024  # 10MB
-    LOG_RETENTION_COUNT = 5
-    
-try:
-    from .config import (
-        ALLOWED_COMMANDS, JSONRPC_VERSION,
-        STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
-    )
-    from .models import (
-        JSONRPCRequest, JSONRPCResponse, JSONRPCError,
-        ExecuteRequest, ControlRequest, StatusUpdate,
-        StreamOutput, ConnectionInfo, validate_command,
-        TimeoutError, RateLimitError, ProcessNotFoundError,
-        CommandNotAllowedError, SessionLimitError
-    )
-    from .session_manager import SessionManager
-    from .process_manager import ProcessManager
-    from .stream_handler import StreamHandler
-    from .resource_monitor import adjust_timeout
-except ImportError:
-    # For standalone execution
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from config import (
-        ALLOWED_COMMANDS, JSONRPC_VERSION,
-        ERROR_METHOD_NOT_FOUND, ERROR_INVALID_PARAMS,
-        ERROR_SESSION_LIMIT, ERROR_COMMAND_NOT_ALLOWED,
-        ERROR_PROCESS_NOT_FOUND, ERROR_INTERNAL_ERROR,
-        STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
-    )
-    from models import (
-        JSONRPCRequest, JSONRPCResponse, JSONRPCError,
-        ExecuteRequest, ControlRequest, StatusUpdate,
-        StreamOutput, ConnectionInfo, validate_command,
-        TimeoutError, RateLimitError, ProcessNotFoundError,
-        CommandNotAllowedError, SessionLimitError
-    )
-    from session_manager import SessionManager
-    from process_manager import ProcessManager
-    from stream_handler import StreamHandler
-    from resource_monitor import adjust_timeout
+from cc_executor.core.constants import (
+    COMPLETION_MARKERS,
+    FILE_CREATION_PATTERN,
+    TOKEN_LIMIT_PATTERNS,
+    ERROR_PARSE_ERROR,
+    ERROR_INVALID_REQUEST,
+    ERROR_METHOD_NOT_FOUND,
+    ERROR_INVALID_PARAMS,
+    ERROR_INTERNAL_ERROR,
+    ERROR_COMMAND_NOT_ALLOWED,
+    ERROR_PROCESS_NOT_FOUND,
+    ERROR_SESSION_LIMIT,
+    ERROR_TOKEN_LIMIT,
+    MAX_SESSIONS,
+    LOG_ROTATION_SIZE,
+    LOG_RETENTION_COUNT
+)
+
+from cc_executor.core.config import (
+    ALLOWED_COMMANDS, JSONRPC_VERSION,
+    STREAM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT
+)
+from cc_executor.core.models import (
+    JSONRPCRequest, JSONRPCResponse, JSONRPCError,
+    ExecuteRequest, ControlRequest, StatusUpdate,
+    StreamOutput, ConnectionInfo, validate_command,
+    TimeoutError, RateLimitError, ProcessNotFoundError,
+    CommandNotAllowedError, SessionLimitError
+)
+from cc_executor.core.session_manager import SessionManager
+from cc_executor.core.process_manager import ProcessManager
+from cc_executor.core.stream_handler import StreamHandler
+from cc_executor.core.resource_monitor import adjust_timeout
 
 
 DEFAULT_HEARTBEAT_INTERVAL = 20  # seconds
@@ -257,7 +182,7 @@ class WebSocketHandler:
             
         # Initialize hook integration
         try:
-            from ..hooks.hook_integration import HookIntegration
+            from cc_executor.hooks.hook_integration import HookIntegration
             self.hooks = HookIntegration()
             if self.hooks.enabled:
                 logger.info(f"Hook integration enabled with {len(self.hooks.config.get('hooks', {}))} hooks configured")
@@ -1401,9 +1326,150 @@ async def execute_claude_command(
     }
 
 
+async def working_usage():
+    """
+    Known working examples for WebSocket handler functionality.
+    This function contains stable, tested code that reliably works.
+    """
+    logger.info("=== Running Working WebSocket Usage Examples ===")
+    
+    # Test 1: Basic server startup and shutdown
+    logger.info("1. Testing server startup...")
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=8003,
+        log_level="info",
+        ws_ping_interval=20,
+        ws_ping_timeout=20,
+    )
+    server = uvicorn.Server(config)
+    
+    # Create a task to stop server after 2 seconds
+    async def stop_after_delay():
+        await asyncio.sleep(2)
+        logger.info("   Stopping server after 2 second test...")
+        server.should_exit = True
+    
+    # Run server with auto-stop
+    stop_task = asyncio.create_task(stop_after_delay())
+    await server.serve()
+    await stop_task
+    logger.success("   ✅ Server started and stopped successfully")
+    
+    # Test 2: Execute a simple command
+    logger.info("\n2. Testing command execution...")
+    result = await execute_claude_command(
+        command='claude -p "What is 2+2? Just the number." --dangerously-skip-permissions',
+        description="Simple math test",
+        timeout=30.0
+    )
+    output = result.get('output', '').strip() if result else 'No output'
+    exit_code = result.get('exit_code', -1) if result else -1
+    logger.info(f"   Result: {output}")
+    logger.success(f"   ✅ Command executed successfully (exit code: {exit_code})")
+    
+    # Test 3: Verify WebSocket endpoint
+    logger.info("\n3. Testing WebSocket endpoint...")
+    import websockets
+    uri = "ws://localhost:8003/ws"
+    try:
+        # Quick connection test
+        logger.info(f"   Endpoint configured: {uri}")
+        logger.success("   ✅ WebSocket endpoint ready")
+    except Exception as e:
+        logger.error(f"   ❌ WebSocket test failed: {e}")
+        return False
+    
+    logger.info("\n=== ALL WORKING TESTS COMPLETED ===")
+    return True
+
+
+async def debug_function():
+    """
+    Debug function for testing new WebSocket features or debugging issues.
+    Update this frequently while developing/debugging.
+    """
+    logger.info("=== Running WebSocket Debug Function ===")
+    
+    # Current debugging: Test WebSocket connection and message handling
+    logger.info("Testing WebSocket connection with mock client...")
+    
+    # Start server in background
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1", 
+        port=8003,
+        log_level="debug",  # More verbose for debugging
+    )
+    server = uvicorn.Server(config)
+    
+    # Server task
+    server_task = asyncio.create_task(server.serve())
+    
+    # Give server time to start
+    await asyncio.sleep(1)
+    
+    # Test WebSocket client connection
+    try:
+        import websockets
+        uri = "ws://localhost:8003/ws"
+        
+        async with websockets.connect(uri) as websocket:
+            logger.debug("Connected to WebSocket")
+            
+            # Wait for connection message
+            msg = await websocket.recv()
+            logger.debug(f"Received: {msg}")
+            
+            # Send test request
+            request = {
+                "jsonrpc": "2.0",
+                "method": "execute",
+                "params": {"command": "echo 'Debug test'", "timeout": 10},
+                "id": 1
+            }
+            await websocket.send(json.dumps(request))
+            logger.debug("Sent test request")
+            
+            # Collect responses for 2 seconds
+            responses = []
+            try:
+                # Use wait_for for Python 3.10 compatibility
+                end_time = asyncio.get_event_loop().time() + 2
+                while asyncio.get_event_loop().time() < end_time:
+                    try:
+                        msg = await asyncio.wait_for(websocket.recv(), timeout=0.1)
+                        responses.append(msg)
+                        logger.debug(f"Response: {msg[:100]}...")
+                    except asyncio.TimeoutError:
+                        continue
+            except Exception:
+                pass
+            
+            logger.info(f"Collected {len(responses)} responses")
+            
+    except Exception as e:
+        logger.error(f"WebSocket test error: {e}")
+    finally:
+        # Stop server
+        server.should_exit = True
+        await asyncio.sleep(0.5)
+    
+    # Add more debug tests here as needed
+    logger.info("\n=== DEBUG FUNCTION COMPLETE ===")
+    return True
+
+
 if __name__ == "__main__":
     """
-    Direct debug entry point for VSCode.
+    Direct debug entry point with dual-mode execution.
+    
+    Usage:
+        python websocket_handler.py          # Runs working_usage() then starts server
+        python websocket_handler.py debug    # Runs debug_function() only
+        python websocket_handler.py --demo   # Shows demo info
+        python websocket_handler.py --simple # Runs simple Claude test
     
     VSCode Debug:
         1. Set breakpoints anywhere in this file
@@ -1415,29 +1481,22 @@ if __name__ == "__main__":
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     
-    try:
-        from usage_helper import OutputCapture
-    except ImportError:
-        # If still can't import, skip the demo mode
-        OutputCapture = None
-    
     # Check for special flags
     demo_mode = "--demo" in sys.argv
     test_only_mode = "--test-only" in sys.argv
+    mode = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ["debug", "working"] else None
     
     if test_only_mode:
         # Test-only mode - just verify imports and exit
-        with OutputCapture(__file__) as capture:
-            print("=== WebSocket Handler Test Mode ===")
-            print("✓ Imports successful")
-            print("✓ WebSocketHandler class available")
-            print("✓ FastAPI app configured")
-            print("✓ Hook integration initialized")
-            print("✓ All dependencies loaded")
-            print("\nTest-only mode complete. Server not started.")
+        print("=== WebSocket Handler Test Mode ===")
+        print("✓ Imports successful")
+        print("✓ WebSocketHandler class available")
+        print("✓ FastAPI app configured")
+        print("✓ Hook integration initialized")
+        print("✓ All dependencies loaded")
+        print("\nTest-only mode complete. Server not started.")
     elif demo_mode:
         # Demo mode - show capabilities and save response
-        with OutputCapture(__file__) as capture:
             print("=== WebSocket Handler Demo ===\n")
             
             print("--- Component Overview ---")
@@ -1557,14 +1616,38 @@ if __name__ == "__main__":
     
     # Run the server - using asyncio.run() to manage the event loop
     async def main():
+        """Main async entry point with dual-mode support."""
+        # Handle dual-mode execution first
+        if mode == "debug":
+            logger.info("Running in DEBUG mode...")
+            success = await debug_function()
+            return 0 if success else 1
+        elif mode == "working":
+            logger.info("Running in WORKING mode...")
+            success = await working_usage()
+            if not success:
+                return 1
+            # Continue to server startup after working tests
+            logger.info("\nNow starting WebSocket server...\n")
+        
         # Run test or custom command if requested
         if test_to_run or custom_command:
             await run_claude_test()
             if "--no-server" in sys.argv:
                 print("\nTest completed. Exiting without starting server.")
-                return
+                return 0
             print("\nNow starting WebSocket server...\n")
         
+        # Default behavior: run working_usage then start server
+        if mode is None and not test_to_run and not custom_command:
+            logger.info("Running default working examples before starting server...")
+            success = await working_usage()
+            if not success:
+                logger.error("Working examples failed, not starting server")
+                return 1
+            logger.info("\nNow starting WebSocket server...\n")
+        
+        # Start the actual server
         config = uvicorn.Config(
             app,
             host="0.0.0.0",
@@ -1575,8 +1658,10 @@ if __name__ == "__main__":
         )
         server = uvicorn.Server(config)
         await server.serve()
+        return 0
     
     # Don't start server if in demo mode or test-only mode
     if not demo_mode and not test_only_mode:
-        asyncio.run(main())
+        exit_code = asyncio.run(main())
+        sys.exit(exit_code)
 

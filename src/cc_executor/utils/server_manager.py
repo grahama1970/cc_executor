@@ -59,14 +59,37 @@ class ServerManager:
                 try:
                     # Check if process matches our server
                     cmdline = proc.info.get('cmdline', [])
-                    if cmdline and any(self.server_name in arg for arg in cmdline):
-                        processes.append({
-                            'pid': proc.info['pid'],
-                            'name': proc.info['name'],
-                            'cmdline': ' '.join(cmdline),
-                            'create_time': proc.info['create_time'],
-                            'age': time.time() - proc.info['create_time']
-                        })
+                    if cmdline:
+                        # More specific matching for cc_executor
+                        if self.server_name == "cc_executor":
+                            # Match only actual cc_executor processes
+                            cmdline_str = ' '.join(cmdline)
+                            # Exclude CLI commands like "cc-executor server status"
+                            if "cc-executor server" in cmdline_str:
+                                continue
+                            # Match actual server processes
+                            if any(pattern in cmdline_str for pattern in [
+                                "cc_executor.core.main",
+                                "-m cc_executor",
+                                "python -m uvicorn cc_executor"
+                            ]):
+                                processes.append({
+                                    'pid': proc.info['pid'],
+                                    'name': proc.info['name'],
+                                    'cmdline': cmdline_str,
+                                    'create_time': proc.info['create_time'],
+                                    'age': time.time() - proc.info['create_time']
+                                })
+                        else:
+                            # Generic matching for other servers
+                            if any(self.server_name in arg for arg in cmdline):
+                                processes.append({
+                                    'pid': proc.info['pid'],
+                                    'name': proc.info['name'],
+                                    'cmdline': ' '.join(cmdline),
+                                    'create_time': proc.info['create_time'],
+                                    'age': time.time() - proc.info['create_time']
+                                })
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
                     

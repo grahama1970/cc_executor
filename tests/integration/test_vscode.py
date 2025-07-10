@@ -11,10 +11,7 @@ print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
 print(f"Script location: {__file__}")
 
 # Test import from cc_executor
-try:
-    from cc_executor import __version__
-    print(f"cc_executor version: {__version__}")
-except ImportError as e:
-    print(f"Failed to import cc_executor: {e}")
+from cc_executor import __version__
+print(f"cc_executor version: {__version__}")
 
 print("\nAll checks completed!")

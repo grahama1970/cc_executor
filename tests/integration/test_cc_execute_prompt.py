@@ -12,10 +12,10 @@ from loguru import logger
 
 # Add project root to path
 import sys
-project_root = Path(__file__).resolve().parents[1]
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from src.cc_executor.prompts.cc_execute_utils import execute_task_via_websocket
+from cc_executor.prompts.cc_execute_utils import execute_task_via_websocket
 
 async def test_simple_task():
     """Test executing a simple task via cc_execute prompt."""

@@ -1,0 +1,63 @@
+{
+  "timestamp": "2025-07-09T12:48:49.687884",
+  "tests": {
+    "python_api": [
+      {
+        "name": "Simple calculation",
+        "success": false,
+        "duration": 2.1457672119140625e-06,
+        "error": "cc_execute() got an unexpected keyword argument 'timeout'"
+      },
+      {
+        "name": "List generation",
+        "success": false,
+        "duration": 9.5367431640625e-07,
+        "error": "cc_execute() got an unexpected keyword argument 'timeout'"
+      },
+      {
+        "name": "Error case",
+        "success": false,
+        "duration": 7.152557373046875e-07,
+        "error": "cc_execute() got an unexpected keyword argument 'timeout'"
+      }
+    ],
+    "mcp_local": [
+      {
+        "name": "Server check",
+        "success": false,
+        "error": "Server not responding"
+      }
+    ],
+    "docker": [
+      {
+        "name": "Docker WebSocket",
+        "success": true,
+        "duration": 0.008356571197509766,
+        "result": "{\"detail\":\"Not Found\"}"
+      }
+    ]
+  },
+  "summary": {
+    "python_api": {
+      "total_tests": 3,
+      "successful": 0,
+      "failed": 3,
+      "success_rate": "0.0%",
+      "avg_duration": "0.00s"
+    },
+    "mcp_local": {
+      "total_tests": 1,
+      "successful": 0,
+      "failed": 1,
+      "success_rate": "0.0%",
+      "avg_duration": "0.00s"
+    },
+    "docker": {
+      "total_tests": 1,
+      "successful": 1,
+      "failed": 0,
+      "success_rate": "100.0%",
+      "avg_duration": "0.01s"
+    }
+  }
+}

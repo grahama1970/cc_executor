@@ -1,0 +1,64 @@
+{
+  "timestamp": "2025-07-09T13:01:24.385519",
+  "tests": {
+    "python_api": [
+      {
+        "name": "Simple calculation",
+        "success": true,
+        "duration": 5.7369468212127686,
+        "result": "4\n"
+      },
+      {
+        "name": "List generation",
+        "success": true,
+        "duration": 5.788909912109375,
+        "result": "2, 3, 5, 7, 11\n"
+      },
+      {
+        "name": "Error case",
+        "success": true,
+        "duration": 7.548250436782837,
+        "result": "The square root of -1 does not exist in real numbers. It's undefined in the real number system because no real number multiplied by itself gives -1.\n"
+      }
+    ],
+    "mcp_local": [
+      {
+        "name": "Simple MCP call",
+        "success": false,
+        "duration": 8.264384269714355,
+        "error": "Both --config and --server must be provided together. If you specify one, you must specify the other.\n"
+      }
+    ],
+    "docker": [
+      {
+        "name": "Docker WebSocket",
+        "success": true,
+        "duration": 0.008815526962280273,
+        "result": "{\"detail\":\"Not Found\"}"
+      }
+    ]
+  },
+  "summary": {
+    "python_api": {
+      "total_tests": 3,
+      "successful": 3,
+      "failed": 0,
+      "success_rate": "100.0%",
+      "avg_duration": "6.36s"
+    },
+    "mcp_local": {
+      "total_tests": 1,
+      "successful": 0,
+      "failed": 1,
+      "success_rate": "0.0%",
+      "avg_duration": "8.26s"
+    },
+    "docker": {
+      "total_tests": 1,
+      "successful": 1,
+      "failed": 0,
+      "success_rate": "100.0%",
+      "avg_duration": "0.01s"
+    }
+  }
+}

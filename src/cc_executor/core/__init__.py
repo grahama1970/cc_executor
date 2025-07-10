@@ -31,16 +31,8 @@ Expected Output:
     Health check: http://localhost:8003/health
 """
 
-try:
-    from .main import app
-    from .config import SERVICE_NAME, SERVICE_VERSION
-except ImportError:
-    # For standalone execution
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from main import app
-    from config import SERVICE_NAME, SERVICE_VERSION
+from .main import app
+from .config import SERVICE_NAME, SERVICE_VERSION
 
 __all__ = [
     # Main FastAPI app
@@ -57,11 +49,7 @@ __all__ = [
 ]
 
 # Import executor functions
-try:
-    from .executor import cc_execute, cc_execute_list, CCExecutorConfig
-except ImportError:
-    # Executor is optional
-    pass
+from .executor import cc_execute, cc_execute_list, CCExecutorConfig
 
 
 if __name__ == "__main__":

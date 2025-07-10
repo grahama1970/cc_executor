@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-07-09T17:23:21.725329",
+  "total_tests": 72,
+  "passed": 56,
+  "failed": 16,
+  "success_rate": 77.77777777777779,
+  "test_files": [
+    "cc_execute_quick_stress.json",
+    "cc_execute_stress_tests.json"
+  ]
+}

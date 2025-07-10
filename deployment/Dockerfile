@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
-# Install system dependencies and uv
+# Install system dependencies, shells, and uv
 RUN apt-get update && apt-get install -y \
-    curl git nodejs npm \
+    curl git nodejs npm zsh bash \
     && rm -rf /var/lib/apt/lists/* \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && npm install -g @anthropic-ai/claude-code

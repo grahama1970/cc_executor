@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-07-09T17:31:04.267241",
+  "total_tests": 1,
+  "passed": 0,
+  "failed": 1,
+  "success_rate": 0.0,
+  "test_files": [
+    "cc_execute_extreme_stress.json"
+  ]
+}

@@ -16,7 +16,7 @@ sys.path.insert(0, '/app/src')
 
 def start_websocket_server():
     """Start the WebSocket server on port 8003."""
-    from cc_executor.core.main import app as ws_app
+    from cc_executor.core.websocket_handler import app as ws_app
     
     uvicorn.run(
         ws_app,

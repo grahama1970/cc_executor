@@ -1,0 +1,129 @@
+{
+  "execution_uuid": "4f183ce5-86d1-49ed-a610-54dd469d5f7d",
+  "timestamp": "2025-07-09T09:53:20.775939",
+  "tests": {
+    "python_api": [
+      {
+        "test": "Simple calculation",
+        "success": true,
+        "duration": 7.231461763381958,
+        "output": "4\n",
+        "error": null
+      },
+      {
+        "test": "Code generation",
+        "success": true,
+        "duration": 7.793704986572266,
+        "output": "```python\ndef fibonacci_first_10():\n    fib = [0, 1]\n    for i in range(2, 10):\n        fib.append(fib[i-1] + fib[i-2])\n    return fib\n```\n",
+        "error": null
+      },
+      {
+        "test": "JSON mode",
+        "success": true,
+        "duration": 7.933556318283081,
+        "output": "{\"result\": \"1. Red\\n2. Blue\\n3. Green\", \"files_created\": [], \"files_modified\": [], \"summary\": \"Listed 3 colors as requested\", \"execution_uuid\": \"fbad71e9-9696-4af2-9a60-c0c7c9388538\"}",
+        "error": null
+      },
+      {
+        "test": "Long task",
+        "success": true,
+        "duration": 6.83692741394043,
+        "output": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n",
+        "error": null
+      },
+      {
+        "test": "Error handling",
+        "success": true,
+        "duration": 7.778843402862549,
+        "output": "The square root of -1 is not defined in real numbers. In the real number system, you cannot take the square root of a negative number because no real number squared gives a negative result.\n\nIn comple",
+        "error": null
+      }
+    ],
+    "mcp_local": [
+      {
+        "test": "Echo test",
+        "success": false,
+        "duration": 0.015740633010864258,
+        "output": "",
+        "exit_code": -1,
+        "error": null
+      },
+      {
+        "test": "Claude simple",
+        "success": false,
+        "duration": 0.0005109310150146484,
+        "output": "",
+        "exit_code": -1,
+        "error": null
+      },
+      {
+        "test": "Python execution",
+        "success": false,
+        "duration": 0.0004591941833496094,
+        "output": "",
+        "exit_code": -1,
+        "error": null
+      }
+    ],
+    "docker": [
+      {
+        "test": "Docker echo",
+        "success": true,
+        "duration": 0.17737603187561035,
+        "output": "Docker Test\n",
+        "exit_code": 0,
+        "error": null
+      },
+      {
+        "test": "Docker Claude",
+        "success": true,
+        "duration": 6.175147771835327,
+        "output": "8\n",
+        "exit_code": 0,
+        "error": null
+      },
+      {
+        "test": "Docker Python",
+        "success": true,
+        "duration": 0.19384288787841797,
+        "output": "Python 3.11.13\n",
+        "exit_code": 0,
+        "error": null
+      },
+      {
+        "test": "API health check",
+        "success": true,
+        "duration": 0.1
+      },
+      {
+        "test": "API execution",
+        "success": true,
+        "duration": 5.0239176750183105,
+        "output": "{'execution_id': '78a9ef0f-baa9-4240-bce9-b27c9339bceb', 'total_tasks': 1, 'completed_tasks': 1, 'failed_tasks': 0, 'results': [{'task_number': 1, 'task_description': 'What is 5+5?', 'exit_code': 0, '"
+      }
+    ]
+  },
+  "summary": {
+    "python_api": {
+      "total_tests": 5,
+      "passed": 5,
+      "failed": 0,
+      "success_rate": "100.0%",
+      "avg_duration": "7.51s"
+    },
+    "mcp_local": {
+      "total_tests": 3,
+      "passed": 0,
+      "failed": 3,
+      "success_rate": "0.0%",
+      "avg_duration": "0.01s"
+    },
+    "docker": {
+      "total_tests": 5,
+      "passed": 5,
+      "failed": 0,
+      "success_rate": "100.0%",
+      "avg_duration": "2.33s"
+    }
+  }
+}

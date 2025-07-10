@@ -16,13 +16,8 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-try:
-    from fastmcp import FastMCP
-    from cc_executor.client.cc_execute import cc_execute, CCExecutorConfig
-except ImportError as e:
-    print(f"Import error: {e}")
-    print("Please ensure fastmcp is installed: pip install fastmcp")
-    sys.exit(1)
+from fastmcp import FastMCP
+from cc_executor.client.cc_execute import cc_execute, CCExecutorConfig
 
 # Initialize FastMCP server
 mcp = FastMCP("cc-executor", dependencies=["cc_executor"])

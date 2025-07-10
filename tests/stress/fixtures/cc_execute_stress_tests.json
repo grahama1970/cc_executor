@@ -1,0 +1,94 @@
+{
+  "name": "comprehensive_cc_execute_stress_test",
+  "description": "Comprehensive stress test suite for cc_execute with simple, medium, and complex tests",
+  "tests": [
+    {
+      "name": "simple_math_batch",
+      "prompt": "What is {a} + {b}? Just the number.",
+      "params": {
+        "a": [2, 15, 83, 144],
+        "b": [2, 27, 46, 12]
+      },
+      "repeat": 2,
+      "stream": false,
+      "timeout": 30
+    },
+    {
+      "name": "fibonacci_sequence",
+      "prompt": "What is the {n}th Fibonacci number? Just the number.",
+      "params": {
+        "n": [5, 10, 15, 20]
+      },
+      "repeat": 1,
+      "stream": false,
+      "timeout": 30
+    },
+    {
+      "name": "json_calculations",
+      "prompt": "Calculate {expr}. Return JSON with 'result' key only.",
+      "params": {
+        "expr": ["2^8", "15*27", "144/12", "sqrt(256)"]
+      },
+      "json_mode": true,
+      "repeat": 2,
+      "timeout": 30
+    },
+    {
+      "name": "list_generation",
+      "prompt": "List {n} {category}, comma separated.",
+      "params": {
+        "n": [3, 5, 7],
+        "category": ["colors", "animals", "programming languages"]
+      },
+      "repeat": 1,
+      "stream": false,
+      "timeout": 45
+    },
+    {
+      "name": "haiku_streaming",
+      "prompt": "Write a haiku about {topic}",
+      "params": {
+        "topic": ["Python", "testing", "automation", "debugging", "Redis"]
+      },
+      "repeat": 1,
+      "stream": true,
+      "timeout": 60
+    },
+    {
+      "name": "boolean_logic",
+      "prompt": "Is {statement}? Answer yes or no.",
+      "params": {
+        "statement": [
+          "10 greater than 5",
+          "Python a compiled language",
+          "Redis a database",
+          "2^10 equal to 1024"
+        ]
+      },
+      "repeat": 2,
+      "stream": false,
+      "timeout": 30
+    },
+    {
+      "name": "code_generation",
+      "prompt": "Write a {language} function to {task}. Return JSON with 'code' key only.",
+      "params": {
+        "language": ["Python", "JavaScript"],
+        "task": ["reverse a string", "check if number is prime", "calculate factorial"]
+      },
+      "json_mode": true,
+      "repeat": 1,
+      "timeout": 90
+    },
+    {
+      "name": "rapid_fire_math",
+      "prompt": "Quick: {expr} = ?",
+      "params": {
+        "expr": ["2*2", "5+5", "10-3", "20/4", "3^2", "sqrt(16)", "7*8", "100/10"]
+      },
+      "repeat": 3,
+      "stream": false,
+      "timeout": 20
+    }
+  ]
+}

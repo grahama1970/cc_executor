@@ -15,7 +15,18 @@ from typing import Dict, List, Optional, Tuple
 
 # Add the src directory to Python path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.enhanced_prompt_classifier import EnhancedPromptClassifier
+try:
+    from cc_executor.utils.enhanced_prompt_classifier import EnhancedPromptClassifier
+except ImportError:
+    # Fallback for different import contexts
+    try:
+        from utils.enhanced_prompt_classifier import EnhancedPromptClassifier
+    except ImportError:
+        # Last resort - append parent directory
+        import os
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, parent_dir)
+        from utils.enhanced_prompt_classifier import EnhancedPromptClassifier
 
 class RedisTaskTimer:
     def __init__(self, redis_prefix="cc_executor:times"):

@@ -32,22 +32,8 @@ import shlex
 from typing import Optional, Callable, Any
 from loguru import logger
 
-try:
-    from .config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
-    from ..hooks.hook_integration import get_hook_integration, get_hook_integration_async, ensure_hooks
-except ImportError:
-    # For standalone execution
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
-    try:
-        from ..hooks.hook_integration import get_hook_integration, get_hook_integration_async, ensure_hooks
-    except ImportError:
-        # Hook integration not available
-        get_hook_integration = None
-        get_hook_integration_async = None
-        ensure_hooks = lambda f: f
+from .config import PROCESS_CLEANUP_TIMEOUT, PREFERRED_SHELL, SHELL_PATHS
+from ..hooks.hook_integration import get_hook_integration, get_hook_integration_async, ensure_hooks
 
 
 class ProcessNotFoundError(Exception):

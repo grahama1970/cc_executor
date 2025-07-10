@@ -1,0 +1,37 @@
+{
+  "name": "cc_execute_quick_stress_test",
+  "description": "Quick stress test for cc_execute - runs in under 2 minutes",
+  "tests": [
+    {
+      "name": "quick_math",
+      "prompt": "What is {n} + {n}? Just the number.",
+      "params": {
+        "n": [5, 10, 15]
+      },
+      "repeat": 2,
+      "stream": false,
+      "timeout": 20
+    },
+    {
+      "name": "quick_json",
+      "prompt": "Calculate {a} * {b}. Return JSON with 'answer' key only.",
+      "params": {
+        "a": [2, 3],
+        "b": [4, 5]
+      },
+      "json_mode": true,
+      "repeat": 1,
+      "timeout": 20
+    },
+    {
+      "name": "quick_list",
+      "prompt": "Name 3 {items}, comma separated.",
+      "params": {
+        "items": ["colors", "animals"]
+      },
+      "repeat": 1,
+      "stream": false,
+      "timeout": 20
+    }
+  ]
+}

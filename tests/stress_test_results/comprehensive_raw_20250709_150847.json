@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-07-09T15:08:47.457225",
+  "test_categories": {
+    "python_api_local": {
+      "tests": [
+        {
+          "name": "Simple math",
+          "success": true,
+          "duration": 7.67216682434082,
+          "result": "42"
+        },
+        {
+          "name": "List colors",
+          "success": true,
+          "duration": 6.664905309677124,
+          "result": "red, green, blue"
+        },
+        {
+          "name": "Boolean logic",
+          "success": true,
+          "duration": 7.163442134857178,
+          "result": "Yes"
+        }
+      ],
+      "summary": {
+        "total_tests": 3,
+        "successful": 3,
+        "failed": 0,
+        "success_rate": "100.0%",
+        "avg_duration": "7.17s"
+      }
+    },
+    "mcp_local_websocket": {
+      "tests": [
+        {
+          "name": "Connection test",
+          "success": false,
+          "duration": 0,
+          "error": "[Errno 111] Connect call failed ('127.0.0.1', 8003)"
+        }
+      ],
+      "summary": {
+        "total_tests": 1,
+        "successful": 0,
+        "failed": 1,
+        "success_rate": "0.0%",
+        "avg_duration": "0.00s"
+      }
+    },
+    "docker_api": {
+      "tests": [],
+      "summary": {}
+    },
+    "mcp_docker_websocket": {
+      "tests": [
+        {
+          "name": "Math via Docker",
+          "success": true,
+          "duration": 0.17031574249267578,
+          "result": "Process started"
+        },
+        {
+          "name": "Word via Docker",
+          "success": true,
+          "duration": 0.1699075698852539,
+          "result": "Process started"
+        }
+      ],
+      "summary": {
+        "total_tests": 2,
+        "successful": 2,
+        "failed": 0,
+        "success_rate": "100.0%",
+        "avg_duration": "0.17s"
+      }
+    }
+  },
+  "overall_summary": {
+    "total_tests": 6,
+    "successful": 5,
+    "failed": 1,
+    "success_rate": "83.3%",
+    "avg_duration": "3.64s",
+    "categories_tested": 3
+  }
+}

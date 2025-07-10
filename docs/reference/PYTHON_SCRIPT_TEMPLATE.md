@@ -210,23 +210,271 @@ async def run_usage_example():
         return False
 
 
+async def working_usage():
+    """
+    Known working examples that demonstrate script functionality.
+    This function contains stable, tested code that reliably works.
+    """
+    logger.info("=== Running Working Usage Examples ===")
+    
+    # Example 1: Basic functionality test
+    example_input = {
+        "task": "analyze_data", 
+        "params": {"threshold": 0.8}
+    }
+    
+    results = await process_task(example_input)
+    save_results(results)
+    
+    # Example 2: Another stable test
+    logger.info(f"Results: {results['results']}")
+    assert results["status"] == "success"
+    
+    return True
+
+
+async def debug_function():
+    """
+    Debug function for testing new features or debugging issues.
+    Update this frequently while developing/debugging.
+    """
+    logger.info("=== Running Debug Function ===")
+    
+    # Current debugging focus: Test edge cases
+    test_data = {
+        "task": "debug_test",
+        "params": {"experimental": True}
+    }
+    
+    # Add debug code here - this is your playground
+    logger.debug(f"Testing with data: {test_data}")
+    
+    # Example: Test Redis connection
+    if redis_client:
+        redis_client.set("debug_test", "active")
+        value = redis_client.get("debug_test")
+        logger.debug(f"Redis test result: {value}")
+    
+    return True
+
+
+async def stress_test():
+    """
+    Run comprehensive stress tests loaded from JSON files.
+    Tests are defined in tests/stress/fixtures/ directory.
+    Reports are saved to tests/stress/reports/ directory.
+    """
+    logger.info("=== Running Stress Tests ===")
+    
+    # Look for stress test files in the tests directory
+    project_root = Path(__file__).parent.parent.parent  # Adjust based on script location
+    stress_test_dir = project_root / "tests" / "stress" / "fixtures"
+    if not stress_test_dir.exists():
+        logger.warning(f"No stress test directory found at {stress_test_dir}")
+        logger.info("Creating example stress test file...")
+        
+        # Create example stress test
+        stress_test_dir.mkdir(parents=True, exist_ok=True)
+        example_test = {
+            "name": "example_stress_test",
+            "description": "Example stress test configuration",
+            "iterations": 10,
+            "concurrent": False,
+            "tests": [
+                {
+                    "name": "heavy_load",
+                    "task": "analyze_data",
+                    "params": {"threshold": 0.9, "data_size": "large"},
+                    "repeat": 5
+                },
+                {
+                    "name": "concurrent_test",
+                    "task": "process_batch",
+                    "params": {"batch_size": 100},
+                    "concurrent_instances": 3
+                }
+            ]
+        }
+        
+        example_path = stress_test_dir / "example_stress_test.json"
+        with open(example_path, 'w') as f:
+            json.dump(example_test, f, indent=2)
+        logger.info(f"Created example at: {example_path}")
+        return True
+    
+    # Load and run stress tests
+    test_files = list(stress_test_dir.glob("*.json"))
+    logger.info(f"Found {len(test_files)} stress test files")
+    
+    total_passed = 0
+    total_failed = 0
+    
+    for test_file in test_files:
+        logger.info(f"\n📄 Loading: {test_file.name}")
+        
+        try:
+            with open(test_file) as f:
+                test_config = json.load(f)
+            
+            test_name = test_config.get('name', test_file.stem)
+            logger.info(f"Running: {test_name}")
+            
+            # Run tests based on configuration
+            tests = test_config.get('tests', [])
+            for test in tests:
+                repeat = test.get('repeat', 1)
+                for i in range(repeat):
+                    try:
+                        result = await process_task({
+                            "task": test['task'],
+                            "params": test['params']
+                        })
+                        logger.success(f"  ✅ {test['name']} [{i+1}/{repeat}]")
+                        total_passed += 1
+                    except Exception as e:
+                        logger.error(f"  ❌ {test['name']} [{i+1}/{repeat}]: {e}")
+                        total_failed += 1
+                        
+        except Exception as e:
+            logger.error(f"Failed to load {test_file}: {e}")
+            total_failed += 1
+    
+    # Summary
+    logger.info(f"\n📊 Stress Test Summary:")
+    logger.info(f"  Total: {total_passed + total_failed}")
+    logger.info(f"  Passed: {total_passed}")
+    logger.info(f"  Failed: {total_failed}")
+    logger.info(f"  Success Rate: {(total_passed/(total_passed+total_failed)*100) if (total_passed+total_failed) > 0 else 0:.1f}%")
+    
+    return total_failed == 0
+
+
 if __name__ == "__main__":
     """
-    Script entry point with usage examples and validation.
+    Script entry point with triple-mode execution.
     
-    This block should:
-    1. Run usage examples with real data
-    2. Validate outputs match expected format
-    3. Save raw results for verification
-    4. Use assertions for self-testing
-    5. Have only ONE asyncio.run() call
+    Usage:
+        python script.py              # Runs working_usage() - stable tests
+        python script.py debug        # Runs debug_function() - experimental
+        python script.py stress       # Runs stress_test() - load tests from JSON
+        python script.py stress.json  # Runs specific stress test file
+    
+    This pattern provides:
+    1. Stable working examples that always run
+    2. Debug playground for testing without breaking working code
+    3. Comprehensive stress testing from JSON configurations
+    4. Easy switching between modes via command line
     """
-    # Run the async usage example
-    success = asyncio.run(run_usage_example())
+    import sys
     
-    # Exit with appropriate code
+    # Parse command line arguments
+    mode = "working"
+    stress_file = None
+    
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg == "debug":
+            mode = "debug"
+        elif arg == "stress":
+            mode = "stress"
+        elif arg.endswith(".json"):
+            mode = "stress"
+            stress_file = arg
+        else:
+            mode = "working"
+    
+    async def main():
+        """Main async entry point."""
+        if mode == "debug":
+            logger.info("Running in DEBUG mode...")
+            success = await debug_function()
+        elif mode == "stress":
+            logger.info("Running in STRESS TEST mode...")
+            if stress_file:
+                logger.info(f"Loading specific test: {stress_file}")
+                # Modify stress_test() to accept optional filename
+            success = await stress_test()
+        else:
+            logger.info("Running in WORKING mode...")
+            success = await working_usage()
+        
+        return success
+    
+    # Single asyncio.run() call
+    success = asyncio.run(main())
     exit(0 if success else 1)
 ```
+
+## Triple-Mode Execution Pattern
+
+The template now includes a **triple-mode execution pattern** with three functions:
+
+### 1. `working_usage()` - Stable Examples
+- Contains known working code that demonstrates functionality
+- Used for reliable testing and verification
+- Should NOT be modified frequently
+- Run by default when executing the script
+- **Alternative name ideas**: `stable()`, `production_ready()`, or `verified_examples()`
+
+### 2. `debug_function()` - Development Playground
+- For testing new features or debugging issues
+- Update frequently during development
+- Isolated from stable code to prevent breaking working examples
+- Run with `python script.py debug`
+
+### 3. `stress_test()` - Comprehensive Testing
+- Loads test configurations from JSON files
+- Supports repeated tests, concurrent execution, and parameterized scenarios
+- Tests stored in `tests/stress/fixtures/` directory
+- Reports saved to `tests/stress/reports/` directory
+- Creates example test file if none exist
+- Run with `python script.py stress`
+
+### Benefits of This Pattern
+- **Separation of Concerns**: Stable, debug, and stress test code are isolated
+- **Quick Testing**: Easy to switch between modes via command line
+- **No Test File Proliferation**: All test logic contained in the main script
+- **JSON-Driven Tests**: Complex test scenarios defined declaratively
+- **Built-in Documentation**: Working examples serve as live documentation
+- **Progressive Testing**: From simple (working) to complex (stress)
+
+### Usage Examples
+```bash
+# Run stable working examples (default)
+python my_script.py
+
+# Run debug/experimental code
+python my_script.py debug
+
+# Run all stress tests from JSON files
+python my_script.py stress
+
+# Run specific stress test file
+python my_script.py specific_test.json
+```
+
+### Stress Test JSON Format
+```json
+{
+  "name": "example_stress_test",
+  "description": "Example stress test configuration",
+  "iterations": 10,
+  "concurrent": false,
+  "tests": [
+    {
+      "name": "heavy_load",
+      "task": "analyze_data",
+      "params": {"threshold": 0.9, "data_size": "large"},
+      "repeat": 5
+    },
+    {
+      "name": "concurrent_test", 
+      "task": "process_batch",
+      "params": {"batch_size": 100},
+      "concurrent_instances": 3
+    }
+  ]
+}
 
 ## Key Requirements Checklist
 
@@ -237,7 +485,10 @@ if __name__ == "__main__":
 - [ ] Logger configuration immediately after imports
 - [ ] Optional service connections (Redis, ArangoDB) with availability checks
 - [ ] All core functions OUTSIDE the `if __name__ == "__main__"` block
-- [ ] Usage examples and tests INSIDE the `if __name__ == "__main__"` block
+- [ ] `working_usage()` function with stable examples (or alternative name: `stable()`)
+- [ ] `debug_function()` for experimental code
+- [ ] `stress_test()` for JSON-driven comprehensive testing
+- [ ] Mode selection logic supporting all three modes
 - [ ] Only ONE `asyncio.run()` call in the entire script
 
 ### Documentation Requirements

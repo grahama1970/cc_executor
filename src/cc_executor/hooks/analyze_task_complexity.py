@@ -10,22 +10,13 @@ import json
 from typing import Dict, Optional
 from loguru import logger
 
-# F7: Graceful Redis fallback - delay import and handle gracefully
-redis = None
-try:
-    import redis as _redis
-    redis = _redis
-except ImportError:
-    logger.debug("Redis not available - metrics will not be stored")
+# Import Redis directly
+import redis
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    from rank_bm25 import BM25Okapi
-except ImportError:
-    logger.warning("rank_bm25 not installed, using simple matching")
-    BM25Okapi = None
+from rank_bm25 import BM25Okapi
 
 def extract_task_from_file(file_path: str) -> Optional[str]:
     """Extract task description from a file."""
@@ -72,11 +63,6 @@ def estimate_complexity(task_text: str) -> Dict[str, any]:
                 "confidence": 0.0
             }
         
-        # Simple keyword-based complexity estimation if BM25 not available
-        if BM25Okapi is None:
-            complexity = estimate_simple_complexity(task_text)
-            return complexity
-            
         # BM25 similarity search
         task_ids = list(historical_tasks.keys())
         task_texts = list(historical_tasks.values())
@@ -193,27 +179,25 @@ def main():
     # Estimate complexity
     complexity = estimate_complexity(task_text)
     
-    # Store in Redis if available
-    if redis:
-        try:
-            # Store in Redis for WebSocket handler to read
-            r = redis.Redis(decode_responses=True)
-            
-            # Use file path as key for current task
-            key = f"task:current:{os.path.basename(file_path)}"
-            r.setex(key, 300, json.dumps(complexity))  # 5 minute TTL
-            
-            # Also store in task complexity history
-            task_id = f"task_{int(os.path.getmtime(file_path))}"
-            r.hset("task:complexity", task_id, json.dumps(complexity))
-            
-            logger.info(f"Task complexity: {complexity['complexity']} "
-                       f"(timeout: {complexity['estimated_timeout']}s, "
-                       f"confidence: {complexity['confidence']:.2f})")
-                       
-        except Exception as e:
-            logger.error(f"Error storing complexity data: {e}")
-    else:
+    # Store in Redis
+    try:
+        # Store in Redis for WebSocket handler to read
+        r = redis.Redis(decode_responses=True)
+        
+        # Use file path as key for current task
+        key = f"task:current:{os.path.basename(file_path)}"
+        r.setex(key, 300, json.dumps(complexity))  # 5 minute TTL
+        
+        # Also store in task complexity history
+        task_id = f"task_{int(os.path.getmtime(file_path))}"
+        r.hset("task:complexity", task_id, json.dumps(complexity))
+        
+        logger.info(f"Task complexity: {complexity['complexity']} "
+                   f"(timeout: {complexity['estimated_timeout']}s, "
+                   f"confidence: {complexity['confidence']:.2f})")
+                   
+    except Exception as e:
+        logger.error(f"Error storing complexity data: {e}")
         logger.info(f"Task complexity (no storage): {complexity['complexity']} "
                    f"(timeout: {complexity['estimated_timeout']}s)")
         

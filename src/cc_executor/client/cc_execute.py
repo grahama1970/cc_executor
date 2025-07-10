@@ -43,28 +43,14 @@ class RateLimitError(Exception):
 
 
 # Import report generator for assessment reports
-try:
-    from cc_executor.client.report_generator import generate_assessment_report, save_assessment_report
-except ImportError:
-    logger.warning("Could not import report_generator, report generation will be disabled")
-    generate_assessment_report = None
-    save_assessment_report = None
+from cc_executor.client.report_generator import generate_assessment_report, save_assessment_report
 
 # Import JSON utilities for robust parsing
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-try:
-    from cc_executor.utils.json_utils import clean_json_string
-except ImportError:
-    # Fallback if not in proper cc_executor environment
-    logger.warning("Could not import json_utils, using basic JSON parsing")
-    clean_json_string = None
+from cc_executor.utils.json_utils import clean_json_string
 
 # Import HookIntegration for consistent pre/post execution hooks
-try:
-    from cc_executor.hooks.hook_integration import HookIntegration
-except ImportError:
-    logger.warning("Could not import HookIntegration, hooks will be disabled")
-    HookIntegration = None
+from cc_executor.hooks.hook_integration import HookIntegration
 
 
 # Logger configuration handled by main cc_executor package
@@ -85,49 +71,108 @@ class CCExecutorConfig:
         self.transcript_dir.mkdir(exist_ok=True)
 
 
-def estimate_timeout(task: str, default: int = 120) -> int:
+async def estimate_timeout_async(task: str, default: int = 120) -> int:
     """
     Estimate timeout based on task complexity and Redis history.
-    Mirrors websocket_handler.py logic.
+    Uses the sophisticated RedisTaskTimer system for intelligent predictions.
     """
-    # Basic heuristics - increase for MCP operations
+    try:
+        # Use the sophisticated Redis timing system directly
+        # Add the src directory to path for the import
+        import sys
+        if str(Path(__file__).parent.parent.parent) not in sys.path:
+            sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+        from cc_executor.prompts.redis_task_timing import RedisTaskTimer
+        
+        # Create timer instance
+        timer = RedisTaskTimer()
+        
+        # Get complexity estimation which includes timeout prediction
+        estimation = await timer.estimate_complexity(task)
+        
+        # Use the max_time as timeout (includes safety margin)
+        suggested_timeout = int(estimation['max_time'])
+        
+        logger.info(f"RedisTaskTimer prediction: {suggested_timeout}s "
+                   f"(category: {estimation['category']}, "
+                   f"complexity: {estimation['complexity']}, "
+                   f"confidence: {estimation['confidence']:.2f}, "
+                   f"based on: {estimation['based_on']})")
+        
+        # Ensure minimum timeout
+        return max(suggested_timeout, 60)
+            
+    except Exception as e:
+        logger.warning(f"RedisTaskTimer failed: {e}, falling back to simple estimation")
+        return await estimate_timeout_simple_async(task, default)
+
+
+def estimate_timeout(task: str, default: int = 120) -> int:
+    """
+    Synchronous wrapper for estimate_timeout_async.
+    For backward compatibility when called from sync context.
+    """
+    try:
+        # Try to get the current event loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're already in an async context, can't use run_until_complete
+            # Fall back to simple estimation
+            logger.debug("Already in async context, using simple estimation")
+            return estimate_timeout_simple(task, default)
+        else:
+            # We can run the async version
+            return loop.run_until_complete(estimate_timeout_async(task, default))
+    except RuntimeError:
+        # No event loop, create one
+        return asyncio.run(estimate_timeout_async(task, default))
+
+
+async def estimate_timeout_simple_async(task: str, default: int = 120) -> int:
+    """Simple async timeout estimation as fallback."""
+    return estimate_timeout_simple(task, default)
+
+
+def estimate_timeout_simple(task: str, default: int = 120) -> int:
+    """Simple synchronous timeout estimation."""
+    # Fallback to simple heuristics
     if len(task) < 50:
         base_timeout = 30  # Very simple tasks
     elif len(task) < 200:
         base_timeout = 60  # Medium tasks  
     else:
         base_timeout = 120  # Complex tasks
-    
-    # Check for keywords indicating complexity
-    complex_keywords = [
-        'create', 'build', 'implement', 'design', 'develop',
-        'full', 'complete', 'comprehensive', 'test', 'suite'
-    ]
-    
-    keyword_count = sum(1 for kw in complex_keywords if kw in task.lower())
-    base_timeout += keyword_count * 30
-    
-    # MCP operations need more time
-    if 'mcp' in task.lower() or 'perplexity' in task.lower():
-        base_timeout += 60
-    
-    # Try Redis for historical data
-    try:
-        r = redis.Redis(decode_responses=True)
-        task_hash = hashlib.md5(task.encode()).hexdigest()[:8]
-        timing_key = f"task:timing:{task_hash}"
         
-        if r.exists(timing_key):
-            avg_time = float(r.get(timing_key))
-            # Add 20% buffer
-            estimated = int(avg_time * 1.2)
-            logger.info(f"Redis timing history: {avg_time:.1f}s avg, using {estimated}s")
-            return max(estimated, 60)  # At least 60s
+        # Check for keywords indicating complexity
+        complex_keywords = [
+            'create', 'build', 'implement', 'design', 'develop',
+            'full', 'complete', 'comprehensive', 'test', 'suite'
+        ]
+        
+        keyword_count = sum(1 for kw in complex_keywords if kw in task.lower())
+        base_timeout += keyword_count * 30
+        
+        # MCP operations need more time
+        if 'mcp' in task.lower() or 'perplexity' in task.lower():
+            base_timeout += 60
+        
+        # Try simple Redis lookup as last resort
+        try:
+            r = redis.Redis(decode_responses=True)
+            task_hash = hashlib.md5(task.encode()).hexdigest()[:8]
+            timing_key = f"task:timing:{task_hash}"
             
-    except Exception as e:
-        logger.debug(f"Redis timing lookup failed: {e}")
-    
-    return max(base_timeout, default)
+            if r.exists(timing_key):
+                avg_time = float(r.get(timing_key))
+                # Add 20% buffer
+                estimated = int(avg_time * 1.2)
+                logger.info(f"Simple Redis history: {avg_time:.1f}s avg, using {estimated}s")
+                return max(estimated, 60)  # At least 60s
+                
+        except Exception as e:
+            logger.debug(f"Redis timing lookup failed: {e}")
+        
+        return max(base_timeout, default)
 
 
 def check_token_limit(task: str, max_tokens: int = 190000) -> str:
@@ -185,17 +230,6 @@ def detect_ambiguous_prompt(task: str) -> Optional[str]:
     interactive_patterns = ['guide me', 'help me', 'walk me through', 'ask me']
     if any(pattern in task.lower() for pattern in interactive_patterns):
         issues.append("Interactive language detected - Claude CLI can't interact")
-    
-    # Check for vague references without clear antecedents
-    vague_patterns = ['that', 'this', 'it', 'those', 'these']
-    words = task.lower().split()
-    if len(words) > 0 and words[0] in vague_patterns:
-        issues.append("Starts with vague reference - specify what you're referring to")
-    
-    # Check for missing specifications
-    if any(phrase in task.lower() for phrase in ['generate a report', 'create a function', 'make a script'] 
-           ) and len(task.split()) < 10:
-        issues.append("Missing specifications - provide more details about requirements")
     
     return "; ".join(issues) if issues else None
 
@@ -575,19 +609,19 @@ Execute the analysis and return ONLY the timeout number."""
                     logger.info(f"Redis timing predicted: {config.timeout}s (summary: {timeout_result.get('summary', 'N/A')})")
                 except (ValueError, KeyError, AttributeError) as e:
                     # Couldn't parse - use local estimation
-                    config.timeout = max(estimate_timeout(task), 300)
+                    config.timeout = max(await estimate_timeout_async(task), 300)
                     logger.warning(f"Could not parse Redis timing result: {e}, using local estimate: {config.timeout}s")
             else:
                 # Fallback to local estimation
-                config.timeout = max(estimate_timeout(task), 300)
+                config.timeout = max(await estimate_timeout_async(task), 300)
                 logger.warning(f"Redis timing failed, using local estimate: {config.timeout}s")
         except Exception as e:
             logger.warning(f"Redis timing analysis failed: {e}, using local estimation")
-            config.timeout = max(estimate_timeout(task), 300)
+            config.timeout = max(await estimate_timeout_async(task), 300)
     
     elif config.timeout == 300:  # Using default value
         # Use Redis-based estimation
-        estimated_timeout = estimate_timeout(task)
+        estimated_timeout = await estimate_timeout_async(task)
         # Never go below the default 5 minutes for safety
         config.timeout = max(estimated_timeout, 300)
         logger.info(f"Timeout set to: {config.timeout}s (estimated: {estimated_timeout}s) for task: {task[:50]}...")
@@ -611,14 +645,13 @@ Execute the analysis and return ONLY the timeout number."""
     
     # Initialize hooks
     hooks = None
-    if HookIntegration:
-        try:
-            hooks = HookIntegration()
-            if hooks.enabled:
-                logger.info(f"Hook integration enabled with {len(hooks.config.get('hooks', {}))} hooks configured")
-        except Exception as e:
-            logger.warning(f"Could not initialize hook integration: {e}")
-            hooks = None
+    try:
+        hooks = HookIntegration()
+        if hooks.enabled:
+            logger.info(f"Hook integration enabled with {len(hooks.config.get('hooks', {}))} hooks configured")
+    except Exception as e:
+        logger.warning(f"Could not initialize hook integration: {e}")
+        hooks = None
     
     # Build command string to match websocket_handler.py
     # Use shell string format, not exec array
@@ -771,29 +804,38 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     logger.info(f"[{session_id}] Response saved: {response_file}")
     print(f"\n[{session_id}] Response saved: {response_file}")
     
-    # Save execution time to Redis for future estimation
+    # Save execution time to Redis using sophisticated RedisTaskTimer
     if proc.returncode == 0:
         try:
-            r = redis.Redis(decode_responses=True)
-            task_hash = hashlib.md5(task.encode()).hexdigest()[:8]
-            timing_key = f"task:timing:{task_hash}"
+            # Add the src directory to path for the import
+            import sys
+            if str(Path(__file__).parent.parent.parent) not in sys.path:
+                sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+            from cc_executor.prompts.redis_task_timing import RedisTaskTimer
             
-            # Store or update average execution time
+            # Create timer instance
+            timer = RedisTaskTimer()
+            
+            # Classify the task
+            task_type = timer.classify_command(task)
+            
+            # Calculate execution time
             execution_time = time.time() - start_time
-            if r.exists(timing_key):
-                # Rolling average
-                old_avg = float(r.get(timing_key))
-                new_avg = (old_avg + execution_time) / 2
-                r.set(timing_key, new_avg, ex=86400 * 7)  # 7 day expiry
-            else:
-                r.set(timing_key, execution_time, ex=86400 * 7)
             
-            # Also update last run time
-            r.set(f"task:last_run:{task_hash}", datetime.now().isoformat(), ex=86400 * 7)
+            # Update history with all the sophisticated metadata
+            # Since we're already in an async function, we can await directly
+            await timer.update_history(
+                task_type=task_type,
+                elapsed=execution_time,
+                success=True,
+                expected=config.timeout  # Use configured timeout as expected
+            )
             
-            logger.info(f"Saved execution time {execution_time:.1f}s for future estimation")
+            logger.info(f"Saved execution time {execution_time:.1f}s to RedisTaskTimer "
+                       f"(category: {task_type['category']}, "
+                       f"complexity: {task_type['complexity']})")
         except Exception as e:
-            logger.debug(f"Failed to save timing to Redis: {e}")
+            logger.debug(f"Failed to save timing to RedisTaskTimer: {e}")
     
     # Also save transcript if configured
     if config.save_transcript:
@@ -809,7 +851,7 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     logger.info(f"[{session_id}] === CC_EXECUTE LIFECYCLE COMPLETE ===")
     
     # Generate assessment report if requested
-    if generate_report and generate_assessment_report:
+    if generate_report:
         report_file, report_content = generate_assessment_report(
             session_id=session_id,
             task=task,
@@ -831,32 +873,26 @@ The execution_uuid MUST be the LAST key in the JSON object."""
         save_assessment_report(report_file, report_content)
         logger.info(f"[{session_id}] Assessment report saved: {report_file}")
         print(f"\n📋 Assessment report generated: {report_file}")
-    elif generate_report and not generate_assessment_report:
-        logger.warning("Report generation requested but report_generator module not available")
     
     # Parse JSON if requested
     if json_mode:
         try:
             # Use clean_json_string for robust parsing
-            if clean_json_string:
-                # This handles markdown blocks, malformed JSON, etc.
-                result_dict = clean_json_string(full_output, return_dict=True)
+            # This handles markdown blocks, malformed JSON, etc.
+            result_dict = clean_json_string(full_output, return_dict=True)
+            
+            if isinstance(result_dict, dict):
+                # Verify execution UUID
+                if result_dict.get('execution_uuid') != execution_uuid:
+                    logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
                 
-                if isinstance(result_dict, dict):
-                    # Verify execution UUID
-                    if result_dict.get('execution_uuid') != execution_uuid:
-                        logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
-                    
-                    # Validation with fresh instance if requested
-                    if validation_prompt:
-                        await _perform_validation(result_dict, validation_prompt, session_id, config)
-                    
-                    return result_dict
-                else:
-                    raise ValueError(f"Expected dict, got {type(result_dict)}")
+                # Validation with fresh instance if requested
+                if validation_prompt:
+                    await _perform_validation(result_dict, validation_prompt, session_id, config)
+                
+                return result_dict
             else:
-                # Basic JSON parsing
-                return json.loads(full_output)
+                raise ValueError(f"Expected dict, got {type(result_dict)}")
                 
         except Exception as e:
             logger.error(f"[{session_id}] Failed to parse JSON: {e}")
@@ -994,31 +1030,277 @@ def export_history_sync(format: str = "json", limit: int = 100) -> str:
     return asyncio.run(export_execution_history(format=format, limit=limit))
 
 
-if __name__ == "__main__":
-    # Example usage
-    import asyncio
+async def working_usage():
+    """Known working examples that demonstrate cc_execute functionality."""
+    print("\n=== CC_EXECUTE WORKING USAGE EXAMPLES ===\n")
     
-    async def main():
-        # Test basic execution
+    # 1. Simple math test - always works
+    print("1. Testing simple math...")
+    result = await cc_execute(
+        "What is 17 + 25? Just the number.",
+        stream=False
+    )
+    print(f"   Result: {result}")
+    
+    # 2. List test - clear output
+    print("\n2. Testing list output...")
+    result = await cc_execute(
+        "Name 3 primary colors, comma separated.",
+        stream=False
+    )
+    print(f"   Result: {result}")
+    
+    # 3. JSON mode with simple structure
+    print("\n3. Testing JSON mode...")
+    result_json = await cc_execute(
+        "What is 10 * 10? Return JSON with 'answer' key only.",
+        json_mode=True
+    )
+    print(f"   JSON Result: {json.dumps(result_json, indent=2)}")
+    
+    print("\n=== ALL TESTS COMPLETED ===")
+
+
+async def debug_function():
+    """Debug function for testing new features or debugging issues."""
+    print("\n=== DEBUG MODE ===\n")
+    
+    # Quick verification of stress test functionality
+    print("Running quick stress test verification...")
+    
+    test_results = []
+    
+    # Test 1: Simple math
+    try:
         result = await cc_execute(
-            "Create a Python function to calculate fibonacci numbers",
-            stream=True
+            "What is 7 + 3? Just the number.",
+            stream=False,
+            config=CCExecutorConfig(timeout=20)
         )
-        print(f"\nResult: {result[:200]}...")
-        
-        # Test JSON mode
-        result_json = await cc_execute(
-            "Create a Python function to calculate prime numbers. Return as JSON with 'code' and 'explanation' keys.",
-            json_mode=True
-        )
-        print(f"\nJSON Result: {json.dumps(result_json, indent=2)[:500]}...")
-        
-        # Test with validation
-        result_validated = await cc_execute(
-            "Create a Python function to sort a list",
-            json_mode=True,
-            validation_prompt="Check if this code is correct: {response}. Return {'is_valid': true/false, 'issues': []}"
-        )
-        print(f"\nValidated Result: {json.dumps(result_validated, indent=2)[:500]}...")
+        test_results.append(("Math test", result == "10", result))
+    except Exception as e:
+        test_results.append(("Math test", False, str(e)))
     
-    asyncio.run(main())
+    # Test 2: JSON mode
+    try:
+        result = await cc_execute(
+            "What is 5 * 5? Return JSON with 'answer' key only.",
+            json_mode=True,
+            config=CCExecutorConfig(timeout=20)
+        )
+        success = isinstance(result, dict) and "result" in result
+        test_results.append(("JSON test", success, result.get("result", "No result")))
+    except Exception as e:
+        test_results.append(("JSON test", False, str(e)))
+    
+    # Test 3: List output
+    try:
+        result = await cc_execute(
+            "Name 3 fruits, comma separated.",
+            stream=False,
+            config=CCExecutorConfig(timeout=20)
+        )
+        success = "," in result  # Should have commas
+        test_results.append(("List test", success, result[:50]))
+    except Exception as e:
+        test_results.append(("List test", False, str(e)))
+    
+    # Summary
+    print("\n📊 Debug Test Summary:")
+    passed = sum(1 for _, success, _ in test_results if success)
+    total = len(test_results)
+    
+    for name, success, output in test_results:
+        status = "✅" if success else "❌"
+        print(f"  {status} {name}: {output}")
+    
+    print(f"\nTotal: {passed}/{total} passed ({passed/total*100:.0f}%)")
+    
+    return passed == total
+
+
+async def stress_test(test_file=None):
+    """Run comprehensive stress tests from JSON files."""
+    logger.info("=== STRESS TEST MODE ===\n")
+    
+    # Look for stress test files in the tests directory
+    project_root = Path(__file__).parent.parent.parent.parent  # Navigate to project root
+    stress_test_dir = project_root / "tests" / "stress" / "fixtures"
+    if not stress_test_dir.exists():
+        logger.warning(f"No stress test directory found at {stress_test_dir}")
+        logger.info("Creating example stress test file...")
+        
+        # Create example stress test for cc_execute
+        stress_test_dir.mkdir(parents=True, exist_ok=True)
+        example_test = {
+            "name": "cc_execute_stress_test",
+            "description": "Stress test for cc_execute functionality",
+            "tests": [
+                {
+                    "name": "rapid_math",
+                    "prompt": "What is {n} + {n}? Just the number.",
+                    "params": {"n": [5, 10, 15, 20, 25]},
+                    "repeat": 3,
+                    "stream": False
+                },
+                {
+                    "name": "json_mode_test",
+                    "prompt": "Calculate {a} * {b}. Return JSON with 'result' key only.",
+                    "params": {"a": [2, 3, 4], "b": [5, 6, 7]},
+                    "json_mode": True,
+                    "repeat": 2
+                },
+                {
+                    "name": "long_response",
+                    "prompt": "Write a haiku about {topic}",
+                    "params": {"topic": ["coding", "testing", "debugging"]},
+                    "stream": True,
+                    "timeout": 60
+                }
+            ]
+        }
+        
+        example_path = stress_test_dir / "cc_execute_example_stress.json"
+        with open(example_path, 'w') as f:
+            json.dump(example_test, f, indent=2)
+        logger.info(f"Created example at: {example_path}")
+        return True
+    
+    # Load and run stress tests
+    if test_file:
+        # Run specific test file
+        test_path = stress_test_dir / test_file
+        if not test_path.exists():
+            logger.error(f"Test file not found: {test_path}")
+            return False
+        test_files = [test_path]
+    else:
+        # Run all test files
+        test_files = list(stress_test_dir.glob("*.json"))
+    
+    logger.info(f"Found {len(test_files)} stress test files")
+    
+    total_passed = 0
+    total_failed = 0
+    
+    for test_file in test_files:
+        logger.info(f"\n📄 Loading: {test_file.name}")
+        
+        try:
+            with open(test_file) as f:
+                test_config = json.load(f)
+            
+            test_name = test_config.get('name', test_file.stem)
+            logger.info(f"Running: {test_name}")
+            
+            # Run tests based on configuration
+            tests = test_config.get('tests', [])
+            for test in tests:
+                # Handle parameterized tests
+                params_config = test.get('params', {})
+                param_combinations = []
+                
+                # Generate all parameter combinations
+                if params_config:
+                    # Simple parameter expansion for the example
+                    first_param = list(params_config.keys())[0]
+                    for value in params_config[first_param]:
+                        param_combinations.append({first_param: value})
+                else:
+                    param_combinations = [{}]
+                
+                repeat = test.get('repeat', 1)
+                
+                for params in param_combinations:
+                    for i in range(repeat):
+                        try:
+                            # Format prompt with parameters
+                            prompt = test['prompt'].format(**params)
+                            
+                            # Execute with test configuration
+                            result = await cc_execute(
+                                prompt,
+                                stream=test.get('stream', False),
+                                json_mode=test.get('json_mode', False),
+                                config=CCExecutorConfig(
+                                    timeout=test.get('timeout', 30)
+                                )
+                            )
+                            
+                            logger.success(f"  ✅ {test['name']} {params} [{i+1}/{repeat}]")
+                            total_passed += 1
+                            
+                        except Exception as e:
+                            logger.error(f"  ❌ {test['name']} {params} [{i+1}/{repeat}]: {e}")
+                            total_failed += 1
+                            
+        except Exception as e:
+            logger.error(f"Failed to load {test_file}: {e}")
+            total_failed += 1
+    
+    # Summary
+    logger.info(f"\n📊 Stress Test Summary:")
+    logger.info(f"  Total: {total_passed + total_failed}")
+    logger.info(f"  Passed: {total_passed}")
+    logger.info(f"  Failed: {total_failed}")
+    logger.info(f"  Success Rate: {(total_passed/(total_passed+total_failed)*100) if (total_passed+total_failed) > 0 else 0:.1f}%")
+    
+    # Save report
+    report_dir = project_root / "tests" / "stress" / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_file = report_dir / f"cc_execute_stress_report_{timestamp}.json"
+    
+    report_data = {
+        "timestamp": datetime.now().isoformat(),
+        "total_tests": total_passed + total_failed,
+        "passed": total_passed,
+        "failed": total_failed,
+        "success_rate": (total_passed/(total_passed+total_failed)*100) if (total_passed+total_failed) > 0 else 0,
+        "test_files": [str(f.name) for f in test_files]
+    }
+    
+    with open(report_file, 'w') as f:
+        json.dump(report_data, f, indent=2)
+    
+    logger.info(f"\n📄 Report saved to: {report_file}")
+    
+    return total_failed == 0
+
+
+if __name__ == "__main__":
+    import asyncio
+    import sys
+    
+    # Parse command line arguments
+    mode = "working"
+    stress_file = None
+    
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg == "debug":
+            mode = "debug"
+        elif arg == "stress":
+            mode = "stress"
+        elif arg.endswith(".json"):
+            mode = "stress"
+            stress_file = arg
+        else:
+            mode = "working"
+    
+    # Run the selected mode
+    if mode == "debug":
+        print("Running debug mode...")
+        asyncio.run(debug_function())
+    elif mode == "stress":
+        print("Running stress test mode...")
+        if stress_file:
+            # Extract just the filename from the path
+            filename = Path(stress_file).name
+            asyncio.run(stress_test(filename))
+        else:
+            asyncio.run(stress_test())
+    else:
+        print("Running working usage mode...")
+        asyncio.run(working_usage())

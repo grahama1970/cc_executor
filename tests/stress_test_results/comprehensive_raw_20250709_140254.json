@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-07-09T14:02:54.520392",
+  "test_categories": {
+    "python_api_local": {
+      "tests": [
+        {
+          "name": "Simple math",
+          "success": true,
+          "duration": 9.995721101760864,
+          "result": "42"
+        },
+        {
+          "name": "List colors",
+          "success": true,
+          "duration": 7.252732992172241,
+          "result": "Red, Blue, Yellow"
+        },
+        {
+          "name": "Boolean logic",
+          "success": true,
+          "duration": 6.220751047134399,
+          "result": "Yes"
+        }
+      ],
+      "summary": {
+        "total_tests": 3,
+        "successful": 3,
+        "failed": 0,
+        "success_rate": "100.0%",
+        "avg_duration": "7.82s"
+      }
+    },
+    "mcp_local_websocket": {
+      "tests": [
+        {
+          "name": "Connection test",
+          "success": false,
+          "duration": 0,
+          "error": "[Errno 111] Connect call failed ('127.0.0.1', 8003)"
+        }
+      ],
+      "summary": {
+        "total_tests": 1,
+        "successful": 0,
+        "failed": 1,
+        "success_rate": "0.0%",
+        "avg_duration": "0.00s"
+      }
+    },
+    "docker_api": {
+      "tests": [],
+      "summary": {}
+    },
+    "mcp_docker_websocket": {
+      "tests": [
+        {
+          "name": "Math via Docker",
+          "success": true,
+          "duration": 0.1697986125946045,
+          "result": "Process started"
+        },
+        {
+          "name": "Word via Docker",
+          "success": true,
+          "duration": 0.16954278945922852,
+          "result": "Process started"
+        }
+      ],
+      "summary": {
+        "total_tests": 2,
+        "successful": 2,
+        "failed": 0,
+        "success_rate": "100.0%",
+        "avg_duration": "0.17s"
+      }
+    }
+  },
+  "overall_summary": {
+    "total_tests": 6,
+    "successful": 5,
+    "failed": 1,
+    "success_rate": "83.3%",
+    "avg_duration": "3.97s",
+    "categories_tested": 3
+  }
+}

@@ -37,16 +37,8 @@ import redis
 from typing import Dict, Optional, Any
 from loguru import logger
 
-try:
-    from .config import MAX_SESSIONS, SESSION_TIMEOUT
-    from .models import SessionInfo
-except ImportError:
-    # For standalone execution
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from config import MAX_SESSIONS, SESSION_TIMEOUT
-    from models import SessionInfo
+from .config import MAX_SESSIONS, SESSION_TIMEOUT
+from .models import SessionInfo
 
 
 class SessionManager:

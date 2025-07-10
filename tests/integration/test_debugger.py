@@ -15,11 +15,8 @@ if __name__ == "__main__":
     print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
     
     # Test import
-    try:
-        from cc_executor import __version__
-        print(f"cc_executor imported successfully, version: {__version__}")
-    except ImportError as e:
-        print(f"Import error: {e}")
+    from cc_executor import __version__
+    print(f"cc_executor imported successfully, version: {__version__}")
     
     # Call function
     result = test_function()

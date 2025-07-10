@@ -31,17 +31,8 @@ import asyncio
 from typing import Callable, Optional, AsyncIterator, Awaitable, Any
 from loguru import logger
 
-try:
-    from .config import MAX_BUFFER_SIZE, STREAM_TIMEOUT
-except ImportError:
-    # For standalone execution
-    MAX_BUFFER_SIZE = 8 * 1024 * 1024  # 8MB for large JSON outputs
-    STREAM_TIMEOUT = 300
-
-try:
-    from ..utils.transcript_logger import TranscriptLogger
-except ImportError:
-    TranscriptLogger = None
+from .config import MAX_BUFFER_SIZE, STREAM_TIMEOUT
+from ..utils.transcript_logger import TranscriptLogger
 
 
 class StreamHandler:

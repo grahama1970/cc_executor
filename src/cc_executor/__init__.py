@@ -18,7 +18,7 @@ __all__ = [
     "__version__",
     # Python API
     "cc_execute",
-    "cc_execute_list", 
+    "cc_execute_task_list", 
     "CCExecutorConfig",
     # MCP Server components
     "WebSocketHandler",
@@ -28,16 +28,10 @@ __all__ = [
 ]
 
 # Python API imports (for direct usage)
-try:
-    from .client import cc_execute, cc_execute_list, CCExecutorConfig
-except ImportError:
-    pass
+from .client import cc_execute, cc_execute_task_list, CCExecutorConfig
 
 # MCP Server imports (for server mode)
-try:
-    from .core.websocket_handler import WebSocketHandler
-    from .core.session_manager import SessionManager
-    from .core.process_manager import ProcessManager
-    from .core.stream_handler import StreamHandler
-except ImportError:
-    pass
+from .core.websocket_handler import WebSocketHandler
+from .core.session_manager import SessionManager
+from .core.process_manager import ProcessManager
+from .core.stream_handler import StreamHandler
