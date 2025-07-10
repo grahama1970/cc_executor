@@ -24,14 +24,10 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 # Now we can import hooks
-try:
-    from cc_executor.hooks import setup_environment
-    from cc_executor.hooks import check_task_dependencies
-    from cc_executor.hooks import record_execution_metrics
-    HOOKS_AVAILABLE = True
-except ImportError:
-    HOOKS_AVAILABLE = False
-    print("WARNING: Hooks not available. Tests will run without environment setup.")
+from cc_executor.hooks import setup_environment
+from cc_executor.hooks import check_task_dependencies
+from cc_executor.hooks import record_execution_metrics
+HOOKS_AVAILABLE = True
 
 class CoreUsageAssessor:
     def __init__(self):

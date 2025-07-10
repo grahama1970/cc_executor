@@ -17,6 +17,7 @@ import os
 import sys
 import json
 import subprocess
+import redis
 from pathlib import Path
 from loguru import logger
 
@@ -201,13 +202,7 @@ def main():
     
     # Store environment updates for WebSocket handler
     try:
-        # F7: Graceful Redis fallback - wrap import in try/except
-        try:
-            import redis
-            r = redis.Redis(decode_responses=True)
-        except ImportError:
-            logger.debug("Redis not available - skipping environment data storage")
-            sys.exit(0)
+        r = redis.Redis(decode_responses=True)
         
         # Store as JSON for easy retrieval
         env_data = {

@@ -22,6 +22,7 @@ import shlex
 import shutil
 import time
 import functools
+import redis
 from pathlib import Path
 from typing import Dict, Optional, Any, List, Tuple
 from loguru import logger
@@ -618,8 +619,6 @@ class HookIntegration:
             if result and result.get('success'):
                 # Try to read complexity data from Redis
                 try:
-                    # N3: Fix Redis absence handling - proper import check
-                    import redis
                     r = redis.Redis(decode_responses=True)
                     
                     key = f"task:current:{os.path.basename(temp_file)}"
@@ -627,8 +626,6 @@ class HookIntegration:
                     
                     if complexity_data:
                         return json.loads(complexity_data)
-                except ImportError:
-                    logger.debug("Redis module not available - skipping complexity data retrieval")
                 except Exception as e:
                     logger.debug(f"Could not read complexity data from Redis: {e}")
                     

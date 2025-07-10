@@ -47,6 +47,7 @@ dependencies = [
     "pytest>=8.4.1",
     "httpx>=0.28.1",
     "rank-bm25>=0.2.2",
+    "tqdm>=4.66.0", # For progress bars in examples
     "python-daemon>=3.1.2",
     "json-repair>=0.47.6",
 ]

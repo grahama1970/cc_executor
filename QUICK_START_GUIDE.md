@@ -34,7 +34,7 @@ pip install cc-executor
 
 ### Using the Python API
 
-CC Executor now provides a simple Python API for both single tasks and workflows:
+CC Executor provides a simple Python API for single tasks, workflows, and concurrent execution:
 
 ```python
 from cc_executor.client.cc_execute import cc_execute
@@ -80,6 +80,76 @@ async def task_list_example():
         print(f"✅ Task {i+1} completed: {display_result}")
 
 asyncio.run(task_list_example())
+
+# Concurrent execution with controlled parallelism
+async def concurrent_example():
+    """Execute multiple independent tasks concurrently with rate limiting."""
+    from asyncio import Semaphore, gather, as_completed
+    from tqdm.asyncio import tqdm
+    
+    # Tasks that can run independently
+    tasks = [
+        "Generate a README for a Python project",
+        "Create a GitHub Actions workflow for CI/CD",
+        "Write unit tests for a calculator module",
+        "Generate API documentation in OpenAPI format",
+        "Create a Docker compose file for a web app",
+        "Write a contributing guide for open source",
+        "Generate SQL migration scripts",
+        "Create a security policy document"
+    ]
+    
+    # Limit concurrent executions to prevent overload
+    semaphore = Semaphore(3)  # Max 3 concurrent cc_execute calls
+    
+    async def execute_with_limit(task: str, index: int):
+        async with semaphore:
+            result = await cc_execute(task)
+            return {"task": task, "index": index, "result": result}
+    
+    # Create all tasks
+    coroutines = [execute_with_limit(task, i) for i, task in enumerate(tasks)]
+    
+    # Execute with progress bar
+    results = []
+    async for future in tqdm(as_completed(coroutines), total=len(tasks), desc="Processing"):
+        result = await future
+        results.append(result)
+        print(f"✅ Completed task {result['index']+1}: {result['task'][:40]}...")
+    
+    # Sort results back to original order
+    results.sort(key=lambda x: x['index'])
+    return results
+
+asyncio.run(concurrent_example())
+
+# Batch processing with gather
+async def batch_example():
+    """Process tasks in batches using asyncio.gather."""
+    tasks = [
+        "Analyze code complexity for module A",
+        "Analyze code complexity for module B", 
+        "Analyze code complexity for module C",
+        "Analyze code complexity for module D"
+    ]
+    
+    batch_size = 2
+    results = []
+    
+    # Process in batches
+    for i in range(0, len(tasks), batch_size):
+        batch = tasks[i:i+batch_size]
+        print(f"\n🔄 Processing batch {i//batch_size + 1}...")
+        
+        # Execute batch concurrently
+        batch_results = await gather(*[cc_execute(task) for task in batch])
+        results.extend(batch_results)
+        
+        print(f"✅ Batch {i//batch_size + 1} complete")
+    
+    return results
+
+asyncio.run(batch_example())
 ```
 
 ## Recent Updates (v1.3.0)

@@ -122,14 +122,41 @@ asyncio.run(main())
 # For complex agent workflows with WebSocket orchestration
 cc-executor server start  # Start the WebSocket server
 
-# Basic example - All tasks use cc_execute
-cd examples/basic_usage
+# Quickstart - Single task in 2 minutes
+cd examples/quickstart
+python quickstart.py
+
+# Basic - Sequential task execution
+cd examples/basic
 python run_example.py
 
-# Advanced example - Mixed execution patterns  
-cd examples/advanced_usage
+# Medium - Concurrent execution patterns
+cd examples/medium
+python concurrent_tasks.py
+
+# Advanced - Production patterns with mixed execution  
+cd examples/advanced
 python run_example.py
 ```
+
+### Anti-Hallucination Verification (MCP Tool)
+
+CC Executor includes built-in verification to ensure executions are real:
+
+```python
+# Via MCP: Use the verify_execution tool
+result = await mcp_client.call_tool("verify_execution", {"last_n": 5})
+
+# Manual verification
+python -m cc_executor.reporting.hallucination_check report
+```
+
+Every execution creates verifiable artifacts:
+- JSON response files with UUIDs
+- Markdown receipts for audit trails
+- Redis timing history
+
+See [MCP Verification Tool](docs/MCP_VERIFICATION_TOOL.md) for details.
 
 **Example Task Lists**:
 
@@ -163,8 +190,10 @@ Advanced Usage:
 - **Real workflows**: Research → Build → Review → Improve
 
 > **Note**: See the `examples/` directory for complete working examples:
-> - `examples/basic_usage/` - Learn cc_execute fundamentals
-> - `examples/advanced_usage/` - Production patterns with mixed execution
+> - `examples/quickstart/` - Get started in 2 minutes
+> - `examples/basic/` - Learn cc_execute fundamentals  
+> - `examples/medium/` - Concurrent execution patterns
+> - `examples/advanced/` - Production patterns with mixed execution
 > - `docs/GAMIFICATION_EXPLAINED.md` - Understanding self-improving features
 
 ### For Advanced Users - Full Workflow Example
@@ -216,6 +245,13 @@ Task 4: Apply improvements and test → Final iteration
 - **Non-blocking async execution**: All subprocess calls now use `asyncio.create_subprocess_exec` to prevent event loop blocking
 - **Industry-standard API**: Migrated from `return_json` to `json_mode` parameter (matching OpenAI/LiteLLM conventions)
 - **Robust JSON parsing**: Automatic handling of markdown-wrapped JSON and malformed responses with `clean_json_string`
+
+### 🛡️ Anti-Hallucination System (v1.3.0)
+- **MCP Verification Tool**: New `verify_execution` tool exposed via MCP for checking execution authenticity
+- **Automatic Receipts**: Every cc_execute call generates a markdown receipt for audit trails
+- **JSON Response Files**: Physical evidence on disk with UUIDs for every execution
+- **Built-in Reporting**: Generate anti-hallucination verification reports on demand
+- **Receipt Integration**: Execution receipts automatically created alongside response files
 
 ### 🧹 Project Cleanup (v1.3.0)
 - **Temporary files archived**: All test scripts and temporary files moved to `archive/temp_files_20250109/`

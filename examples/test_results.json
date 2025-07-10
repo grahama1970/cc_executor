@@ -1,0 +1,236 @@
+{
+  "test_run": {
+    "start_time": "2025-07-10T08:07:13.401794",
+    "end_time": "2025-07-10T08:11:45.209310",
+    "duration": 271.807516
+  },
+  "summary": {
+    "total_tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "results": [
+    {
+      "name": "Quickstart",
+      "path": "quickstart/quickstart.py",
+      "status": "PASS",
+      "output": "\ud83d\ude80 CC Executor Quickstart Example\n==================================================\n\n\ud83d\udccb Task: Write a Python function to calculate fibonacci numbers with memoization\n\n\u23f3 Executing...\n\ud83d\udd10 Starting execution with UUID: 50973009-ae62-4960-8be7-17a30722b952\n[df7f3d55] Created `fibonacci.py` with a memoized Fibonacci function. The function stores previously calculated values in a dictionary to avoid redundant calculations, making it efficient even for large numbers.\n\n[df7f3d55] Response saved: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_df7f3d55_20250710_080713.json\n[Redis] Updated code:function (low/code) - Actual: 33.1s, Expected: 300.0s, Variance: -89.0%\n\n\u2705 Result:\n--------------------------------------------------\nCreated `fibonacci.py` with a memoized Fibonacci function. The function stores previously calculated values in a dictionary to avoid redundant calculations, making it efficient even for large numbers.\n\n--------------------------------------------------\n\n\ud83c\udf89 Done! Check out the other examples to learn more.\n",
+      "error": "2025-07-10 08:07:13 | INFO     | cc_executor.core.session_manager:__init__:78 - Redis connection established for session storage\n2025-07-10 08:07:13 | INFO     | cc_executor.core.websocket_handler:__init__:177 - Redis task timer initialized for intelligent timeout estimation\n2025-07-10 08:07:13 | INFO     | cc_executor.hooks.hook_integration:_load_config:360 - Loaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\n2025-07-10 08:07:13 | INFO     | cc_executor.core.websocket_handler:__init__:188 - Hook integration enabled with 2 hooks configured\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.session_manager\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m78\u001b[0m - \u001b[1mRedis connection established for session storage\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m177\u001b[0m - \u001b[1mRedis task timer initialized for intelligent timeout estimation\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m360\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.core.websocket_handler\u001b[0m:\u001b[36m__init__\u001b[0m:\u001b[36m188\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mestimate_timeout_async\u001b[0m:\u001b[36m96\u001b[0m - \u001b[1mRedisTaskTimer prediction: 108s (category: code, complexity: low, confidence: 0.70, based on: similar_tasks)\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m624\u001b[0m - \u001b[1mTimeout set to: 300s (estimated: 108s) for task: Write a Python function to calculate fibonacci num...\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m633\u001b[0m - \u001b[1m[df7f3d55] === CC_EXECUTE LIFECYCLE START ===\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m634\u001b[0m - \u001b[1m[df7f3d55] Task: Write a Python function to calculate fibonacci numbers with memoization...\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m635\u001b[0m - \u001b[1m[df7f3d55] Session ID: df7f3d55\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m636\u001b[0m - \u001b[1m[df7f3d55] Execution UUID: 50973009-ae62-4960-8be7-17a30722b952\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m637\u001b[0m - \u001b[1m[df7f3d55] Timeout: 300s\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m638\u001b[0m - \u001b[1m[df7f3d55] Stream: True\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_load_config\u001b[0m:\u001b[36m360\u001b[0m - \u001b[1mLoaded hook configuration from /home/graham/workspace/experiments/cc_executor/.claude-hooks.json\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m648\u001b[0m - \u001b[1mHook integration enabled with 2 hooks configured\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m700\u001b[0m - \u001b[1mFound MCP config at: /home/graham/.claude/claude_code/.mcp.json\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[33m\u001b[1mWARNING \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m732\u001b[0m - \u001b[33m\u001b[1m[df7f3d55] Ambiguous prompt detected: Starts with 'Write' - consider question format: 'What is...'\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m737\u001b[0m - \u001b[1mExecuting command: claude -p \"Write a Python function to calculate fibonacci numbers with memoization\" --mcp-config \"/home/graham/.claude/claude_code/.mcp.json\" --dangerously-skip-permissions --model claude-opus-4-20250514\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36m_execute_claude_command\u001b[0m:\u001b[36m274\u001b[0m - \u001b[1mWrapping claude command with stdbuf for unbuffered output\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36m_execute_claude_command\u001b[0m:\u001b[36m279\u001b[0m - \u001b[1m[HOOKS] Running pre-execution hooks\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36minitialize\u001b[0m:\u001b[36m62\u001b[0m - \u001b[1mInitializing programmatic hook enforcement system\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_ensure_venv\u001b[0m:\u001b[36m89\u001b[0m - \u001b[1mAlready in virtual environment: /home/graham/workspace/experiments/cc_executor/.venv\u001b[0m\n\u001b[32m2025-07-10 08:07:13\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_check_redis\u001b[0m:\u001b[36m122\u001b[0m - \u001b[1mRedis connection established\u001b[0m\n\u001b[32m2025-07-10 08:07:14\u001b[0m | \u001b[33m\u001b[1mWARNING \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_validate_environment\u001b[0m:\u001b[36m147\u001b[0m - \u001b[33m\u001b[1mEnvironment issues: ['No project indicators in /home/graham/workspace/experiments/cc_executor/examples/quickstart', 'PYTHONPATH missing src directory']\u001b[0m\n\u001b[32m2025-07-10 08:07:14\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36m_validate_environment\u001b[0m:\u001b[36m149\u001b[0m - \u001b[1mApplied fixes: ['Added ./src to PYTHONPATH']\u001b[0m\n\u001b[32m2025-07-10 08:07:14\u001b[0m | \u001b[33m\u001b[1mWARNING \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36minitialize\u001b[0m:\u001b[36m78\u001b[0m - \u001b[33m\u001b[1mEnvironment validation failed - attempting fixes\u001b[0m\n\u001b[32m2025-07-10 08:07:14\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36minitialize\u001b[0m:\u001b[36m81\u001b[0m - \u001b[1mHook enforcement system initialized successfully\u001b[0m\n\u001b[32m2025-07-10 08:07:15\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36masync_pre_execute_hook\u001b[0m:\u001b[36m330\u001b[0m - \u001b[1mPre-execute hook completed for: stdbuf -o0 -e0 claude -p \"Write a Python function ...\u001b[0m\n\u001b[32m2025-07-10 08:07:15\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36m_execute_claude_command\u001b[0m:\u001b[36m296\u001b[0m - \u001b[1m[df7f3d55] Subprocess created with PID: 655824\u001b[0m\n\u001b[32m2025-07-10 08:07:46\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36m_execute_claude_command\u001b[0m:\u001b[36m357\u001b[0m - \u001b[1m[df7f3d55] Process completed successfully\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m768\u001b[0m - \u001b[1m[df7f3d55] Process completed successfully in 33.06s\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m769\u001b[0m - \u001b[1m[df7f3d55] Output size: 201 chars\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m774\u001b[0m - \u001b[1m[HOOKS] Running post-execution hooks\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.hooks.hook_integration\u001b[0m:\u001b[36mpost_execute_hook\u001b[0m:\u001b[36m229\u001b[0m - \u001b[1mPost-execute hook: exit_code=0, output_size=201\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m801\u001b[0m - \u001b[1m[df7f3d55] Response saved: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_df7f3d55_20250710_080713.json\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m816\u001b[0m - \u001b[1m[df7f3d55] Execution receipt: receipt_df7f3d55_20250710_080747.md\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m847\u001b[0m - \u001b[1mSaved execution time 33.1s to RedisTaskTimer (category: code, complexity: low)\u001b[0m\n\u001b[32m2025-07-10 08:07:47\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mcc_executor.client.cc_execute\u001b[0m:\u001b[36mcc_execute\u001b[0m:\u001b[36m864\u001b[0m - \u001b[1m[df7f3d55] === CC_EXECUTE LIFECYCLE COMPLETE ===\u001b[0m\n",
+      "execution_time": 33.75757718086243,
+      "verification": {
+        "status": "PASS",
+        "checked_files": 1,
+        "verifications": [
+          {
+            "file": "cc_execute_df7f3d55_20250710_080713.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_df7f3d55_20250710_080713.json",
+            "file_size": 515,
+            "modified": "2025-07-10T08:07:47.001162",
+            "task": "Write a Python function to calculate fibonacci numbers with memoization",
+            "output": "Created `fibonacci.py` with a memoized Fibonacci function. The function stores previously calculated values in a dictionary to avoid redundant calculations, making it efficient even for large numbers.\n",
+            "execution_uuid": "50973009-ae62-4960-8be7-17a30722b952",
+            "session_id": "df7f3d55",
+            "return_code": 0,
+            "execution_time": 33.057719707489014,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_df7f3d55_20250710_080747.md",
+            "is_hallucination": false
+          }
+        ],
+        "is_hallucination": false,
+        "proof": "Physical files exist at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses"
+      }
+    },
+    {
+      "name": "Basic",
+      "path": "basic/run_example.py",
+      "status": "PASS",
+      "output": "",
+      "error": "",
+      "execution_time": 145.83523273468018,
+      "tasks_completed": 2,
+      "verification": {
+        "status": "PASS",
+        "checked_files": 1,
+        "verifications": [
+          {
+            "file": "cc_execute_cd20ef90_20250710_080802.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_cd20ef90_20250710_080802.json",
+            "file_size": 690,
+            "modified": "2025-07-10T08:10:12.908118",
+            "task": "Write a unit test for the add function",
+            "output": "Perfect! I've created a comprehensive unit test for the `add_numbers` function at `/home/graham/workspace/experiments/cc_executor/tests/unit/test_add_numbers.py`.\n\nThe test includes:\n- Tests for positive integers\n- Tests for negative integers  \n- Tests for zero values\n- Tests for floating point numbers\n- Tests for mixed integer/float types\n- Tests for large numbers\n\nAll 6 tests pass successfully.\n",
+            "execution_uuid": "7187fe16-338e-4089-8482-978a6cb8ff97",
+            "session_id": "cd20ef90",
+            "return_code": 0,
+            "execution_time": 130.2097611427307,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_cd20ef90_20250710_081012.md",
+            "is_hallucination": false
+          }
+        ],
+        "is_hallucination": false,
+        "proof": "Physical files exist at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses"
+      }
+    },
+    {
+      "name": "Medium (Concurrent)",
+      "path": "medium/concurrent_tasks.py",
+      "status": "PASS",
+      "output": "",
+      "error": "",
+      "execution_time": 14.639106750488281,
+      "concurrent_speedup": 1.9126850071686288,
+      "verification": {
+        "status": "PASS",
+        "checked_files": 4,
+        "verifications": [
+          {
+            "file": "cc_execute_64022c5f_20250710_081021.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_64022c5f_20250710_081021.json",
+            "file_size": 277,
+            "modified": "2025-07-10T08:10:27.547414",
+            "task": "What is 10 + 5? Just the number.",
+            "output": "15\n",
+            "execution_uuid": "b1cd2d71-ab52-42e8-984e-a854892283b4",
+            "session_id": "64022c5f",
+            "return_code": 0,
+            "execution_time": 6.323001146316528,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_64022c5f_20250710_081027.md",
+            "is_hallucination": false
+          },
+          {
+            "file": "cc_execute_c476737b_20250710_081019.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_c476737b_20250710_081019.json",
+            "file_size": 277,
+            "modified": "2025-07-10T08:10:26.898401",
+            "task": "What is 20 * 3? Just the number.",
+            "output": "60\n",
+            "execution_uuid": "4eb1f720-a293-4b96-83e2-4bb902fa8ce8",
+            "session_id": "c476737b",
+            "return_code": 0,
+            "execution_time": 7.078084230422974,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_c476737b_20250710_081026.md",
+            "is_hallucination": false
+          },
+          {
+            "file": "cc_execute_444997a4_20250710_081013.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_444997a4_20250710_081013.json",
+            "file_size": 277,
+            "modified": "2025-07-10T08:10:21.102284",
+            "task": "What is 100 / 4? Just the number.",
+            "output": "25\n",
+            "execution_uuid": "ee1664b8-26c8-4824-a0a1-df42b5931cd0",
+            "session_id": "444997a4",
+            "return_code": 0,
+            "execution_time": 8.04187536239624,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_444997a4_20250710_081021.md",
+            "is_hallucination": false
+          },
+          {
+            "file": "cc_execute_7c4f5db8_20250710_081013.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_7c4f5db8_20250710_081013.json",
+            "file_size": 278,
+            "modified": "2025-07-10T08:10:19.688255",
+            "task": "What is 50 - 15? Just the number.",
+            "output": "35\n",
+            "execution_uuid": "7b42b68d-b89f-4e4b-af2f-e1a10b01b574",
+            "session_id": "7c4f5db8",
+            "return_code": 0,
+            "execution_time": 6.631327390670776,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_7c4f5db8_20250710_081019.md",
+            "is_hallucination": false
+          }
+        ],
+        "is_hallucination": false,
+        "proof": "Physical files exist at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses"
+      }
+    },
+    {
+      "name": "Advanced",
+      "path": "advanced/run_example.py",
+      "status": "PASS",
+      "output": "",
+      "error": "",
+      "execution_time": 77.56278657913208,
+      "features_tested": [
+        "json_mode",
+        "validation"
+      ],
+      "verification": {
+        "status": "PASS",
+        "checked_files": 2,
+        "verifications": [
+          {
+            "file": "cc_execute_877ca7c5_20250710_081120.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_877ca7c5_20250710_081120.json",
+            "file_size": 873,
+            "modified": "2025-07-10T08:11:45.111982",
+            "task": "Check if this code works: {\n  \"result\": \"def reverse_string(s: str) -> str:\\n    \\\"\\\"\\\"Reverse a string.\\\"\\\"\\\"\\n    return s[::-1]\",\n  \"files_created\": [\n    \"/home/graham/workspace/experiments/cc_executor/reverse_string.py\"\n  ],\n  \"files_modified\": [],\n  \"summary\": \"Created a reverse_string function using Python's slice notation [::-1] with comprehensive test cases\",\n  \"execution_uuid\": \"6a0d7f08-8e1a-4444-a0c0-f6c7c365c2fe\"\n}. Return {'is_valid': true/false}",
+            "output": "Yes, the code works correctly! The `reverse_string` function properly reverses strings using Python's slice notation `[::-1]`.\n",
+            "execution_uuid": "84ee0377-ceda-44db-9f1b-77c68bc05274",
+            "session_id": "877ca7c5",
+            "return_code": 0,
+            "execution_time": 24.59235644340515,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_877ca7c5_20250710_081145.md",
+            "is_hallucination": false
+          },
+          {
+            "file": "cc_execute_3e9e06a7_20250710_081041.json",
+            "file_exists": true,
+            "file_path": "/home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses/cc_execute_3e9e06a7_20250710_081041.json",
+            "file_size": 738,
+            "modified": "2025-07-10T08:11:20.419483",
+            "task": "Write a function to reverse a string",
+            "output": "```json\n{\n  \"result\": \"def reverse_string(s: str) -> str:\\n    \\\"\\\"\\\"Reverse a string.\\\"\\\"\\\"\\n    return s[::-1]\",\n  \"files_created\": [\n    \"/home/graham/workspace/experiments/cc_executor/reverse_string.py\"\n  ],\n  \"files_modified\": [],\n  \"summary\": \"Created a reverse_string function using Python's slice notation [::-1] with comprehensive test cases\",\n  \"execution_uuid\": \"6a0d7f08-8e1a-4444-a0c0-f6c7c365c2fe\"\n}\n```\n",
+            "execution_uuid": "6a0d7f08-8e1a-4444-a0c0-f6c7c365c2fe",
+            "session_id": "3e9e06a7",
+            "return_code": 0,
+            "execution_time": 38.46161103248596,
+            "json_valid": true,
+            "receipt_exists": true,
+            "receipt_file": "receipt_3e9e06a7_20250710_081120.md",
+            "is_hallucination": false
+          }
+        ],
+        "is_hallucination": false,
+        "proof": "Physical files exist at: /home/graham/workspace/experiments/cc_executor/src/cc_executor/client/tmp/responses"
+      }
+    },
+    {
+      "name": "Utility: cli_tool_limitations_workaround.py",
+      "path": "cli_tool_limitations_workaround.py",
+      "status": "PASS",
+      "exists": true,
+      "has_documentation": true
+    },
+    {
+      "name": "Utility: validation_pattern.py",
+      "path": "validation_pattern.py",
+      "status": "PASS",
+      "exists": true,
+      "has_documentation": true
+    }
+  ]
+}

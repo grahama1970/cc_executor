@@ -169,28 +169,25 @@ async def cc_execute(
         logger.info(f"Amending prompt for better reliability...")
         
         # Import amendment module
-        try:
-            from prompt_amender import apply_basic_rules, amend_prompt as amend_with_claude
-            
-            # For speed, use basic rules for short prompts
-            if len(task) < 100:
+        from cc_executor.utils.prompt_amender import apply_basic_rules, amend_prompt as amend_with_claude
+        
+        # For speed, use basic rules for short prompts
+        if len(task) < 100:
+            task = apply_basic_rules(task)
+            if task != original_task:
+                logger.info(f"Applied basic amendment: {original_task[:50]}... → {task[:50]}...")
+        else:
+            # For complex prompts, use Claude (recursive cc_execute call)
+            try:
+                # Avoid infinite recursion - don't amend amendment requests
+                if "amend it for Claude CLI reliability" not in task:
+                    amended_task, explanation = await amend_with_claude(original_task, cc_execute)
+                    if amended_task != original_task:
+                        logger.info(f"Claude amended prompt: {explanation}")
+                        task = amended_task
+            except Exception as e:
+                logger.warning(f"Claude amendment failed: {e}, using basic rules")
                 task = apply_basic_rules(task)
-                if task != original_task:
-                    logger.info(f"Applied basic amendment: {original_task[:50]}... → {task[:50]}...")
-            else:
-                # For complex prompts, use Claude (recursive cc_execute call)
-                try:
-                    # Avoid infinite recursion - don't amend amendment requests
-                    if "amend it for Claude CLI reliability" not in task:
-                        amended_task, explanation = await amend_with_claude(original_task, cc_execute)
-                        if amended_task != original_task:
-                            logger.info(f"Claude amended prompt: {explanation}")
-                            task = amended_task
-                except Exception as e:
-                    logger.warning(f"Claude amendment failed: {e}, using basic rules")
-                    task = apply_basic_rules(task)
-        except ImportError:
-            logger.warning("Could not import prompt_amender, using original prompt")
     
     # Smart timeout estimation
     if agent_predict_timeout:

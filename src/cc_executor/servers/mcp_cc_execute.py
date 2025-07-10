@@ -10,6 +10,7 @@ import os
 import sys
 import asyncio
 import json
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
@@ -18,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from fastmcp import FastMCP
 from cc_executor.client.cc_execute import cc_execute, CCExecutorConfig
+from cc_executor.reporting import check_hallucination, generate_hallucination_report
 
 # Initialize FastMCP server
 mcp = FastMCP("cc-executor", dependencies=["cc_executor"])
@@ -258,6 +260,57 @@ async def analyze_task_complexity(task: str) -> Dict[str, Any]:
     }
 
 
+@mcp.tool(
+    description="""Verify that recent cc_execute calls are not hallucinated.
+    This tool checks for physical JSON response files on disk to prove executions happened.
+    Use this to generate anti-hallucination reports and verify execution results.
+    
+    Examples:
+    - Verify the last execution
+    - Check a specific execution UUID
+    - Generate a verification report for the last 5 executions
+    """
+)
+async def verify_execution(
+    execution_uuid: Optional[str] = None,
+    last_n: int = 1,
+    generate_report: bool = True
+) -> Dict[str, Any]:
+    """
+    Verify cc_execute results are real by checking JSON response files.
+    
+    Args:
+        execution_uuid: Specific UUID to verify (optional)
+        last_n: Number of recent executions to check (default: 1)
+        generate_report: Whether to generate a markdown report (default: True)
+        
+    Returns:
+        Verification results with hallucination check
+    """
+    try:
+        # Check for hallucinations
+        result = check_hallucination(execution_uuid=execution_uuid, last_n=last_n)
+        
+        # Generate report if requested
+        if generate_report and not result.get("is_hallucination", True):
+            report_path = generate_hallucination_report(
+                verifications=result.get("verifications", []),
+                output_file=f"verification_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            )
+            result["report_path"] = str(report_path)
+            
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "is_hallucination": True,
+            "message": "Failed to verify execution - likely hallucinated"
+        }
+
+
 @mcp.resource(
     uri="executor://logs",
     name="executor-logs",
@@ -337,6 +390,7 @@ if __name__ == "__main__":
     print("  - execute_task_list: Run multiple tasks sequentially")
     print("  - analyze_task_complexity: Estimate task complexity")
     print("  - get_executor_status: Check service health")
+    print("  - verify_execution: Verify executions are not hallucinated")
     print("\nPress Ctrl+C to stop")
     
     # FastMCP runs as stdio by default for MCP protocol
