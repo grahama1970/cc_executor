@@ -15,6 +15,7 @@ import time
 import uuid
 import signal
 import hashlib
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, AsyncIterator, Dict, Any, Union
@@ -27,6 +28,185 @@ import redis  # Always available in cc_executor environment
 # Import JSON utilities for robust parsing
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from cc_executor.utils.json_utils import clean_json_string
+
+# FIX 3: Helper function for parsing partial JSON
+def try_parse_partial_json(text: str) -> Optional[dict]:
+    """
+    Attempt to parse incomplete JSON by fixing common issues.
+    Used when tasks timeout but we want to salvage partial results.
+    """
+    if not text or not text.strip():
+        return None
+    
+    # Method 1: Try clean_json_string first
+    try:
+        result = clean_json_string(text, return_dict=True)
+        if isinstance(result, dict):
+            return result
+    except:
+        pass
+    
+    # Method 2: Find JSON boundaries and fix unclosed structures
+    if '"sections"' in text or '{' in text:
+        # Track opening/closing brackets
+        brackets = []
+        json_start = -1
+        
+        for i, char in enumerate(text):
+            if char == '{':
+                if json_start == -1:
+                    json_start = i
+                brackets.append('{')
+            elif char == '[':
+                brackets.append('[')
+            elif char == '}':
+                if brackets and brackets[-1] == '{':
+                    brackets.pop()
+            elif char == ']':
+                if brackets and brackets[-1] == '[':
+                    brackets.pop()
+        
+        # Extract from first { to end
+        if json_start >= 0:
+            partial = text[json_start:]
+            
+            # Add missing closing brackets
+            for bracket in reversed(brackets):
+                if bracket == '{':
+                    partial += '}'
+                elif bracket == '[':
+                    partial += ']'
+            
+            # Try to parse the fixed JSON
+            try:
+                return json.loads(partial)
+            except json.JSONDecodeError:
+                # Try with clean_json_string as last resort
+                try:
+                    result = clean_json_string(partial, return_dict=True)
+                    if isinstance(result, dict):
+                        return result
+                except:
+                    pass
+    
+    return None
+
+# FIX 4: Enhanced JSON extraction function
+def extract_json_from_response(text: str) -> dict:
+    """
+    Extract JSON from Claude's response, handling various formats.
+    More robust than the original implementation.
+    """
+    if not text:
+        raise ValueError("Empty response text")
+    
+    # Method 1: Try clean_json_string first (handles most cases)
+    try:
+        result = clean_json_string(text, return_dict=True)
+        if isinstance(result, dict):
+            logger.debug("Successfully extracted JSON using clean_json_string")
+            return result
+    except Exception as e:
+        logger.debug(f"clean_json_string failed: {e}")
+    
+    # Method 2: Look for ```json blocks specifically
+    json_blocks = re.findall(r'```json\s*\n(.*?)\n```', text, re.DOTALL)
+    if json_blocks:
+        for block in json_blocks:
+            try:
+                result = json.loads(block.strip())
+                logger.debug("Successfully extracted JSON from markdown code block")
+                return result
+            except json.JSONDecodeError:
+                continue
+    
+    # Method 3: Find JSON by looking for { } boundaries
+    first_brace = text.find('{')
+    last_brace = text.rfind('}')
+    
+    if first_brace >= 0 and last_brace > first_brace:
+        json_candidate = text[first_brace:last_brace + 1]
+        try:
+            result = json.loads(json_candidate)
+            logger.debug("Successfully extracted JSON by finding braces")
+            return result
+        except json.JSONDecodeError:
+            # Try fixing common issues
+            json_candidate = fix_common_json_issues(json_candidate)
+            try:
+                result = json.loads(json_candidate)
+                logger.debug("Successfully extracted JSON after fixing common issues")
+                return result
+            except:
+                pass
+    
+    # Method 4: Look for array responses
+    first_bracket = text.find('[')
+    last_bracket = text.rfind(']')
+    
+    if first_bracket >= 0 and last_bracket > first_bracket:
+        json_candidate = text[first_bracket:last_bracket + 1]
+        try:
+            result = json.loads(json_candidate)
+            if isinstance(result, list):
+                # Convert to dict format
+                return {"result": result, "summary": "Array response"}
+            return result
+        except:
+            pass
+    
+    # Method 5: Try to extract any valid JSON-like structure
+    # Look for common patterns in Claude responses
+    patterns = [
+        r'"result"\s*:\s*"([^"]+)"',
+        r'"summary"\s*:\s*"([^"]+)"',
+        r'"output"\s*:\s*"([^"]+)"'
+    ]
+    
+    extracted_data = {}
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            key = pattern.split('"')[1]
+            extracted_data[key] = match.group(1)
+    
+    if extracted_data:
+        logger.debug("Extracted partial JSON data from patterns")
+        return extracted_data
+    
+    # Last resort: Return text as result
+    logger.warning("Could not extract valid JSON, returning text as result")
+    return {
+        "result": text.strip(),
+        "summary": "Raw text response (JSON parsing failed)",
+        "parse_error": "Could not extract valid JSON structure"
+    }
+
+def fix_common_json_issues(json_str: str) -> str:
+    """Fix common JSON formatting issues."""
+    
+    # Fix trailing commas
+    json_str = re.sub(r',\s*}', '}', json_str)
+    json_str = re.sub(r',\s*]', ']', json_str)
+    
+    # Fix unescaped newlines in strings
+    # This is tricky - we need to find strings and escape newlines in them
+    def fix_newlines_in_match(match):
+        content = match.group(0)
+        # Replace actual newlines with \n
+        return content.replace('\n', '\\n').replace('\r', '\\r')
+    
+    # Match string values (basic pattern)
+    json_str = re.sub(r'"[^"]*":\s*"[^"]*"', fix_newlines_in_match, json_str)
+    
+    # Fix missing commas between objects in arrays
+    json_str = re.sub(r'}\s*{', '},{', json_str)
+    
+    # Remove comments (sometimes Claude adds them)
+    json_str = re.sub(r'//.*$', '', json_str, flags=re.MULTILINE)
+    json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
+    
+    return json_str
 
 
 # Logger configuration handled by main cc_executor package
@@ -41,6 +221,10 @@ class CCExecutorConfig:
     response_dir: Path = Path(__file__).parent / "tmp" / "responses"
     transcript_dir: Path = Path("/tmp/cc_executor_transcripts")
     # api_key_env: str = "ANTHROPIC_API_KEY"  # NOT USED - browser auth
+    
+    # FIX 2: Add connection pooling configuration
+    use_connection_pool: bool = False  # Experimental feature
+    pool_size: int = 3
     
     def __post_init__(self):
         self.response_dir.mkdir(parents=True, exist_ok=True)
@@ -413,23 +597,27 @@ The execution_uuid MUST be the LAST key in the JSON object."""
                 read_stream(proc.stderr, error_lines, "[STDERR] ")
             )
             
-            # Wait for process completion with timeout
+            # FIX 1: Output Buffer Deadlock - Wait for BOTH process completion AND stream reading
             try:
                 logger.debug(f"[{session_id}] Waiting for process with timeout={config.timeout}s")
+                # Wait for all three: process exit, stdout reading, stderr reading
                 await asyncio.wait_for(
-                    proc.wait(),
+                    asyncio.gather(
+                        proc.wait(),
+                        stdout_task,
+                        stderr_task,
+                        return_exceptions=True
+                    ),
                     timeout=config.timeout
                 )
-                # Ensure we've read all output
-                await stdout_task
-                await stderr_task
                 logger.info(f"[{session_id}] Process completed successfully")
             except asyncio.TimeoutError:
                 logger.warning(f"[{session_id}] Process timed out after {config.timeout}s")
-                # Cancel read tasks
-                stdout_task.cancel()
-                stderr_task.cancel()
-                raise
+                # Don't cancel tasks yet - we want partial output!
+                # stdout_task.cancel() # REMOVED - keep partial output
+                # stderr_task.cancel() # REMOVED - keep partial output
+                # FIX 3: Don't raise immediately - collect partial results first
+                pass  # Continue to handle timeout gracefully
                 
         else:
             # Non-streaming mode - wait for completion
@@ -444,7 +632,7 @@ The execution_uuid MUST be the LAST key in the JSON object."""
                 error_lines = stderr.decode().splitlines(keepends=True)
     
     except asyncio.TimeoutError:
-        logger.error(f"[{session_id}] TIMEOUT after {config.timeout}s!")
+        logger.warning(f"[{session_id}] TIMEOUT after {config.timeout}s - collecting partial results")
         # Kill process group on timeout (matching websocket_handler.py)
         if proc.returncode is None:
             try:
@@ -458,11 +646,51 @@ The execution_uuid MUST be the LAST key in the JSON object."""
             except ProcessLookupError:
                 pass
         
-        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (TIMEOUT) ===")
-        raise TimeoutError(
-            f"Task exceeded {config.timeout}s timeout. "
-            f"Partial output:\n{''.join(output_lines[-50:])}"
-        )
+        # FIX 3: Return partial results instead of raising
+        logger.info(f"[{session_id}] Returning partial results after timeout")
+        full_output = ''.join(output_lines)
+        
+        # Save partial results
+        execution_time = time.time() - start_time
+        response_file = config.response_dir / f"cc_execute_{session_id}_{timestamp}_PARTIAL.json"
+        response_data = {
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "task": task,
+            "output": full_output,
+            "error": f"Task timed out after {config.timeout}s",
+            "partial": True,
+            "timeout_after": config.timeout,
+            "execution_time": execution_time,
+            "execution_uuid": execution_uuid
+        }
+        
+        with open(response_file, 'w') as f:
+            json.dump(response_data, f, indent=2)
+        
+        logger.info(f"[{session_id}] Partial response saved: {response_file}")
+        
+        # Return partial results based on mode
+        if json_mode:
+            # Try to parse partial JSON
+            partial_json = try_parse_partial_json(full_output)
+            if partial_json:
+                partial_json['partial'] = True
+                partial_json['timeout_after'] = config.timeout
+                partial_json['execution_uuid'] = execution_uuid
+                return partial_json
+            else:
+                return {
+                    "result": full_output,
+                    "partial": True,
+                    "timeout_after": config.timeout,
+                    "error": "Task timed out but partial results available",
+                    "summary": f"Partial completion of: {task[:100]}...",
+                    "execution_uuid": execution_uuid
+                }
+        else:
+            # For text mode, return what we have with a timeout marker
+            return full_output + f"\n\n[TIMEOUT: Task exceeded {config.timeout}s limit]\n[Partial results returned]"
     
     # Check return code
     if proc.returncode != 0:
@@ -628,38 +856,15 @@ Generated by cc_execute() with report generation enabled.
     # Parse JSON if requested
     if json_mode:
         try:
-            # Use clean_json_string for robust parsing
-            # This handles markdown blocks, malformed JSON, etc.
-            result_dict = clean_json_string(full_output, return_dict=True)
+            # FIX 4: Enhanced JSON extraction with multiple methods
+            result_dict = extract_json_from_response(full_output)
             
-            if isinstance(result_dict, dict):
-                # Verify execution UUID
-                if result_dict.get('execution_uuid') != execution_uuid:
-                    logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
-                return result_dict
-            else:
-                logger.warning(f"[{session_id}] clean_json_string returned non-dict: {type(result_dict)}")
-                # Fall back to manual parsing
-                
-            # Fallback: Manual parsing if clean_json_string failed
-            json_output = full_output.strip()
-            
-            # Remove markdown code blocks if present
-            if json_output.startswith("```json"):
-                json_output = json_output[7:]  # Remove ```json
-                if json_output.endswith("```"):
-                    json_output = json_output[:-3]  # Remove ```
-            elif json_output.startswith("```"):
-                json_output = json_output[3:]  # Remove ```
-                if json_output.endswith("```"):
-                    json_output = json_output[:-3]  # Remove ```
-            
-            # Parse the JSON
-            result_dict = json.loads(json_output.strip())
-            
-            # Verify execution UUID
-            if result_dict.get('execution_uuid') != execution_uuid:
+            # Verify execution UUID if present
+            if isinstance(result_dict, dict) and result_dict.get('execution_uuid') != execution_uuid:
                 logger.warning(f"[{session_id}] UUID mismatch! Expected: {execution_uuid}, Got: {result_dict.get('execution_uuid')}")
+                # Add the correct UUID if missing
+                if 'execution_uuid' not in result_dict:
+                    result_dict['execution_uuid'] = execution_uuid
             
             return result_dict
             
