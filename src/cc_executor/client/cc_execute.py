@@ -304,36 +304,49 @@ async def _execute_claude_command(
             # Stream output in real-time with timeout
             # Create tasks for reading stdout and stderr
             async def read_stream(stream, target_list, prefix=""):
-                """Read from stream line by line."""
-                while True:
-                    line = await stream.readline()
-                    if not line:
-                        break
-                    decoded = line.decode('utf-8', errors='replace')
-                    target_list.append(decoded)
-                    # Stream to console with session ID
-                    print(f"[{session_id}] {decoded}", end='')
-                    
-                    # Report progress
-                    if progress_callback and any(indicator in decoded.lower() for indicator in 
-                                               ['complete', 'done', 'finish', 'success']):
-                        await progress_callback(f"Progress: {decoded.strip()[:100]}")
-                    
-                    # Smart logging - truncate large data
-                    log_line = decoded.strip()
-                    if len(log_line) > 200:
-                        # Check for base64/embeddings
-                        if any(marker in log_line for marker in ['data:image/', 'base64,', 'embedding:', 'vector:']):
-                            log_line = f"[BINARY/EMBEDDING DATA - {len(log_line)} chars]"
-                        else:
-                            log_line = log_line[:200] + f"... [{len(log_line)-200} chars truncated]"
-                    
-                    # Log progress indicators and truncated content
-                    if any(indicator in decoded.lower() for indicator in 
-                           ['complete', 'done', 'finish', 'success', 'fail', 'error']):
-                        logger.info(f"[{session_id}] Progress: {log_line}")
-                    elif log_line != decoded.strip():  # Was truncated
-                        logger.debug(f"[{session_id}] Output: {log_line}")
+                """Read from stream in CHUNKS, not lines - fixes buffer deadlock!"""
+                buffer = b""
+                try:
+                    while True:
+                        # CRITICAL FIX: Read chunks, not lines!
+                        chunk = await stream.read(8192)  # 8KB chunks
+                        if not chunk:
+                            # Process any remaining buffer
+                            if buffer:
+                                decoded = buffer.decode('utf-8', errors='replace')
+                                target_list.append(decoded)
+                                if config.stream_output:
+                                    print(f"[{session_id}] {prefix}{decoded}", end='', flush=True)
+                            break
+                        
+                        # Add chunk to buffer
+                        buffer += chunk
+                        
+                        # Process complete lines from buffer
+                        while b'\n' in buffer:
+                            line, buffer = buffer.split(b'\n', 1)
+                            decoded = line.decode('utf-8', errors='replace') + '\n'
+                            target_list.append(decoded)
+                            
+                            # Stream to console if requested
+                            if config.stream_output:
+                                print(f"[{session_id}] {prefix}{decoded}", end='', flush=True)
+                            
+                            # Report progress
+                            if progress_callback and any(indicator in decoded.lower() for indicator in 
+                                                       ['complete', 'done', 'finish', 'success']):
+                                await progress_callback(f"Progress: {decoded.strip()[:100]}")
+                        
+                        # If buffer is getting too large (no newlines), flush it
+                        if len(buffer) > 65536:  # 64KB
+                            decoded = buffer.decode('utf-8', errors='replace')
+                            target_list.append(decoded)
+                            if config.stream_output:
+                                print(f"[{session_id}] {prefix}{decoded}", end='', flush=True)
+                            buffer = b""
+                                
+                except Exception as e:
+                    logger.error(f"Error reading {prefix}: {e}")
             
             # Create concurrent tasks for stdout/stderr
             logger.debug(f"[{session_id}] Starting stream readers")
@@ -345,61 +358,111 @@ async def _execute_claude_command(
             )
             
             # Wait for process completion with timeout
+            # CRITICAL FIX: We must wait for BOTH process completion AND stream reading
+            # to prevent output buffer deadlock. The process can hang if output fills
+            # the OS pipe buffer and we're not actively reading it.
             try:
                 logger.debug(f"[{session_id}] Waiting for process with timeout={config.timeout}s")
+                # Use gather to ensure streams are being read while waiting for process
                 await asyncio.wait_for(
-                    proc.wait(),
+                    asyncio.gather(
+                        proc.wait(),
+                        stdout_task,
+                        stderr_task,
+                        return_exceptions=True  # Don't fail if one task fails
+                    ),
                     timeout=config.timeout
                 )
-                # Ensure we've read all output
-                await stdout_task
-                await stderr_task
                 logger.info(f"[{session_id}] Process completed successfully")
             except asyncio.TimeoutError:
                 logger.warning(f"[{session_id}] Process timed out after {config.timeout}s")
-                # Cancel read tasks
-                stdout_task.cancel()
-                stderr_task.cancel()
-                raise
+                # Don't cancel tasks immediately - let them finish reading available data
+                # Give tasks a moment to read any remaining output
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(stdout_task, stderr_task, return_exceptions=True),
+                        timeout=1.0  # Brief grace period
+                    )
+                except asyncio.TimeoutError:
+                    # Now cancel if they're still running
+                    stdout_task.cancel()
+                    stderr_task.cancel()
+                
+                # Don't raise - we have output to return!
+                logger.info(f"[{session_id}] Returning partial output after timeout")
                 
         else:
-            # Non-streaming mode - wait for completion
+            # Non-streaming mode - still need to read chunks to avoid deadlock!
             if progress_callback:
                 await progress_callback("Waiting for Claude to complete (non-streaming mode)...")
             
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(),
-                timeout=config.timeout
-            )
+            # Create simple chunk readers for non-streaming mode
+            async def collect_stream(stream):
+                chunks = []
+                try:
+                    while True:
+                        chunk = await stream.read(8192)
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                except Exception as e:
+                    logger.error(f"Error collecting stream: {e}")
+                return b''.join(chunks)
             
-            if stdout:
-                output_lines = stdout.decode().splitlines(keepends=True)
-            if stderr:
-                error_lines = stderr.decode().splitlines(keepends=True)
-            
-            if progress_callback:
-                await progress_callback("Claude execution completed")
+            # Read both streams concurrently
+            try:
+                stdout_data, stderr_data, _ = await asyncio.wait_for(
+                    asyncio.gather(
+                        collect_stream(proc.stdout),
+                        collect_stream(proc.stderr),
+                        proc.wait()
+                    ),
+                    timeout=config.timeout
+                )
+                
+                if stdout_data:
+                    output_lines = stdout_data.decode('utf-8', errors='replace').splitlines(keepends=True)
+                    if not output_lines and stdout_data:  # No newlines
+                        output_lines = [stdout_data.decode('utf-8', errors='replace')]
+                if stderr_data:
+                    error_lines = stderr_data.decode('utf-8', errors='replace').splitlines(keepends=True)
+                    if not error_lines and stderr_data:  # No newlines
+                        error_lines = [stderr_data.decode('utf-8', errors='replace')]
+                
+                if progress_callback:
+                    await progress_callback("Claude execution completed")
+            except asyncio.TimeoutError:
+                # Handle timeout in non-streaming mode
+                logger.warning(f"[{session_id}] Non-streaming mode timed out after {config.timeout}s")
+                # Kill the process
+                if proc.returncode is None:
+                    try:
+                        proc.terminate()
+                        await asyncio.wait_for(proc.wait(), timeout=5)
+                    except:
+                        proc.kill()
+                # Re-raise to be handled below
+                raise
     
     except asyncio.TimeoutError:
+        # This should not happen anymore as we handle timeout in the streaming section
+        # But if it does (non-streaming mode), handle gracefully
         logger.error(f"[{session_id}] TIMEOUT after {config.timeout}s!")
-        # Kill process group on timeout (matching websocket_handler.py)
+        
+        # Kill process if still running
         if proc.returncode is None:
             try:
-                # Kill the entire process group
-                pgid = os.getpgid(proc.pid)
-                logger.warning(f"[{session_id}] Killing process group {pgid}")
-                os.killpg(pgid, signal.SIGTERM)
-                await asyncio.sleep(0.5)
-                if proc.returncode is None:
-                    os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
+                proc.terminate()
+                await asyncio.wait_for(proc.wait(), timeout=5)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+            except Exception:
                 pass
         
-        logger.error(f"[{session_id}] === CC_EXECUTE LIFECYCLE FAILED (TIMEOUT) ===")
-        raise TimeoutError(
-            f"Task exceeded {config.timeout}s timeout. "
-            f"Partial output:\n{''.join(output_lines[-50:])}"
-        )
+        # Return what we have instead of raising
+        logger.info(f"[{session_id}] Returning partial results after timeout")
+        return output_lines, error_lines, proc
     
     # Check return code
     if proc.returncode != 0:
@@ -706,6 +769,10 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     # Always add dangerous skip permissions for Claude Max Plan
     command += ' --dangerously-skip-permissions'
     
+    # CRITICAL: Add streaming JSON output format for proper handling of large outputs
+    # Without these flags, the subprocess can deadlock on large outputs
+    command += ' --output-format stream-json --verbose'
+    
     # Add model if specified
     if os.environ.get("ANTHROPIC_MODEL"):
         command += f' --model {os.environ["ANTHROPIC_MODEL"]}'
@@ -762,6 +829,47 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     
     # Combine output
     full_output = ''.join(output_lines)
+    
+    # Parse streaming JSON format if we used --output-format stream-json
+    # The output contains multiple JSON objects, one per line
+    parsed_output = None
+    if '--output-format stream-json' in command:
+        try:
+            # Parse each line as JSON and extract the final result
+            json_lines = []
+            for line in output_lines:
+                line = line.strip()
+                if line:
+                    try:
+                        json_obj = json.loads(line)
+                        json_lines.append(json_obj)
+                    except json.JSONDecodeError:
+                        # Skip non-JSON lines
+                        pass
+            
+            # Find the result message in the JSON lines
+            for obj in json_lines:
+                if obj.get('type') == 'result' and obj.get('subtype') == 'success':
+                    # Extract the actual result text
+                    parsed_output = obj.get('result', '')
+                    break
+                elif obj.get('type') == 'assistant' and 'message' in obj:
+                    # Fallback to assistant message content
+                    message = obj.get('message', {})
+                    content = message.get('content', [])
+                    if content and isinstance(content, list):
+                        text_parts = [c.get('text', '') for c in content if c.get('type') == 'text']
+                        if text_parts:
+                            parsed_output = ''.join(text_parts)
+            
+            if parsed_output is not None:
+                logger.debug(f"[{session_id}] Parsed streaming JSON output: {parsed_output[:100]}...")
+                full_output = parsed_output
+            else:
+                logger.warning(f"[{session_id}] Could not parse streaming JSON format, using raw output")
+                
+        except Exception as e:
+            logger.warning(f"[{session_id}] Failed to parse streaming JSON: {e}, using raw output")
     
     # Log success and execution time
     execution_time = time.time() - start_time

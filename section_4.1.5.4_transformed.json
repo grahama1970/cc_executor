@@ -1,0 +1,49 @@
+{
+  "sections": [
+    {
+      "section_id": 0,
+      "fixes_applied": {
+        "tables_merged": 0,
+        "figures_grouped": 1,
+        "subsections_found": 0,
+        "false_headers_removed": 2,
+        "mislabeled_fixed": 2
+      },
+      "blocks": [
+        {
+          "block_type": "SectionHeader",
+          "text": "4.1.5.4. BHT (Branch History Table) submodule",
+          "page": 0
+        },
+        {
+          "block_type": "Text",
+          "text": "BHT is implemented as a memory which is composed of BHTDepth configuration parameter entries. The lower address bits of the virtual address point to the memory entry.\n\nWhen a branch instruction is resolved by the EX_STAGE module, the branch PC and the taken (or not taken) status information is stored in the Branch History Table.\n\nThe Branch History Table is a table of two-bit saturating counters that takes the virtual address of the current fetched instruction by the CACHE. It states whether the current branch request should be taken or not. The two bit counter is updated by the successive execution of the instructions as shown in the following figure.",
+          "page": 0
+        },
+        {
+          "block_type": "Figure",
+          "text": "Figure showing 2-bit saturating counter state diagram",
+          "caption": "Figure",
+          "image_url": "dummy_image_url",
+          "description": "A state diagram illustrating the operation of a 2-bit saturating counter used in the Branch History Table. The counter has four states representing different levels of branch prediction confidence: strongly not taken, weakly not taken, weakly taken, and strongly taken. State transitions occur based on whether branches are actually taken or not taken during execution.",
+          "page": 0
+        },
+        {
+          "block_type": "Text",
+          "text": "When a branch instruction is pre-decoded by instr_scan submodule, the BHT valids whether the PC address is in the BHT and provides the taken or not prediction.\n\nThe BHT is never flushed.",
+          "page": 0
+        },
+        {
+          "block_type": "Table",
+          "text": "[{\"Signal\":\"clk_i\",\"IO\":\"in\",\"Description\":\"Subsystem Clock\",\"connection\":\"SUBSYSTEM\",\"Type\":\"logic\"},{\"Signal\":\"rst_ni\",\"IO\":\"in\",\"Description\":\"Asynchronous reset active low\",\"connection\":\"SUBSYSTEM\",\"Type\":\"logic\"},{\"Signal\":\"vpc_i\",\"IO\":\"in\",\"Description\":\"Virtual PC\",\"connection\":\"CACHE\",\"Type\":\"logic[CVA6Cfg.VLEN-1:0]\"},{\"Signal\":\"bht_update_i\",\"IO\":\"in\",\"Description\":\"Update bht with resolved address\",\"connection\":\"EXECUTE\",\"Type\":\"bht_update_t\"},{\"Signal\":\"bht_prediction_o\",\"IO\":\"out\",\"Description\":\"Prediction from bht\",\"connection\":\"FRONTEND\",\"Type\":\"ariane_pkg::bht_prediction_t[CVA6Cfg.INSTR_PER_FETCH-1:0]\"}]",
+          "page": 1
+        },
+        {
+          "block_type": "Text",
+          "text": "Due to cv32a65x configuration, some ports are tied to a static value. These ports do not appear in the above table, they are listed below\n\nFor any HW configuration,\n\n- flush_bp_i input is tied to 0\n\nAs DebugEn = False,\n\n- debug_mode_i input is tied to 0",
+          "page": 1
+        }
+      ]
+    }
+  ]
+}

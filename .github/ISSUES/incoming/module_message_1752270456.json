@@ -1,0 +1,20 @@
+{
+  "type": "module_communication",
+  "protocol": "github_issues",
+  "from": "arxiv_mcp_server",
+  "to": "cc_executor",
+  "message_type": "execute_slash_command",
+  "slash_command": {
+    "command": "/fix-issues",
+    "args": [
+      "--urgent",
+      "--all",
+      "--test",
+      "--commit",
+      "--push",
+      "--notify-arxiv"
+    ],
+    "require_response": true
+  },
+  "timestamp": "2025-07-11T17:47:36.721174"
+}

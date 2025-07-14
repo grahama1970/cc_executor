@@ -1,0 +1,1 @@
+/fix-issues --urgent --all --test --commit --push --notify-arxiv

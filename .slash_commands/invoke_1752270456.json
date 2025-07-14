@@ -1,0 +1,29 @@
+{
+  "type": "slash_command_invocation",
+  "from": "arxiv_mcp_server",
+  "command": "/fix-issues",
+  "args": {
+    "urgent": true,
+    "all": true,
+    "test": true,
+    "commit": true,
+    "push": true,
+    "notify_arxiv": true
+  },
+  "context": {
+    "issues": [
+      "#001",
+      "#002",
+      "#003",
+      "#005"
+    ],
+    "deadline": "2025-07-11T18:00:00Z",
+    "consequences": "We fork if not fixed"
+  },
+  "response_required": true,
+  "response_format": {
+    "commit_sha": "required",
+    "tests_passed": "required",
+    "notification_sent": "required"
+  }
+}
