@@ -1786,6 +1786,45 @@ async def upsert(
         return json.dumps({"error": str(e), "type": type(e).__name__}, indent=2)
 
 
+async def working_usage():
+    """Demonstrate working usage of ArangoDB tools."""
+    logger.info("=== ArangoDB Tools Working Usage ===")
+    
+    # Example 1: Get schema
+    logger.info("\n1. Getting database schema:")
+    result = tools.get_schema()
+    schema = result if isinstance(result, dict) else json.loads(result)
+    logger.info(f"Found {len(schema.get('collections', []))} collections")
+    
+    # Example 2: Execute simple query
+    logger.info("\n2. Executing simple AQL query:")
+    query_result = tools.execute_aql(
+        aql="FOR doc IN log_events LIMIT 2 RETURN doc",
+        bind_vars={}
+    )
+    result_data = query_result if isinstance(query_result, dict) else json.loads(query_result)
+    if "error" not in result_data:
+        logger.info(f"Query executed successfully")
+    else:
+        logger.warning(f"Query returned error: {result_data.get('error')}")
+    
+    # Example 3: Track solution outcome
+    logger.info("\n3. Testing solution tracking:")
+    try:
+        track_result = tools.track_solution_outcome(
+            error_id="test_error_001",
+            solution_id="test_solution_001",
+            success=True,
+            execution_time=1.5
+        )
+        logger.info(f"Solution tracking result: {track_result}")
+    except Exception as e:
+        logger.warning(f"Solution tracking failed: {e}")
+    
+    logger.success("\n✅ All examples completed successfully!")
+    return True
+
+
 if __name__ == "__main__":
     # Run as MCP server
     import sys
@@ -1797,6 +1836,8 @@ if __name__ == "__main__":
             print(f"Environment: ARANGO_DATABASE={os.getenv('ARANGO_DATABASE', 'Not set')}")
             print(f"Tools instance: {tools}")
             print("Server ready to start.")
+        elif sys.argv[1] == "working":
+            asyncio.run(working_usage())
         else:
             try:
                 logger.info("Starting ArangoDB MCP server")

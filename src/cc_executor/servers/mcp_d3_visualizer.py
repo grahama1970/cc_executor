@@ -56,15 +56,24 @@ class D3Visualizer:
         self.output_dir = Path(os.getenv("D3_OUTPUT_DIR", "/tmp/visualizations"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Check if visualization server is available
+        # Lazy load server availability
         self.viz_server_url = os.getenv("VIZ_SERVER_URL", "http://localhost:8000")
-        self.use_server = self._check_server_availability()
+        self._server_checked = False
+        self._use_server = False
         
         # Initialize Jinja2 for template rendering
         self.jinja_env = Environment(loader=BaseLoader())
         
         logger.info(f"D3 Visualizer initialized. Output dir: {self.output_dir}")
-        logger.info(f"Visualization server: {'Available' if self.use_server else 'Not available'}")
+    
+    @property
+    def use_server(self) -> bool:
+        """Lazy check if visualization server is available."""
+        if not self._server_checked:
+            self._use_server = self._check_server_availability()
+            self._server_checked = True
+            logger.info(f"Visualization server: {'Available' if self._use_server else 'Not available'}")
+        return self._use_server
     
     def _check_server_availability(self) -> bool:
         """Check if visualization server is running."""
@@ -645,7 +654,7 @@ async def working_usage():
     if list_result["success"]:
         logger.info(f"Found {list_result['count']} visualizations in {list_result['output_dir']}")
     
-    logger.success("\n✅ D3 Visualizer working correctly!")
+    logger.success("\n✅ D3 Visualizer working!")
     return True
 
 
@@ -725,7 +734,12 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    if args.mode == "debug":
+    if args.mode == "test":
+        # Quick test mode for startup verification
+        print("Testing D3 Visualizer MCP server...")
+        print(f"Output dir: {visualizer.output_dir}")
+        print("Server ready to start.")
+    elif args.mode == "debug":
         asyncio.run(debug_function())
     elif args.mode == "working":
         asyncio.run(working_usage())
