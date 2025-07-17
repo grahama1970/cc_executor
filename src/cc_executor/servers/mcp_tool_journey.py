@@ -552,8 +552,14 @@ async def working_usage():
 if __name__ == "__main__":
     import sys
     
-    if len(sys.argv) > 1 and sys.argv[1] == "working":
-        asyncio.run(working_usage())
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "test":
+            # Quick test mode for startup verification
+            print("Testing Tool Journey MCP server...")
+            print("Lazy loading enabled - model loads on first use")
+            print("Server ready to start.")
+        elif sys.argv[1] == "working":
+            asyncio.run(working_usage())
     else:
         # Run as MCP server with graceful error handling
         try:

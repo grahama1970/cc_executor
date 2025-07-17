@@ -9,9 +9,9 @@
     },
     "startup": {
       "status": "success",
-      "duration": 0.6451706886291504,
-      "stdout": "Testing ArangoDB MCP server...\nEnvironment: ARANGO_DATABASE=script_logs\nTools instance: <__main__.ArangoTools object at 0x7b7de081dbd0>\nServer ready to start.\n",
-      "stderr": "2025-07-17 19:25:50 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'arango-tools' starting - PID: 3117663\n2025-07-17 19:25:50 | INFO     | __main__:_connect:79 - Connected to ArangoDB\n"
+      "duration": 0.6441874504089355,
+      "stdout": "Testing ArangoDB MCP server...\nEnvironment: ARANGO_DATABASE=script_logs\nTools instance: <__main__.ArangoTools object at 0x7fdc7d01db40>\nServer ready to start.\n",
+      "stderr": "2025-07-17 19:36:53 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'arango-tools' starting - PID: 3205471\n2025-07-17 19:36:53 | INFO     | __main__:_connect:79 - Connected to ArangoDB\n"
     }
   },
   {
@@ -24,7 +24,7 @@
     },
     "startup": {
       "status": "success",
-      "duration": 0.8987462520599365,
+      "duration": 0.9127047061920166,
       "stdout": "",
       "stderr": "/home/graham/workspace/experiments/cc_executor/.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use Conf"
     }
@@ -39,9 +39,9 @@
     },
     "startup": {
       "status": "success",
-      "duration": 0.5727307796478271,
+      "duration": 0.5823557376861572,
       "stdout": "Testing D3 Visualizer MCP server...\nOutput dir: /tmp/visualizations\nServer ready to start.\n",
-      "stderr": "2025-07-17 19:25:52 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'd3-visualizer' starting - PID: 3117993\n2025-07-17 19:25:52 | INFO     | __main__:__init__:67 - D3 Visualizer initial"
+      "stderr": "2025-07-17 19:36:55 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'd3-visualizer' starting - PID: 3205861\n2025-07-17 19:36:55 | INFO     | __main__:__init__:67 - D3 Visualizer initial"
     }
   },
   {
@@ -54,27 +54,39 @@
     },
     "startup": {
       "status": "success",
-      "duration": 0.5621042251586914,
-      "stdout": "Testing Kilocode Review MCP server...\nTools instance: <__main__.KilocodeReviewTools object at 0x73c8b63e2650>\nThis server provides 'start_review' and 'get_review_results' tools.\nServer ready to start.",
-      "stderr": "2025-07-17 19:25:53 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'kilocode-review' starting - PID: 3118356\n"
+      "duration": 0.5640606880187988,
+      "stdout": "Testing Kilocode Review MCP server...\nTools instance: <__main__.KilocodeReviewTools object at 0x7353f98e2620>\nThis server provides 'start_review' and 'get_review_results' tools.\nServer ready to start.",
+      "stderr": "2025-07-17 19:36:56 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'kilocode-review' starting - PID: 3206041\n"
     }
   },
   {
     "server": "mcp_logger_tools",
-    "tests": {},
+    "tests": {
+      "working_usage": {
+        "status": "failure",
+        "output": ""
+      }
+    },
     "startup": {
-      "status": "timeout",
-      "duration": 10.0,
-      "error": "Server took longer than 10.0s to start"
+      "status": "success",
+      "duration": 0.5594079494476318,
+      "stdout": "Testing Logger Tools MCP server...\nTools directory: /home/graham/workspace/experiments/cc_executor/src/cc_executor/tools\nServer ready to start.\n",
+      "stderr": "2025-07-17 19:36:56 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'logger-tools' starting - PID: 3206163\n"
     }
   },
   {
     "server": "mcp_tool_journey",
-    "tests": {},
+    "tests": {
+      "working_usage": {
+        "status": "failure",
+        "output": ""
+      }
+    },
     "startup": {
-      "status": "timeout",
-      "duration": 5.0,
-      "error": "Server took longer than 5.0s to start"
+      "status": "success",
+      "duration": 0.5567145347595215,
+      "stdout": "Testing Tool Journey MCP server...\nLazy loading enabled - model loads on first use\nServer ready to start.\n",
+      "stderr": "2025-07-17 19:36:58 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'tool-journey' starting - PID: 3206318\n"
     }
   },
   {
@@ -87,9 +99,9 @@
     },
     "startup": {
       "status": "success",
-      "duration": 0.5517425537109375,
+      "duration": 0.5732650756835938,
       "stdout": "",
-      "stderr": "2025-07-17 19:26:09 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'tool-sequence-optimizer' starting - PID: 3120577\n"
+      "stderr": "2025-07-17 19:37:06 | INFO     | utils.mcp_logger:log_startup_info:74 - MCP Server 'tool-sequence-optimizer' starting - PID: 3207629\n"
     }
   }
 ]

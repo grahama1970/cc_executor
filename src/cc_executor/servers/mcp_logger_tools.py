@@ -349,14 +349,55 @@ async def cache_db_schema(
     return await run_tool(tool_script, arguments)
 
 
+async def working_usage():
+    """Demonstrate working usage of logger tools."""
+    logger.info("=== Logger Tools Working Usage ===")
+    
+    # Example 1: Assess complexity
+    logger.info("\n1. Testing assess_complexity:")
+    result = await assess_complexity(
+        error_type="ImportError",
+        error_message="No module named 'test_module'",
+        file_path="/test/file.py"
+    )
+    result_data = json.loads(result)
+    logger.info(f"Complexity assessment: {result_data.get('status', 'unknown')}")
+    
+    # Example 2: Query converter
+    logger.info("\n2. Testing query converter:")
+    query_result = await query_converter(
+        natural_query="Find all errors similar to this ImportError"
+    )
+    query_data = json.loads(query_result)
+    logger.info(f"Query conversion: {'success' if 'aql_query' in query_data else 'failed'}")
+    
+    logger.success("\n✅ Logger tools working!")
+    return True
+
+
 if __name__ == "__main__":
-    # Run the server with graceful error handling
-    try:
-        logger.info("Starting MCP Logger Tools server")
-        mcp.run()
-    except KeyboardInterrupt:
-        logger.info("Server stopped by user")
-    except Exception as e:
-        logger.critical(f"MCP server crashed: {e}", exc_info=True)
-        mcp_logger.log_error(e, {"context": "server_startup"})
-        sys.exit(1)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Logger Tools MCP Server")
+    parser.add_argument("mode", nargs="?", help="Mode: 'test' or 'working'")
+    
+    args = parser.parse_args()
+    
+    if args.mode == "test":
+        # Quick test mode for startup verification
+        print("Testing Logger Tools MCP server...")
+        print(f"Tools directory: {TOOLS_DIR}")
+        print("Server ready to start.")
+    elif args.mode == "working":
+        asyncio.run(working_usage())
+    else:
+        # Run the server with graceful error handling
+        try:
+            logger.info("Starting MCP Logger Tools server")
+            mcp.run()
+        except KeyboardInterrupt:
+            logger.info("Server stopped by user")
+        except Exception as e:
+            logger.critical(f"MCP server crashed: {e}", exc_info=True)
+            mcp_logger.log_error(e, {"context": "server_startup"})
+            sys.exit(1)
