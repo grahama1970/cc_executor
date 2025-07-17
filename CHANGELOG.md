@@ -2,6 +2,34 @@
 
 All notable changes to CC Executor will be documented in this file.
 
+## [1.3.1] - 2025-01-14
+
+### Added
+- **WebSocket Heartbeat Mechanism**: 30-second heartbeat interval to detect and close dead connections
+- **Message Queuing**: Automatic queuing of up to 100 messages per session when client is temporarily disconnected
+- **Connection Timeout**: 10-second timeout on WebSocket accept to prevent hanging connections
+- **Reconnection Token Support**: Clients can reconnect and receive queued messages within 5 minutes
+- **Enhanced Message Handling**: All send methods now queue messages on failure for better reliability
+- **Pong Message Support**: Added "pong" method handling in the message router
+
+### Changed
+- **WebSocket Resilience**: Improved connection handling based on patterns from claude-flow analysis
+- **Connection Info**: Initial handshake now includes capabilities array
+- **Error Recovery**: All WebSocket send operations now have fallback to message queuing
+- **Session Cleanup**: Enhanced to include heartbeat tasks, message queues, and pong timestamps
+
+### Fixed
+- **Dead Connection Detection**: Server now properly detects and closes stale connections
+- **Message Loss Prevention**: Messages are no longer lost during temporary disconnections
+- **Connection Hanging**: WebSocket accept no longer hangs indefinitely
+
+### Technical Details
+- Heartbeat interval: 30 seconds
+- Heartbeat timeout: 60 seconds (2x interval)
+- Message queue max size: 100 messages per session
+- Reconnection token timeout: 300 seconds (5 minutes)
+- Connection accept timeout: 10 seconds
+
 ## [1.2.0] - 2025-01-08
 
 ### Fixed

@@ -59,6 +59,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
+from collections import deque
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from loguru import logger
 import uvicorn
@@ -168,6 +169,14 @@ class WebSocketHandler:
         # Use environment variable if not explicitly provided
         self.heartbeat_interval = heartbeat_interval or int(os.environ.get('WEBSOCKET_HEARTBEAT_INTERVAL', '30'))
         
+        # Enhanced WebSocket tracking from claude-flow
+        self.last_pong_received = {}  # session_id -> timestamp
+        self.heartbeat_tasks = {}      # session_id -> task
+        self.message_queues = {}       # session_id -> deque
+        self.max_queue_size = 100
+        self.reconnection_tokens = {}  # token -> session_data
+        self.reconnection_timeout = 300  # 5 minutes
+        
         # Initialize Redis task timer for intelligent timeout estimation
         try:
             # Lazy import to avoid circular import issues
@@ -190,6 +199,87 @@ class WebSocketHandler:
             # Only log as debug when imports fail - these are optional components
             logger.debug(f"Could not initialize hook integration: {e}")
             self.hooks = None
+    
+    async def start_heartbeat(self, websocket: WebSocket, session_id: str):
+        """Active heartbeat to detect dead connections"""
+        try:
+            while True:
+                await asyncio.sleep(self.heartbeat_interval)
+                
+                # Check if connection is dead (no pong in 2x interval)
+                last_pong = self.last_pong_received.get(session_id, time.time())
+                if time.time() - last_pong > self.heartbeat_interval * 2:
+                    logger.warning(f"Heartbeat timeout for session {session_id}")
+                    await websocket.close(code=1006, reason="Heartbeat timeout")
+                    break
+                
+                # Send ping
+                await self._send_notification(websocket, "ping", {"timestamp": time.time()})
+                logger.debug(f"Heartbeat sent to {session_id}")
+                
+        except Exception as e:
+            logger.error(f"Heartbeat error for {session_id}: {e}")
+        finally:
+            self.heartbeat_tasks.pop(session_id, None)
+    
+    async def handle_pong(self, session_id: str):
+        """Handle pong response"""
+        self.last_pong_received[session_id] = time.time()
+        logger.debug(f"Pong received from {session_id}")
+    
+    async def queue_message(self, session_id: str, message: dict):
+        """Queue messages when client is disconnected"""
+        if session_id not in self.message_queues:
+            self.message_queues[session_id] = deque(maxlen=self.max_queue_size)
+        
+        self.message_queues[session_id].append(message)
+        logger.debug(f"Queued message for {session_id}, queue size: {len(self.message_queues[session_id])}")
+    
+    async def send_queued_messages(self, websocket: WebSocket, session_id: str):
+        """Send all queued messages after reconnection"""
+        queue = self.message_queues.get(session_id, deque())
+        
+        sent_count = 0
+        while queue:
+            message = queue.popleft()
+            try:
+                await websocket.send_json(message)
+                sent_count += 1
+            except Exception as e:
+                # Put back in queue on failure
+                queue.appendleft(message)
+                logger.error(f"Failed to send queued message: {e}")
+                break
+        
+        if sent_count > 0:
+            logger.info(f"Sent {sent_count} queued messages to {session_id}")
+    
+    async def create_reconnection_token(self, session_id: str) -> str:
+        """Create token for reconnection"""
+        token = str(uuid.uuid4())
+        self.reconnection_tokens[token] = {
+            'session_id': session_id,
+            'timestamp': time.time(),
+            'queued_messages': list(self.message_queues.get(session_id, deque()))
+        }
+        
+        # Clean up old tokens
+        await self._cleanup_old_tokens()
+        
+        return token
+    
+    async def _cleanup_old_tokens(self):
+        """Clean up expired reconnection tokens"""
+        current_time = time.time()
+        expired_tokens = [
+            token for token, data in self.reconnection_tokens.items()
+            if current_time - data['timestamp'] > self.reconnection_timeout
+        ]
+        for token in expired_tokens:
+            del self.reconnection_tokens[token]
+        
+        if expired_tokens:
+            logger.debug(f"Cleaned up {len(expired_tokens)} expired reconnection tokens")
         
     async def handle_connection(self, websocket: WebSocket, session_id: str) -> None:
         """
@@ -199,13 +289,24 @@ class WebSocketHandler:
             websocket: FastAPI WebSocket instance
             session_id: Unique session identifier
         """
-        # Accept the connection
-        logger.info(f"Accepting WebSocket connection from {websocket.client} as session {session_id}")
-        await websocket.accept()
+        # Accept the connection with timeout
+        connection_timeout = 10  # seconds
+        try:
+            await asyncio.wait_for(
+                websocket.accept(),
+                timeout=connection_timeout
+            )
+            logger.info(f"Accepted WebSocket connection from {websocket.client} as session {session_id}")
+        except asyncio.TimeoutError:
+            logger.error(f"WebSocket connection timeout for session {session_id}")
+            return
         
         # Log connection details
         logger.info(f"WebSocket state: {websocket.application_state}")
         logger.info(f"Client state: {websocket.client_state}")
+        
+        # Initialize tracking
+        self.last_pong_received[session_id] = time.time()
         
         # Try to create session
         if not await self.sessions.create_session(session_id, websocket):
@@ -217,7 +318,13 @@ class WebSocketHandler:
             return
             
         try:
-            # No heartbeat needed - Uvicorn handles WebSocket ping/pong
+            # Start heartbeat task
+            self.heartbeat_tasks[session_id] = asyncio.create_task(
+                self.start_heartbeat(websocket, session_id)
+            )
+            
+            # Send any queued messages
+            await self.send_queued_messages(websocket, session_id)
 
             # Send connection confirmation
             await self._send_notification(
@@ -301,6 +408,9 @@ class WebSocketHandler:
                 await self._handle_control(session_id, params, msg_id)
             elif method == "hook_status":
                 await self._handle_hook_status(session_id, params, msg_id)
+            elif method == "pong":
+                # Handle pong response from client
+                await self.handle_pong(session_id)
             else:
                 await self._send_error(
                     session.websocket,
@@ -1057,6 +1167,22 @@ class WebSocketHandler:
         if session.process:
             await self.processes.cleanup_process(session.process, session.pgid)
             
+        # Cancel heartbeat task
+        heartbeat_task = self.heartbeat_tasks.pop(session_id, None)
+        if heartbeat_task and not heartbeat_task.done():
+            heartbeat_task.cancel()
+            
+        # Clean up message queue
+        self.message_queues.pop(session_id, None)
+        
+        # Clean up last pong timestamp
+        self.last_pong_received.pop(session_id, None)
+        
+        # Create reconnection token if there are queued messages
+        if session_id in self.message_queues and len(self.message_queues[session_id]) > 0:
+            token = await self.create_reconnection_token(session_id)
+            logger.info(f"Created reconnection token for {session_id}: {token}")
+            
     # JSON-RPC helpers
     
     async def _send_response(
@@ -1071,7 +1197,23 @@ class WebSocketHandler:
             result=result,
             id=msg_id
         )
-        await websocket.send_json(response.dict(exclude_none=True))
+        
+        # Try to send the response
+        try:
+            await websocket.send_json(response.model_dump(exclude_none=True))
+        except Exception as e:
+            # Queue the message for later delivery
+            session_id = None
+            for sid, session in self.sessions.sessions.items():
+                if session.websocket == websocket:
+                    session_id = sid
+                    break
+            
+            if session_id:
+                logger.warning(f"Failed to send response to {session_id}, queuing: {e}")
+                await self.queue_message(session_id, response.model_dump(exclude_none=True))
+            else:
+                logger.error(f"Failed to send response and couldn't find session: {e}")
         
     async def _send_error(
         self,
@@ -1091,7 +1233,23 @@ class WebSocketHandler:
             ).model_dump(),
             id=msg_id
         )
-        await websocket.send_json(response.dict(exclude_none=True))
+        
+        # Try to send the error
+        try:
+            await websocket.send_json(response.model_dump(exclude_none=True))
+        except Exception as e:
+            # Queue the message for later delivery
+            session_id = None
+            for sid, session in self.sessions.sessions.items():
+                if session.websocket == websocket:
+                    session_id = sid
+                    break
+            
+            if session_id:
+                logger.warning(f"Failed to send error to {session_id}, queuing: {e}")
+                await self.queue_message(session_id, response.model_dump(exclude_none=True))
+            else:
+                logger.error(f"Failed to send error and couldn't find session: {e}")
         
     async def _send_notification(
         self,
@@ -1105,7 +1263,24 @@ class WebSocketHandler:
             "method": method,
             "params": params
         }
-        await websocket.send_json(notification)
+        
+        # Try to send the message
+        try:
+            await websocket.send_json(notification)
+        except Exception as e:
+            # Queue the message for later delivery
+            # Find session_id for this websocket
+            session_id = None
+            for sid, session in self.sessions.sessions.items():
+                if session.websocket == websocket:
+                    session_id = sid
+                    break
+            
+            if session_id:
+                logger.warning(f"Failed to send notification to {session_id}, queuing: {e}")
+                await self.queue_message(session_id, notification)
+            else:
+                logger.error(f"Failed to send notification and couldn't find session: {e}")
 
 
 # Create FastAPI app at module level for easier import

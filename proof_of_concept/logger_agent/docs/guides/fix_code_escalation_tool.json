@@ -1,0 +1,122 @@
+{
+    "tool_name": "FixCodeWithEscalation",
+    "description": "Intelligently fixes code errors using escalating strategies based on complexity. Follows best practices: 1-2 attempts for simple errors, research for medium complexity, multiple models for high complexity. Automatically escalates: self-fix → cc_execute/perplexity → Gemini/other models.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "Path to the file with errors"
+            },
+            "test_command": {
+                "type": "string",
+                "description": "Command to test if fix worked (e.g., 'python file.py')"
+            },
+            "working_usage_output": {
+                "type": "object",
+                "description": "Complete output from working_usage() function",
+                "properties": {
+                    "stderr": {"type": "string"},
+                    "stdout": {"type": "string"},
+                    "exit_code": {"type": "integer"},
+                    "json_response": {"type": ["object", "null"]},
+                    "timestamp": {"type": "string"},
+                    "duration": {"type": "number"}
+                },
+                "required": ["stderr", "stdout", "exit_code"]
+            },
+            "context_files": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Additional files that might be relevant (imports, dependencies)"
+            },
+            "environment_info": {
+                "type": "object",
+                "description": "Python version, installed packages, OS",
+                "properties": {
+                    "python_version": {"type": "string"},
+                    "dependencies": {"type": "object"},
+                    "os": {"type": "string"}
+                }
+            }
+        },
+        "required": ["file_path", "test_command", "working_usage_output"]
+    },
+    "output_schema": {
+        "type": "object",
+        "properties": {
+            "success": {
+                "type": "boolean",
+                "description": "Whether the error was fixed"
+            },
+            "method_succeeded": {
+                "type": "string",
+                "enum": ["self_fix", "cc_execute", "perplexity", "gemini", "none"],
+                "description": "Which method successfully fixed the error"
+            },
+            "iterations": {
+                "type": "integer",
+                "description": "Number of fix attempts made"
+            },
+            "complexity": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "architectural"],
+                "description": "Assessed complexity of the error"
+            },
+            "attempts": {
+                "type": "array",
+                "description": "Details of each fix attempt",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "iteration": {"type": "integer"},
+                        "method": {"type": "string"},
+                        "success": {"type": "boolean"},
+                        "error_message": {"type": "string"},
+                        "fix_applied": {"type": "string"},
+                        "duration_seconds": {"type": "number"}
+                    }
+                }
+            },
+            "lesson_learned": {
+                "type": "string",
+                "description": "Key insight from the successful fix"
+            },
+            "failure_report": {
+                "type": "object",
+                "description": "Comprehensive report if all attempts failed"
+            },
+            "recommendation": {
+                "type": "string",
+                "description": "Next steps if fix failed"
+            }
+        }
+    },
+    "command": "uv run scripts/fix_code_with_escalation.py",
+    "escalation_logic": {
+        "error_complexity_rules": {
+            "low": ["ImportError", "ModuleNotFoundError", "SyntaxError", "NameError", "IndentationError"],
+            "medium": ["TypeError", "AttributeError", "KeyError", "async/await issues"],
+            "high": ["RuntimeError", "ValueError", "AssertionError", "RecursionError"],
+            "architectural": ["Circular dependencies", "Multi-file failures", "Design pattern issues"]
+        },
+        "escalation_paths": {
+            "low_complexity": [
+                {"iteration": 1, "method": "self_fix"},
+                {"iteration": 2, "method": "cc_execute", "reason": "Fresh context for simple errors"},
+                {"iteration": 2, "fallback": "perplexity", "reason": "Research if cc_execute fails"}
+            ],
+            "medium_high_complexity": [
+                {"iteration": 1, "method": "self_fix"},
+                {"iteration": 2, "method": "perplexity", "reason": "Research patterns and best practices"},
+                {"iteration": 2, "fallback": "cc_execute", "reason": "Fresh perspective if research insufficient"},
+                {"iteration": 3, "method": "gemini", "reason": "Different model for persistent issues"}
+            ],
+            "architectural_complexity": [
+                {"iteration": 1, "method": "human_review", "reason": "Requires design decisions"},
+                {"support": "perplexity", "reason": "Research best practices"},
+                {"support": "gemini", "reason": "Get alternative design suggestions"}
+            ]
+        }
+    }
+}

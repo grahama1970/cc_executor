@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  arangodb:
+    image: arangodb:3.12.4
+    container_name: logger_agent_arangodb
+    ports:
+      - "8529:8529"
+    environment:
+      - ARANGO_ROOT_PASSWORD=openSesame
+    volumes:
+      - arangodb_data:/var/lib/arangodb3
+      - arangodb_apps:/var/lib/arangodb3-apps
+    command: >
+      arangod 
+      --query.enable-experimental true
+      --server.endpoint tcp://0.0.0.0:8529
+      --log.level info
+      --database.auto-upgrade true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8529/_api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  arangodb_data:
+  arangodb_apps:

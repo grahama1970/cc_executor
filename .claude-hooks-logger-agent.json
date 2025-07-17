@@ -1,0 +1,72 @@
+{
+  "_comment": "Claude hooks configuration for Logger Agent Dashboard integration",
+  "_note": "This configuration sends events to the Logger Agent Dashboard for observability",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*", 
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type PostToolUse"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type Notification"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type Stop --add-chat"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type SubagentStop"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run /home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/.claude/hooks/send_event.py --source-app cc-executor --event-type PreCompact"
+          }
+        ]
+      }
+    ]
+  }
+}

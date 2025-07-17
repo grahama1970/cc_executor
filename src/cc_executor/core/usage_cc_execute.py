@@ -34,16 +34,22 @@ async def test_simple():
     
     Subprocess command:
     claude -p "What is 2+2? Just give me the number, nothing else." --dangerously-skip-permissions --output-format stream-json --verbose
+    
+    Note: Using config=None lets Redis estimate timeout based on:
+    - Task complexity (trivial calculation)
+    - Historical execution times for similar tasks
+    - Minimum 300s safety floor
     """
     logger.info("\n=== SIMPLE TEST ===")
     logger.info("Command: claude -p \"What is 2+2? Just give me the number, nothing else.\" --dangerously-skip-permissions --output-format stream-json --verbose")
+    logger.info("Timeout: Redis-estimated based on task complexity")
     
     try:
         result = await cc_execute(
             "What is 2+2? Just give me the number, nothing else.",
-            config=CCExecutorConfig(timeout=30),
-            stream=True,
-            json_mode=False
+            config=None,  # Let Redis estimate timeout
+            generate_report=True,  # Generate assessment report
+            return_dict=False  # Get just the result string
         )
         logger.success(f" Simple test passed. Result: {result.strip()}")
         return True
@@ -65,9 +71,9 @@ async def test_medium():
     try:
         result = await cc_execute(
             "Write 3 haikus about Python programming. Make them funny.",
-            config=CCExecutorConfig(timeout=60),
-            stream=True,
-            json_mode=False
+            config=None,  # Let Redis estimate timeout
+            generate_report=True,  # Generate assessment report
+            return_dict=False  # Get just the result string
         )
         # Verify we got haikus
         lines = result.strip().split('\n')
@@ -99,9 +105,8 @@ async def test_difficult():
 4. Returns a list of fibonacci numbers
 
 The function should be production-ready with type hints.""",
-            config=CCExecutorConfig(timeout=120),
-            stream=True,
-            json_mode=True  # This will add JSON schema to the prompt
+            config=None,  # Let Redis estimate timeout based on complexity
+            generate_report=True  # Generate assessment report
         )
         
         # Verify JSON response
@@ -153,6 +158,34 @@ async def test_websocket_integration():
     except Exception as e:
         logger.error(f"L WebSocket integration test failed: {e}")
         return False
+
+
+def show_report_locations():
+    """Display locations of generated assessment reports."""
+    logger.info("\n=== ASSESSMENT REPORTS GENERATED ===")
+    
+    # Check for report files
+    report_dir = Path(__file__).parent.parent.parent / "docs" / "reports"
+    if report_dir.exists():
+        recent_reports = sorted(report_dir.glob("ASSESSMENT_*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:5]
+        if recent_reports:
+            logger.info("Recent assessment reports:")
+            for report in recent_reports:
+                logger.info(f"  📋 {report.name}")
+        else:
+            logger.info("No recent assessment reports found in docs/reports/")
+    
+    # Also check tmp/reports
+    tmp_report_dir = Path(__file__).parent.parent.parent / "tmp" / "reports"
+    if tmp_report_dir.exists():
+        recent_tmp_reports = sorted(tmp_report_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:3]
+        if recent_tmp_reports:
+            logger.info("\nTemporary reports:")
+            for report in recent_tmp_reports:
+                logger.info(f"  📄 {report.name}")
+    
+    logger.info("\n💡 Assessment reports follow the CORE_ASSESSMENT_REPORT_TEMPLATE.md format")
+    logger.info("   They include execution metrics, error analysis, and recommendations")
 
 
 async def main():

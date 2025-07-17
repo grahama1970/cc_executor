@@ -23,8 +23,6 @@ def generate_assessment_report(
     response_file: Path,
     response_data: Dict[str, Any],
     config_timeout: int,
-    stream: bool,
-    json_mode: bool,
     amend_prompt: bool,
     estimate_timeout_func
 ) -> tuple[Path, str]:
@@ -43,8 +41,6 @@ def generate_assessment_report(
         response_file: Path to the JSON response file
         response_data: Dictionary containing response data
         config_timeout: Configured timeout in seconds
-        stream: Whether streaming was enabled
-        json_mode: Whether JSON mode was enabled
         amend_prompt: Whether prompt amendment was used
         estimate_timeout_func: Function to estimate timeout for the task
         
@@ -70,8 +66,7 @@ Template: docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md v1.3
 - Execution Time: {execution_time:.2f}s
 - Output Size: {len(full_output)} characters
 - Timeout Used: {config_timeout}s
-- Stream Mode: {stream}
-- JSON Mode: {json_mode}
+- Output Format: Streaming JSON (always enabled)
 - Prompt Amended: {amend_prompt}
 
 ## Task Execution Assessment
@@ -92,7 +87,7 @@ Template: docs/templates/CORE_ASSESSMENT_REPORT_TEMPLATE.md v1.3
 """
     
     # Add JSON structure detection section
-    if json_mode and isinstance(full_output, str) and 'json' in full_output.lower():
+    if isinstance(full_output, str) and 'json' in full_output.lower():
         report_content += """#### JSON Structure Detected
 - JSON parsing was requested and output appears to contain JSON
 - Clean JSON extraction was successful

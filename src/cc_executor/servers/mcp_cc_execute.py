@@ -13,16 +13,22 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+from loguru import logger
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Add utils to path for MCP logger
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.mcp_logger import MCPLogger, debug_tool
 
 from fastmcp import FastMCP
 from cc_executor.client.cc_execute import cc_execute, CCExecutorConfig
 from cc_executor.reporting import check_hallucination, generate_hallucination_report
 
-# Initialize FastMCP server
+# Initialize FastMCP server and logger
 mcp = FastMCP("cc-executor", dependencies=["cc_executor"])
+mcp_logger = MCPLogger("cc-execute")
 
 
 @mcp.tool(
@@ -35,6 +41,7 @@ mcp = FastMCP("cc-executor", dependencies=["cc_executor"])
     - "Create unit tests for the Calculator class"
     """
 )
+@debug_tool(mcp_logger)
 async def execute_task(
     task: str,
     json_mode: bool = False,
@@ -91,6 +98,7 @@ async def execute_task(
     description="""Get the current status of the CC Executor service, including
     health checks, version info, and configuration."""
 )
+@debug_tool(mcp_logger)
 async def get_executor_status() -> Dict[str, Any]:
     """
     Get the current status of CC Executor.
@@ -145,6 +153,7 @@ async def get_executor_status() -> Dict[str, Any]:
     - Add a function to calculate factorial
     - Add unit tests for the factorial function"""
 )
+@debug_tool(mcp_logger)
 async def execute_task_list(
     tasks: List[str],
     continue_on_error: bool = False,
@@ -207,6 +216,7 @@ async def execute_task_list(
     description="""Analyze the complexity of a task and estimate execution time.
     Useful for understanding resource requirements before execution."""
 )
+@debug_tool(mcp_logger)
 async def analyze_task_complexity(task: str) -> Dict[str, Any]:
     """
     Analyze task complexity and estimate execution time.
@@ -271,6 +281,7 @@ async def analyze_task_complexity(task: str) -> Dict[str, Any]:
     - Generate a verification report for the last 5 executions
     """
 )
+@debug_tool(mcp_logger)
 async def verify_execution(
     execution_uuid: Optional[str] = None,
     last_n: int = 1,
@@ -394,4 +405,12 @@ if __name__ == "__main__":
     print("\nPress Ctrl+C to stop")
     
     # FastMCP runs as stdio by default for MCP protocol
-    mcp.run()
+    try:
+        logger.info("Starting CC Executor MCP server")
+        mcp.run()
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        logger.critical(f"MCP server crashed: {e}", exc_info=True)
+        mcp_logger.log_error(e, {"context": "server_startup"})
+        sys.exit(1)

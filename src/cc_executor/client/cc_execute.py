@@ -42,6 +42,81 @@ class RateLimitError(Exception):
     pass
 
 
+class ThinkingIndicatorHandler:
+    """Handles confirmation that Claude has started processing."""
+    
+    def __init__(self, 
+                 thinking_threshold: float = 5.0,
+                 update_interval: float = 30.0):
+        """
+        Initialize thinking indicator handler.
+        
+        Args:
+            thinking_threshold: Seconds to wait before showing thinking indicator
+            update_interval: Seconds between status updates (increased to 30s)
+        """
+        self.thinking_threshold = thinking_threshold
+        self.update_interval = update_interval
+        self.start_time = None
+        self.first_content_time = None
+        self.thinking_task = None
+        self.initial_message_shown = False
+        
+    async def start_monitoring(self, progress_callback: Optional[Callable] = None):
+        """Start monitoring for thinking indicators."""
+        self.start_time = time.time()
+        
+        if progress_callback:
+            self.thinking_task = asyncio.create_task(
+                self._thinking_monitor(progress_callback)
+            )
+    
+    async def _thinking_monitor(self, callback: Callable):
+        """Monitor and provide simple status updates."""
+        await asyncio.sleep(self.thinking_threshold)
+        
+        # If no content yet, show initial confirmation
+        if self.first_content_time is None and not self.initial_message_shown:
+            elapsed = time.time() - self.start_time
+            # Handle both sync and async callbacks
+            try:
+                result = callback(f"✅ Claude is processing your request... ({elapsed:.0f}s)")
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception as e:
+                logger.debug(f"Thinking callback error: {e}")
+            self.initial_message_shown = True
+            
+            # Continue with periodic updates (less frequent)
+            while self.first_content_time is None:
+                await asyncio.sleep(self.update_interval)
+                elapsed = time.time() - self.start_time
+                
+                # Simple elapsed time update
+                try:
+                    result = callback(f"⏱️  Still processing... ({elapsed:.0f}s elapsed)")
+                    if asyncio.iscoroutine(result):
+                        await result
+                except Exception as e:
+                    logger.debug(f"Thinking callback error: {e}")
+    
+    def record_first_content(self):
+        """Record when first actual content is received."""
+        if self.first_content_time is None:
+            self.first_content_time = time.time()
+            if self.thinking_task and not self.thinking_task.done():
+                self.thinking_task.cancel()
+    
+    async def cleanup(self):
+        """Clean up any running tasks."""
+        if self.thinking_task and not self.thinking_task.done():
+            self.thinking_task.cancel()
+            try:
+                await self.thinking_task
+            except asyncio.CancelledError:
+                pass
+
+
 # Import report generator for assessment reports
 from cc_executor.client.report_generator import generate_assessment_report, save_assessment_report
 
@@ -51,6 +126,10 @@ from cc_executor.utils.json_utils import clean_json_string
 
 # Import HookIntegration for consistent pre/post execution hooks
 from cc_executor.hooks.hook_integration import HookIntegration
+
+
+
+
 
 
 # Logger configuration handled by main cc_executor package
@@ -245,9 +324,9 @@ async def _execute_claude_command(
     env: Dict[str, str],
     session_id: str,
     config: CCExecutorConfig,
-    stream: bool,
     hooks: Any,
-    progress_callback: Optional[Callable[[str], Any]] = None
+    progress_callback: Optional[Callable[[str], Any]] = None,
+    thinking_handler: Optional[ThinkingIndicatorHandler] = None
 ) -> Tuple[List[str], List[str], Any]:
     """
     Execute Claude command with proper subprocess handling.
@@ -300,7 +379,7 @@ async def _execute_claude_command(
     error_lines = []
     
     try:
-        if stream and config.stream_output:
+        if config.stream_output:
             # Stream output in real-time with timeout
             # Create tasks for reading stdout and stderr
             async def read_stream(stream, target_list, prefix=""):
@@ -336,6 +415,26 @@ async def _execute_claude_command(
                             if progress_callback and any(indicator in decoded.lower() for indicator in 
                                                        ['complete', 'done', 'finish', 'success']):
                                 await progress_callback(f"Progress: {decoded.strip()[:100]}")
+                            
+                            # Detect first real content and stop thinking indicator
+                            if thinking_handler and prefix != "[STDERR] ":
+                                # Try to parse as JSON to see if it's assistant content
+                                try:
+                                    json_data = json.loads(decoded.strip())
+                                    if json_data.get('type') == 'assistant' and json_data.get('message'):
+                                        # Real content is starting
+                                        thinking_handler.record_first_content()
+                                        if progress_callback:
+                                            try:
+                                                result = progress_callback("✅ Claude is now generating the response...")
+                                                if asyncio.iscoroutine(result):
+                                                    await result
+                                            except Exception as e:
+                                                logger.debug(f"Progress callback error: {e}")
+                                except:
+                                    # Not JSON, but if it's substantial text, consider it content
+                                    if len(decoded.strip()) > 20 and not decoded.startswith('['):
+                                        thinking_handler.record_first_content()
                         
                         # If buffer is getting too large (no newlines), flush it
                         if len(buffer) > 65536:  # 64KB
@@ -465,7 +564,7 @@ async def _execute_claude_command(
         return output_lines, error_lines, proc
     
     # Check return code
-    if proc.returncode != 0:
+    if proc.returncode is not None and proc.returncode != 0:
         error_msg = ''.join(error_lines) or "Unknown error"
         logger.error(f"[{session_id}] Process failed with code {proc.returncode}")
         logger.error(f"[{session_id}] Error: {error_msg[:500]}...")
@@ -476,6 +575,10 @@ async def _execute_claude_command(
             raise RateLimitError(f"Claude rate limit hit: {error_msg}")
         else:
             raise RuntimeError(f"Claude failed with code {proc.returncode}: {error_msg}")
+    elif proc.returncode is None:
+        # Process was killed due to timeout
+        logger.warning(f"[{session_id}] Process killed due to timeout after {config.timeout}s")
+        logger.info(f"[{session_id}] Returning partial output (if any)")
     
     return output_lines, error_lines, proc
 
@@ -551,34 +654,32 @@ async def export_execution_history(
 async def cc_execute(
     task: str,
     config: Optional[CCExecutorConfig] = None,
-    stream: bool = True,
     agent_predict_timeout: bool = False,
-    json_mode: bool = False,
-    return_json: Optional[bool] = None,  # Deprecated - use json_mode
     generate_report: bool = False,
     amend_prompt: bool = False,
     validation_prompt: Optional[str] = None,  # If provided, validates response with fresh instance
-    progress_callback: Optional[Callable[[str], Any]] = None  # Progress reporting callback
+    progress_callback: Optional[Callable[[str], Any]] = None,  # Progress reporting callback
+    json_schema: Optional[Dict[str, Any]] = None,  # Custom JSON schema to use instead of default
+    return_dict: bool = True  # If False, return just the 'result' field as string
 ) -> Union[str, Dict[str, Any]]:
     """
-    Execute a complex Claude task with streaming output.
+    Execute a complex Claude task. Always uses streaming JSON format internally.
     
     Args:
         task: Task description (can be very complex)
         config: Executor configuration
-        stream: Whether to stream output line by line
         agent_predict_timeout: If True, use Claude to predict timeout based on task complexity
-        json_mode: If True, parse output as JSON and return dict (industry standard naming)
-        return_json: Deprecated - use json_mode instead
         generate_report: If True, generate an assessment report following CORE_ASSESSMENT_REPORT_TEMPLATE.md
         amend_prompt: If True, use Claude to amend the prompt for better reliability
         validation_prompt: If provided, spawns fresh Claude instance to validate response.
-                          Only works with json_mode=True. Use {response} placeholder for the response.
+                          Use {response} placeholder for the response.
         progress_callback: Optional callback for progress updates
+        json_schema: Custom JSON schema dict to use instead of the default schema
+        return_dict: If True, return full dict. If False, return just the 'result' field as string
         
     Returns:
-        Complete output from Claude (str if json_mode=False, dict if json_mode=True)
-        If validation_prompt provided, returns dict with 'result', 'validation', and 'is_valid'
+        Dict with Claude's response if return_dict=True, or just the 'result' string if return_dict=False
+        If validation_prompt provided, always returns dict with 'result', 'validation', and 'is_valid'
         
     Example:
         # Get string output
@@ -598,11 +699,6 @@ async def cc_execute(
     """
     if config is None:
         config = CCExecutorConfig()
-    
-    # Handle backward compatibility for return_json parameter
-    if return_json is not None:
-        logger.warning("return_json is deprecated. Use json_mode instead.")
-        json_mode = return_json
     
     # No API key needed - using Claude Max Plan with CLI
     # Authentication is handled by claude login
@@ -698,7 +794,6 @@ Execute the analysis and return ONLY the timeout number."""
     logger.info(f"[{session_id}] Session ID: {session_id}")
     logger.info(f"[{session_id}] Execution UUID: {execution_uuid}")
     logger.info(f"[{session_id}] Timeout: {config.timeout}s")
-    logger.info(f"[{session_id}] Stream: {stream}")
     
     # Print UUID for transcript verification
     print(f"🔐 Starting execution with UUID: {execution_uuid}")
@@ -716,8 +811,12 @@ Execute the analysis and return ONLY the timeout number."""
     # Build command string to match websocket_handler.py
     # Use shell string format, not exec array
     
-    if json_mode:
-        # Add JSON output format for structured responses
+    # Always add JSON output format for structured responses
+    # Use custom schema if provided, otherwise use default
+    if json_schema:
+        response_schema = json_schema
+    else:
+        # Default schema
         response_schema = {
             "type": "object",
             "properties": {
@@ -729,24 +828,20 @@ Execute the analysis and return ONLY the timeout number."""
             },
             "required": ["result", "summary", "execution_uuid"]
         }
-        
-        # Enhance task with JSON output requirements
-        schema_str = json.dumps(response_schema, indent=2)
-        enhanced_task = f"""{task}
+    
+    # Enhance task with JSON output requirements
+    schema_str = json.dumps(response_schema, indent=2)
+    enhanced_task = f"""{task}
 
 IMPORTANT: You must structure your response as JSON matching this schema:
 {schema_str}
 
 The execution_uuid MUST be: {execution_uuid}
 The execution_uuid MUST be the LAST key in the JSON object."""
-        
-        # Escape quotes for shell command
-        escaped_task = enhanced_task.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
-        command = f'claude -p "{escaped_task}"'
-    else:
-        # Regular text mode - no JSON requirements
-        escaped_task = task.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
-        command = f'claude -p "{escaped_task}"'
+    
+    # Escape quotes for shell command
+    escaped_task = enhanced_task.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
+    command = f'claude -p "{escaped_task}"'
     
     # Add MCP config and permissions flags (required for Claude Max Plan)
     # Check for MCP config in multiple locations
@@ -798,7 +893,13 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     if ambiguity_warning and not amend_prompt:
         logger.warning(f"[{session_id}] Ambiguous prompt detected: {ambiguity_warning}")
         if progress_callback:
-            await progress_callback(f"⚠️  Warning: {ambiguity_warning}")
+            # Handle both sync and async callbacks
+            try:
+                result = progress_callback(f"⚠️  Warning: {ambiguity_warning}")
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception as e:
+                logger.debug(f"Progress callback error: {e}")
     
     # Log the command for debugging
     logger.info(f"Executing command: {command}")
@@ -807,6 +908,16 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     if progress_callback:
         await progress_callback("Starting Claude execution...")
     
+    # Create thinking indicator handler for complex prompts
+    # Use simple heuristic: prompts over 500 chars are likely complex
+    thinking_handler = None
+    if len(task) > 500:
+        thinking_handler = ThinkingIndicatorHandler(
+            thinking_threshold=5.0,  # Wait 5 seconds before showing indicator
+            update_interval=30.0     # Update every 30 seconds
+        )
+        await thinking_handler.start_monitoring(progress_callback)
+    
     # Execute command with automatic rate limit retry via tenacity
     try:
         output_lines, error_lines, proc = await _execute_claude_command(
@@ -814,9 +925,9 @@ The execution_uuid MUST be the LAST key in the JSON object."""
             env=env,
             session_id=session_id,
             config=config,
-            stream=stream,
             hooks=hooks,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            thinking_handler=thinking_handler
         )
     except RateLimitError as e:
         # Tenacity exhausted all retries
@@ -826,6 +937,10 @@ The execution_uuid MUST be the LAST key in the JSON object."""
         # Other errors bubble up
         logger.error(f"[{session_id}] Execution failed: {e}")
         raise
+    
+    # Clean up thinking handler
+    if thinking_handler:
+        await thinking_handler.cleanup()
     
     # Combine output
     full_output = ''.join(output_lines)
@@ -985,8 +1100,6 @@ The execution_uuid MUST be the LAST key in the JSON object."""
             response_file=response_file,
             response_data=response_data,
             config_timeout=config.timeout,
-            stream=stream,
-            json_mode=json_mode,
             amend_prompt=amend_prompt,
             estimate_timeout_func=estimate_timeout
         )
@@ -995,8 +1108,7 @@ The execution_uuid MUST be the LAST key in the JSON object."""
         logger.info(f"[{session_id}] Assessment report saved: {report_file}")
         print(f"\n📋 Assessment report generated: {report_file}")
     
-    # Parse JSON if requested
-    if json_mode:
+    # Always parse JSON output since we always use JSON mode
         try:
             # Use clean_json_string for robust parsing
             # This handles markdown blocks, malformed JSON, etc.
@@ -1010,6 +1122,10 @@ The execution_uuid MUST be the LAST key in the JSON object."""
                 # Validation with fresh instance if requested
                 if validation_prompt:
                     await _perform_validation(result_dict, validation_prompt, session_id, config)
+                
+                # Check if we should return just the result field (backward compatibility)
+                if not return_dict and 'result' in result_dict:
+                    return result_dict['result']
                 
                 return result_dict
             else:
@@ -1031,19 +1147,28 @@ The execution_uuid MUST be the LAST key in the JSON object."""
                     if validation_prompt:
                         await _perform_validation(fallback_json, validation_prompt, session_id, config)
                     
+                    if not return_dict and 'result' in fallback_json:
+                        return fallback_json['result']
+                    
                     return fallback_json
                 except:
                     pass
             
             # Final fallback - return basic structure
             logger.warning(f"[{session_id}] Returning fallback JSON structure")
-            return {
+            fallback_result = {
                 "result": full_output,
                 "error": f"Failed to parse JSON: {e}",
                 "execution_uuid": execution_uuid
             }
+            
+            if not return_dict:
+                return full_output  # Fallback to raw output
+            
+            return fallback_result
     
-    # Return raw output for non-JSON mode
+    # This point should not be reached with JSON mode always enabled
+    # But if it does, return the raw output as fallback
     return full_output
 
 
@@ -1093,8 +1218,7 @@ async def _perform_validation(
 # Convenience functions for backward compatibility
 async def cc_execute_task_list(
     tasks: List[str],
-    config: Optional[CCExecutorConfig] = None,
-    stream: bool = True
+    config: Optional[CCExecutorConfig] = None
 ) -> List[Dict[str, Any]]:
     """
     Execute a list of tasks sequentially.
@@ -1102,7 +1226,6 @@ async def cc_execute_task_list(
     Args:
         tasks: List of task descriptions
         config: Executor configuration
-        stream: Whether to stream output
         
     Returns:
         List of results for each task
@@ -1115,7 +1238,7 @@ async def cc_execute_task_list(
         logger.info(f"{'='*60}\n")
         
         try:
-            output = await cc_execute(task, config, stream)
+            output = await cc_execute(task, config)
             results.append({
                 "task_num": i + 1,
                 "task": task,
@@ -1159,7 +1282,7 @@ async def working_usage():
     print("1. Testing simple math...")
     result = await cc_execute(
         "What is 17 + 25? Just the number.",
-        stream=False
+        return_dict=False  # Get just the result string
     )
     print(f"   Result: {result}")
     
@@ -1167,15 +1290,14 @@ async def working_usage():
     print("\n2. Testing list output...")
     result = await cc_execute(
         "Name 3 primary colors, comma separated.",
-        stream=False
+        return_dict=False  # Get just the result string
     )
     print(f"   Result: {result}")
     
     # 3. JSON mode with simple structure
     print("\n3. Testing JSON mode...")
     result_json = await cc_execute(
-        "What is 10 * 10? Return JSON with 'answer' key only.",
-        json_mode=True
+        "What is 10 * 10? Return JSON with 'answer' key only."
     )
     print(f"   JSON Result: {json.dumps(result_json, indent=2)}")
     
@@ -1195,8 +1317,8 @@ async def debug_function():
     try:
         result = await cc_execute(
             "What is 7 + 3? Just the number.",
-            stream=False,
-            config=CCExecutorConfig(timeout=20)
+            config=CCExecutorConfig(timeout=20),
+            return_dict=False  # Get just the result string
         )
         test_results.append(("Math test", result == "10", result))
     except Exception as e:
@@ -1206,7 +1328,6 @@ async def debug_function():
     try:
         result = await cc_execute(
             "What is 5 * 5? Return JSON with 'answer' key only.",
-            json_mode=True,
             config=CCExecutorConfig(timeout=20)
         )
         success = isinstance(result, dict) and "result" in result
@@ -1218,8 +1339,8 @@ async def debug_function():
     try:
         result = await cc_execute(
             "Name 3 fruits, comma separated.",
-            stream=False,
-            config=CCExecutorConfig(timeout=20)
+            config=CCExecutorConfig(timeout=20),
+            return_dict=False  # Get just the result string
         )
         success = "," in result  # Should have commas
         test_results.append(("List test", success, result[:50]))
@@ -1262,20 +1383,18 @@ async def stress_test(test_file=None):
                     "prompt": "What is {n} + {n}? Just the number.",
                     "params": {"n": [5, 10, 15, 20, 25]},
                     "repeat": 3,
-                    "stream": False
+                    "return_dict": False  # Get just result string
                 },
                 {
                     "name": "json_mode_test",
                     "prompt": "Calculate {a} * {b}. Return JSON with 'result' key only.",
                     "params": {"a": [2, 3, 4], "b": [5, 6, 7]},
-                    "json_mode": True,
                     "repeat": 2
                 },
                 {
                     "name": "long_response",
                     "prompt": "Write a haiku about {topic}",
                     "params": {"topic": ["coding", "testing", "debugging"]},
-                    "stream": True,
                     "timeout": 60
                 }
             ]
@@ -1341,11 +1460,10 @@ async def stress_test(test_file=None):
                             # Execute with test configuration
                             result = await cc_execute(
                                 prompt,
-                                stream=test.get('stream', False),
-                                json_mode=test.get('json_mode', False),
                                 config=CCExecutorConfig(
                                     timeout=test.get('timeout', 30)
-                                )
+                                ),
+                                return_dict=test.get('return_dict', True)
                             )
                             
                             logger.success(f"  ✅ {test['name']} {params} [{i+1}/{repeat}]")

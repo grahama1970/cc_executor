@@ -4,11 +4,22 @@ All test code for the CC Executor project, organized by test type.
 
 ## Structure
 
+The test directory structure mirrors the src/cc_executor/ structure exactly:
+
 ```
 tests/
-├── stress/         # Stress tests for WebSocket handler
-├── unit/          # Unit tests (to be added)
-└── integration/   # Integration tests (to be added)
+├── api/           # Tests for API components
+├── cli/           # Tests for CLI tools  
+├── client/        # Tests for client components (cc_execute)
+├── core/          # Tests for core functionality
+├── hooks/         # Tests for hook system
+├── reporting/     # Tests for reporting engine
+├── servers/       # Tests for server components (MCP, etc)
+├── utils/         # Tests for utility functions
+├── worker/        # Tests for worker components
+├── integration/   # Integration tests
+├── stress/        # Stress tests for WebSocket handler
+└── unit/          # Unit tests (legacy - being migrated to proper structure)
 ```
 
 ## Test Results

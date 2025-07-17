@@ -30,12 +30,19 @@ Upon connection, the server immediately sends a connection confirmation:
   "method": "connected",
   "params": {
     "session_id": "550e8400-e29b-41d4-a716-446655440000",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "capabilities": ["execute", "control", "stream"]
   }
 }
 ```
 
 The `session_id` uniquely identifies this WebSocket connection and is used for session management.
+
+### Connection Features (v1.3.1+)
+- **Connection Timeout**: 10-second timeout on WebSocket accept to prevent hanging
+- **Heartbeat Mechanism**: 30-second heartbeat interval to detect dead connections
+- **Message Queuing**: Automatic queuing of messages when client is temporarily disconnected
+- **Reconnection Support**: Reconnection tokens allow resuming sessions with queued messages
 
 ## Message Format
 
@@ -158,7 +165,32 @@ Controls a running process (pause, resume, or cancel).
 
 ## Server-to-Client Notifications
 
-### 1. Process Started
+### 1. Heartbeat Ping (v1.3.1+)
+
+Sent every 30 seconds to detect dead connections.
+
+```json
+{
+  "method": "ping",
+  "params": {
+    "timestamp": 1736874523.456
+  }
+}
+```
+
+**Expected Response:**
+Clients should respond with a pong message:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "pong",
+  "params": {}
+}
+```
+
+If no pong is received within 60 seconds (2x heartbeat interval), the connection is closed.
+
+### 2. Process Started
 
 Sent immediately after a process begins execution.
 
@@ -524,6 +556,56 @@ async def execute_with_stall_detection(command, stall_timeout=120):
                             }
 ```
 
+### Example 4: Handling Heartbeats (v1.3.1+)
+
+```python
+async def execute_with_heartbeat(command):
+    uri = "ws://localhost:8003/ws/mcp"
+    
+    async with websockets.connect(uri) as websocket:
+        # Wait for connection confirmation
+        msg = await websocket.recv()
+        connect_data = json.loads(msg)
+        session_id = connect_data['params']['session_id']
+        
+        # Execute command
+        await websocket.send(json.dumps({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "execute",
+            "params": {"command": command}
+        }))
+        
+        output = ""
+        while True:
+            msg = await websocket.recv()
+            data = json.loads(msg)
+            
+            # Handle heartbeat ping
+            if data.get('method') == 'ping':
+                # Respond with pong
+                await websocket.send(json.dumps({
+                    "jsonrpc": "2.0",
+                    "method": "pong",
+                    "params": {}
+                }))
+                print(f"Heartbeat ping received, pong sent")
+                continue
+            
+            elif data.get('method') == 'process.output':
+                output += data['params']['data']
+                print(data['params']['data'], end='', flush=True)
+            
+            elif data.get('method') == 'process.completed':
+                exit_code = data['params']['exit_code']
+                print(f"\nProcess completed with exit code: {exit_code}")
+                return {"output": output, "exit_code": exit_code}
+            
+            elif 'error' in data:
+                print(f"Error: {data['error']['message']}")
+                return {"error": data['error']['message']}
+```
+
 ## Integration with Claude CLI
 
 ### Claude Output Formats
@@ -605,11 +687,14 @@ async def parse_claude_stream_json(websocket):
 - Always handle the initial connection message
 - Store the session_id for debugging
 - Implement reconnection logic for network failures
+- **Respond to heartbeat pings** to keep connection alive
+- **Handle message queuing** for temporary disconnections
 
 ### 2. Error Handling
 - Check for error responses after sending commands
 - Handle both JSON-RPC errors and process errors
 - Implement timeouts for long-running processes
+- **Monitor for dead connections** using heartbeat responses
 
 ### 3. Output Processing
 - Buffer output for complete lines when needed
@@ -625,6 +710,12 @@ async def parse_claude_stream_json(websocket):
 - Validate commands before sending
 - Use the ALLOWED_COMMANDS environment variable
 - Never execute user input directly without validation
+
+### 6. Connection Resilience (v1.3.1+)
+- **Implement heartbeat handling** to maintain connection health
+- **Support message queuing** for better reliability
+- **Use reconnection tokens** when implementing reconnection logic
+- **Set appropriate timeouts** for connection establishment (10s)
 
 ## Configuration
 
@@ -657,5 +748,7 @@ Key features:
 - **Session isolation** for security
 - **Comprehensive error handling**
 - **JSON-RPC 2.0 compliance** for standardization
+- **Connection resilience** with heartbeat and message queuing (v1.3.1+)
+- **Automatic reconnection** support with queued message replay (v1.3.1+)
 
-This protocol forms the foundation for building reliable command execution services that require real-time feedback and control capabilities.
+This protocol forms the foundation for building reliable command execution services that require real-time feedback and control capabilities, with enhanced resilience for production environments.

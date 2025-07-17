@@ -17,6 +17,12 @@ Detailed description explaining:
 - Integration points with other components
 - Any important constraints or assumptions
 
+AGENT VERIFICATION INSTRUCTIONS:
+- Run this script directly to execute working_usage()
+- The working_usage() function MUST pass all assertions
+- This verifies the script produces expected results
+- DO NOT assume the script works without running it
+
 Third-party Documentation:
 - [Relevant API/Library Name]: https://docs.example.com/
 - [Another Resource]: https://reference.example.com/
@@ -52,6 +58,20 @@ import redis
 logger.remove()  # Remove default handler
 logger.add(sys.stderr, level="INFO", format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
 
+# CRITICAL: Environment and Path Setup
+# DO NOT hardcode parent directory traversals like:
+#   project_root = Path(__file__).parent.parent.parent.parent  # BAD!
+# Instead use find_dotenv() which searches up the directory tree:
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())  # Automatically finds .env file
+
+# Get project root from .env location if needed
+env_path = find_dotenv()
+if env_path:
+    project_root = Path(env_path).parent
+else:
+    project_root = Path.cwd()
+
 # Optional: Add file logging with rotation
 log_dir = Path(__file__).parent / "logs"
 log_dir.mkdir(exist_ok=True)
@@ -61,6 +81,18 @@ logger.add(
     retention=5,
     level="DEBUG"
 )
+
+# Logger Agent Integration (HIGHLY RECOMMENDED)
+# This enables knowledge building and error pattern learning
+try:
+    # Adjust path as needed for your project structure
+    sys.path.insert(0, str(Path(__file__).parent / "logger_agent" / "src"))
+    from agent_log_manager import get_log_manager
+    LOGGER_AGENT_AVAILABLE = True
+    logger.info("✓ Logger agent available for knowledge building")
+except ImportError:
+    LOGGER_AGENT_AVAILABLE = False
+    logger.debug("Logger agent not available - running in standalone mode")
 
 # Redis connection (optional)
 try:
@@ -214,8 +246,31 @@ async def working_usage():
     """
     Known working examples that demonstrate script functionality.
     This function contains stable, tested code that reliably works.
+    
+    CRITICAL FOR AGENTS:
+    - This function MUST verify that the script produces expected results
+    - Use assertions to validate outputs match expectations
+    - Return True only if ALL tests pass
+    - This is how agents verify the script actually works
     """
     logger.info("=== Running Working Usage Examples ===")
+    
+    # Initialize logger agent if available
+    log_manager = None
+    execution_id = f"test_{datetime.now().timestamp()}"
+    
+    if LOGGER_AGENT_AVAILABLE:
+        try:
+            log_manager = await get_log_manager()
+            await log_manager.log_event(
+                level="INFO",
+                message="Starting working_usage tests",
+                script_name=Path(__file__).name,
+                execution_id=execution_id,
+                tags=["test", "start"]
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize logger agent: {e}")
     
     # Example 1: Basic functionality test
     example_input = {
@@ -223,12 +278,47 @@ async def working_usage():
         "params": {"threshold": 0.8}
     }
     
-    results = await process_task(example_input)
-    save_results(results)
+    try:
+        results = await process_task(example_input)
+        save_results(results)
+        
+        # VERIFY EXPECTED RESULTS - THIS IS CRITICAL!
+        assert results["status"] == "success", "Expected success status"
+        assert "results" in results, "Missing results field"
+        assert results["results"]["analyzed_items"] == 150, "Expected 150 items"
+        assert results["results"]["above_threshold"] == 42, "Expected 42 above threshold"
+        
+        # Log success if logger agent available
+        if log_manager:
+            await log_manager.log_event(
+                level="SUCCESS",
+                message="All tests passed",
+                script_name=Path(__file__).name,
+                execution_id=execution_id,
+                extra_data={"test_results": results},
+                tags=["test", "success"]
+            )
+        
+    except AssertionError as e:
+        logger.error(f"Test failed: {e}")
+        
+        # If using logger agent, assess the error
+        if log_manager:
+            # In real usage, you would call assess_complexity MCP tool
+            await log_manager.log_event(
+                level="ERROR",
+                message=f"Test assertion failed: {e}",
+                script_name=Path(__file__).name,
+                execution_id=execution_id,
+                extra_data={"error_type": "AssertionError", "error_message": str(e)},
+                tags=["test", "failure", "assertion"]
+            )
+        
+        return False
     
-    # Example 2: Another stable test
+    # Example 2: Verify specific behavior
     logger.info(f"Results: {results['results']}")
-    assert results["status"] == "success"
+    logger.success("✓ All working_usage tests passed!")
     
     return True
 
@@ -267,7 +357,8 @@ async def stress_test():
     logger.info("=== Running Stress Tests ===")
     
     # Look for stress test files in the tests directory
-    project_root = Path(__file__).parent.parent.parent  # Adjust based on script location
+    # Get project root from environment (set during initialization)
+    project_root = Path(os.environ.get('PROJECT_ROOT', Path.cwd()))
     stress_test_dir = project_root / "tests" / "stress" / "fixtures"
     if not stress_test_dir.exists():
         logger.warning(f"No stress test directory found at {stress_test_dir}")
@@ -481,11 +572,13 @@ python my_script.py specific_test.json
 ### Structure Requirements
 - [ ] Shebang line: `#!/usr/bin/env python3`
 - [ ] Comprehensive docstring with purpose, examples, and links
+- [ ] **AGENT VERIFICATION INSTRUCTIONS in docstring**
 - [ ] All imports at the top, organized by type
 - [ ] Logger configuration immediately after imports
 - [ ] Optional service connections (Redis, ArangoDB) with availability checks
 - [ ] All core functions OUTSIDE the `if __name__ == "__main__"` block
 - [ ] `working_usage()` function with stable examples (or alternative name: `stable()`)
+- [ ] **working_usage() MUST include assertions to verify expected results**
 - [ ] `debug_function()` for experimental code
 - [ ] `stress_test()` for JSON-driven comprehensive testing
 - [ ] Mode selection logic supporting all three modes
@@ -508,6 +601,7 @@ python my_script.py specific_test.json
 - [ ] JSON output prettified with `indent=2`
 - [ ] Assertions to validate expected behavior
 - [ ] Exit codes: 0 for success, 1 for failure
+- [ ] **NO hardcoded parent directory traversals** - use `find_dotenv()`
 
 ### Logging Requirements
 - [ ] Use loguru instead of print statements

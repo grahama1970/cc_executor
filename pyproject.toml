@@ -50,6 +50,17 @@ dependencies = [
     "tqdm>=4.66.0", # For progress bars in examples
     "python-daemon>=3.1.2",
     "json-repair>=0.47.6",
+    "python-arango>=8.2.1",
+    "google-cloud-aiplatform>=1.103.0",
+    "google-auth>=2.40.3",
+    "networkx>=3.4.2",
+    "tree-sitter>=0.24.0",
+    "tree-sitter-language-pack>=0.9.0",
+    "tree-sitter-languages>=1.10.2",
+    "uvloop>=0.21.0",
+    "pylint>=3.3.7",
+    "python-arango-async>=0.0.5",
+    "sentence-transformers>=5.0.0",
 ]
 
 [project.optional-dependencies]
