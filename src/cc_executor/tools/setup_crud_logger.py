@@ -34,11 +34,9 @@ def setup_crud_logger(
     Returns:
         Configured logger instance with CRUD capabilities
     """
-    # Add logger_agent to path
-    logger_agent_path = Path(__file__).parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"
+        logger_agent_path = Path(__file__).parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"
     if str(logger_agent_path) not in sys.path:
-        sys.path.insert(0, str(logger_agent_path))
-    
+            
     try:
         # Import ArangoDB sink
         from arango_log_sink import ArangoLogSink

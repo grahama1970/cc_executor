@@ -26,12 +26,10 @@ from loguru import logger
 # Load environment variables
 load_dotenv()
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Try to import the setup utility
 try:
-    from utils.setup_arangodb_logging import setup_arangodb_logging
+    from cc_executor.utils.setup_arangodb_logging import setup_arangodb_logging
     SETUP_AVAILABLE = True
 except ImportError:
     SETUP_AVAILABLE = False

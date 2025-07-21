@@ -199,7 +199,7 @@ def send_to_gemini(issue_file: str, output_file: str = None, temperature: float 
             summary["warning"] = "Response does not contain expected CODE_FILE_START markers"
         
         # Count code files in response
-        import re
+            import re
         code_files = re.findall(r'<!-- CODE_FILE_START: (.*?) -->', gemini_response)
         summary["code_files_count"] = len(code_files)
         summary["code_files"] = code_files

@@ -43,8 +43,7 @@ async def get_or_create_schema() -> Dict[str, Any]:
     """
     try:
         # First try to get from logger agent cache
-        sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"))
-        from agent_log_manager import get_log_manager
+                from agent_log_manager import get_log_manager
         
         manager = await get_log_manager()
         

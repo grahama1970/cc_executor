@@ -13,8 +13,6 @@ import psutil
 import sys
 from typing import Dict, List, Optional, Tuple
 
-# Add the src directory to Python path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from cc_executor.utils.enhanced_prompt_classifier import EnhancedPromptClassifier
 
 class RedisTaskTimer:

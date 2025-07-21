@@ -241,7 +241,6 @@ if __name__ == "__main__":
     if "--test" in sys.argv:
         # Import OutputCapture for consistent JSON output
         project_root = Path(__file__).parent.parent.parent.parent
-        sys.path.insert(0, str(project_root / "src"))
         from cc_executor.core.usage_helper import OutputCapture
         
         with OutputCapture(__file__) as capture:

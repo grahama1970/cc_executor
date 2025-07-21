@@ -211,14 +211,12 @@ def analyze_import_error(
                 analysis["suggestions"].append("  from dotenv import find_dotenv")
                 analysis["suggestions"].append("  import sys")
                 analysis["suggestions"].append("  project_root = Path(find_dotenv()).parent if find_dotenv() else Path(__file__).parent")
-                analysis["suggestions"].append("  sys.path.insert(0, str(project_root / 'src'))")
-                
+                analysis["suggestions"].append("                  
                 # Also provide the brittle parent counting as fallback
                 if src_index >= 0:
                     levels_up = len(parts) - src_index - 1
                     parent_refs = '.parent' * levels_up
-                    analysis["suggestions"].append(f"Option 2 (Fallback): sys.path.insert(0, str(Path(__file__){parent_refs}))")
-        except:
+                    analysis["suggestions"].append(f"Option 2 (Fallback):         except:
             pass
     
     return analysis
@@ -778,7 +776,7 @@ async def working_usage():
         error_type="ModuleNotFoundError",
         error_message="No module named 'utils'",
         file_path="/home/graham/workspace/experiments/cc_executor/proof_of_concept/logger_agent/src/agent_graph_builder.py",
-        stack_trace="File agent_graph_builder.py, line 10\n    from utils.test_db import setup"
+        stack_trace="File agent_graph_builder.py, line 10\n    from cc_executor.utils.test_db import setup"
     )
     logger.info("Generated prompt focuses on import paths and project structure")
     

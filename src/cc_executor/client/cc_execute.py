@@ -121,7 +121,6 @@ class ThinkingIndicatorHandler:
 from cc_executor.client.report_generator import generate_assessment_report, save_assessment_report
 
 # Import JSON utilities for robust parsing
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from cc_executor.utils.json_utils import clean_json_string
 
 # Import HookIntegration for consistent pre/post execution hooks
@@ -157,10 +156,7 @@ async def estimate_timeout_async(task: str, default: int = 120) -> int:
     """
     try:
         # Use the sophisticated Redis timing system directly
-        # Add the src directory to path for the import
         import sys
-        if str(Path(__file__).parent.parent.parent) not in sys.path:
-            sys.path.insert(0, str(Path(__file__).parent.parent.parent))
         from cc_executor.prompts.redis_task_timing import RedisTaskTimer
         
         # Create timer instance
@@ -1043,10 +1039,7 @@ The execution_uuid MUST be the LAST key in the JSON object."""
     # Save execution time to Redis using sophisticated RedisTaskTimer
     if proc.returncode == 0:
         try:
-            # Add the src directory to path for the import
             import sys
-            if str(Path(__file__).parent.parent.parent) not in sys.path:
-                sys.path.insert(0, str(Path(__file__).parent.parent.parent))
             from cc_executor.prompts.redis_task_timing import RedisTaskTimer
             
             # Create timer instance

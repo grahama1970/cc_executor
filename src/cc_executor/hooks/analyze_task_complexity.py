@@ -13,8 +13,6 @@ from loguru import logger
 # Import Redis directly
 import redis
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rank_bm25 import BM25Okapi
 

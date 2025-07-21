@@ -1,0 +1,19 @@
+{
+  "universal-llm-executor": {
+    "command": "uv",
+    "args": [
+      "--directory",
+      "/home/graham/workspace/experiments/cc_executor",
+      "run",
+      "--script",
+      "src/cc_executor/servers/mcp_universal_llm_executor.py"
+    ],
+    "env": {
+      "PYTHONPATH": "/home/graham/workspace/experiments/cc_executor/src",
+      "UV_PROJECT_ROOT": "/home/graham/workspace/experiments/cc_executor",
+      "LLM_OUTPUT_DIR": "/tmp/llm_outputs",
+      "REDIS_HOST": "localhost",
+      "REDIS_PORT": "6379"
+    }
+  }
+}

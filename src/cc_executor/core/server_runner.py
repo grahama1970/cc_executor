@@ -6,8 +6,6 @@ import sys
 import os
 import uvicorn
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from main import app
 from config import DEFAULT_PORT, SERVICE_NAME, SERVICE_VERSION

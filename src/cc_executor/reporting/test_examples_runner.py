@@ -15,8 +15,6 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from loguru import logger
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from cc_executor.client.cc_execute import cc_execute
 from cc_executor.utils.json_utils import clean_json_string

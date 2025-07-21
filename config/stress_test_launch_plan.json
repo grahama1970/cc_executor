@@ -1,0 +1,234 @@
+
+{
+  "quarters": [
+    {
+      "quarter": "Q1",
+      "milestones": [
+        {
+          "title": "Project Kick-off & Team Alignment",
+          "description": "Official project start, aligning all 20 stakeholders across 6 regions on goals, scope, and roles.",
+          "start_date": "2025-01-02",
+          "end_date": "2025-01-17",
+          "assigned_leads": ["Alice", "Bob"],
+          "dependencies": "None",
+          "regions": ["North America", "Europe", "Asia", "South America", "Africa", "Australia"],
+          "effort_person_weeks": 90,
+          "features_covered": []
+        },
+        {
+          "title": "Core Infrastructure Setup",
+          "description": "Establish cloud infrastructure, CI/CD pipelines, and development environments for all regions.",
+          "start_date": "2025-01-20",
+          "end_date": "2025-02-28",
+          "assigned_leads": ["Charlie", "David", "Eve"],
+          "dependencies": "Project Kick-off",
+          "regions": ["North America", "Europe", "Asia"],
+          "effort_person_weeks": 250,
+          "features_covered": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"]
+        },
+        {
+          "title": "Alpha Release & Internal Testing",
+          "description": "Internal release of the first 10 features for dogfooding and initial feedback from engineering and design teams.",
+          "start_date": "2025-03-01",
+          "end_date": "2025-03-21",
+          "assigned_leads": ["Frank", "Grace", "Heidi"],
+          "dependencies": "Core Infrastructure Setup",
+          "regions": ["North America", "Europe"],
+          "effort_person_weeks": 180,
+          "features_covered": ["Feature 6", "Feature 7", "Feature 8", "Feature 9", "Feature 10"]
+        },
+        {
+          "title": "Initial Market Research & Persona Definition",
+          "description": "Sales and Support teams conduct market analysis to define target user personas for each region.",
+          "start_date": "2025-02-01",
+          "end_date": "2025-03-31",
+          "assigned_leads": ["Ivan", "Judy"],
+          "dependencies": "Project Kick-off",
+          "regions": ["South America", "Africa", "Australia"],
+          "effort_person_weeks": 150,
+          "features_covered": []
+        }
+      ]
+    },
+    {
+      "quarter": "Q2",
+      "milestones": [
+        {
+          "title": "Beta Launch to Early Adopters",
+          "description": "Controlled, invite-only beta release to a select group of external users in key markets.",
+          "start_date": "2025-04-07",
+          "end_date": "2025-05-16",
+          "assigned_leads": ["Kevin", "Linda", "Mallory"],
+          "dependencies": "Alpha Release",
+          "regions": ["North America", "Asia"],
+          "effort_person_weeks": 300,
+          "features_covered": ["Feature 11", "Feature 12", "Feature 13", "Feature 14", "Feature 15", "Feature 16", "Feature 17", "Feature 18", "Feature 19", "Feature 20"]
+        },
+        {
+          "title": "Localization Framework Implementation",
+          "description": "Engineering implements the framework to support multiple languages and regional content.",
+          "start_date": "2025-04-14",
+          "end_date": "2025-05-30",
+          "assigned_leads": ["Charlie", "Nancy"],
+          "dependencies": "Core Infrastructure Setup",
+          "regions": ["Europe", "Asia", "South America"],
+          "effort_person_weeks": 220,
+          "features_covered": ["Feature 21", "Feature 22", "Feature 23"]
+        },
+        {
+          "title": "Regional Marketing Strategy - Phase 1",
+          "description": "Develop and approve the initial marketing and communication plans for the public launch.",
+          "start_date": "2025-05-01",
+          "end_date": "2025-06-20",
+          "assigned_leads": ["Oscar", "Peggy"],
+          "dependencies": "Initial Market Research",
+          "regions": ["North America", "Europe", "Australia"],
+          "effort_person_weeks": 180,
+          "features_covered": []
+        },
+        {
+            "title": "Feature Set 2 Finalization",
+            "description": "Design and Engineering teams complete development for the next 10 features based on Alpha feedback.",
+            "start_date": "2025-05-19",
+            "end_date": "2025-06-30",
+            "assigned_leads": ["Frank", "Grace", "Quentin"],
+            "dependencies": "Alpha Release",
+            "regions": ["North America", "Europe"],
+            "effort_person_weeks": 200,
+            "features_covered": ["Feature 24", "Feature 25", "Feature 26", "Feature 27", "Feature 28", "Feature 29", "Feature 30", "Feature 31", "Feature 32", "Feature 33"]
+        }
+      ]
+    },
+    {
+      "quarter": "Q3",
+      "milestones": [
+        {
+          "title": "Public Launch Candidate 1 (RC1)",
+          "description": "Feature-complete release candidate for broad internal and partner testing. All 50 features included.",
+          "start_date": "2025-07-07",
+          "end_date": "2025-08-15",
+          "assigned_leads": ["Romeo", "Sybil", "Trent"],
+          "dependencies": "Beta Launch, Feature Set 2 Finalization",
+          "regions": ["North America", "Europe", "Asia"],
+          "effort_person_weeks": 400,
+          "features_covered": ["Feature 34", "Feature 35", "Feature 36", "Feature 37", "Feature 38", "Feature 39", "Feature 40", "Feature 41", "Feature 42", "Feature 43", "Feature 44", "Feature 45", "Feature 46", "Feature 47", "Feature 48", "Feature 49", "Feature 50"]
+        },
+        {
+          "title": "Global Sales & Support Training",
+          "description": "Train all regional sales and support staff on the final product, messaging, and support procedures.",
+          "start_date": "2025-08-18",
+          "end_date": "2025-09-12",
+          "assigned_leads": ["Ivan", "Judy", "Kevin"],
+          "dependencies": "Public Launch Candidate 1 (RC1)",
+          "regions": ["North America", "Europe", "Asia", "South America", "Africa", "Australia"],
+          "effort_person_weeks": 250,
+          "features_covered": []
+        },
+        {
+          "title": "Performance & Scalability Testing",
+          "description": "Execute load testing on production infrastructure to ensure stability for global launch traffic.",
+          "start_date": "2025-08-25",
+          "end_date": "2025-09-26",
+          "assigned_leads": ["Charlie", "David", "Eve"],
+          "dependencies": "Public Launch Candidate 1 (RC1)",
+          "regions": ["North America", "Europe", "Asia"],
+          "effort_person_weeks": 300,
+          "features_covered": []
+        }
+      ]
+    },
+    {
+      "quarter": "Q4",
+      "milestones": [
+        {
+          "title": "Official Global Product Launch",
+          "description": "Coordinated public release across all regions, including press announcements and marketing campaigns.",
+          "start_date": "2025-10-15",
+          "end_date": "2025-10-15",
+          "assigned_leads": ["Alice", "Bob", "Oscar", "Peggy"],
+          "dependencies": "Global Sales & Support Training, Performance & Scalability Testing",
+          "regions": ["North America", "Europe", "Asia", "South America", "Africa", "Australia"],
+          "effort_person_weeks": 500,
+          "features_covered": ["All 50 features"]
+        },
+        {
+          "title": "Post-Launch Monitoring & Feedback Analysis",
+          "description": "Cross-functional teams monitor system health, user feedback, and initial sales data.",
+          "start_date": "2025-10-16",
+          "end_date": "2025-11-28",
+          "assigned_leads": ["All Stakeholders"],
+          "dependencies": "Official Global Product Launch",
+          "regions": ["North America", "Europe", "Asia", "South America", "Africa", "Australia"],
+          "effort_person_weeks": 350,
+          "features_covered": []
+        },
+        {
+          "title": "Q1 2026 Roadmap Planning",
+          "description": "Executives, Engineers, and Designers begin planning the next iteration based on launch feedback and data.",
+          "start_date": "2025-11-10",
+          "end_date": "2025-12-19",
+          "assigned_leads": ["Alice", "Frank", "Grace", "Romeo"],
+          "dependencies": "Post-Launch Monitoring & Feedback Analysis",
+          "regions": ["North America", "Europe", "Asia"],
+          "effort_person_weeks": 200,
+          "features_covered": []
+        }
+      ]
+    }
+  ],
+  "responsibility_matrix": {
+    "Alice": ["Q1: Project Kick-off & Team Alignment", "Q4: Official Global Product Launch", "Q4: Q1 2026 Roadmap Planning"],
+    "Bob": ["Q1: Project Kick-off & Team Alignment", "Q4: Official Global Product Launch"],
+    "Charlie": ["Q1: Core Infrastructure Setup", "Q2: Localization Framework Implementation", "Q3: Performance & Scalability Testing"],
+    "David": ["Q1: Core Infrastructure Setup", "Q3: Performance & Scalability Testing"],
+    "Eve": ["Q1: Core Infrastructure Setup", "Q3: Performance & Scalability Testing"],
+    "Frank": ["Q1: Alpha Release & Internal Testing", "Q2: Feature Set 2 Finalization", "Q4: Q1 2026 Roadmap Planning"],
+    "Grace": ["Q1: Alpha Release & Internal Testing", "Q2: Feature Set 2 Finalization", "Q4: Q1 2026 Roadmap Planning"],
+    "Heidi": ["Q1: Alpha Release & Internal Testing"],
+    "Ivan": ["Q1: Initial Market Research & Persona Definition", "Q3: Global Sales & Support Training"],
+    "Judy": ["Q1: Initial Market Research & Persona Definition", "Q3: Global Sales & Support Training"],
+    "Kevin": ["Q2: Beta Launch to Early Adopters", "Q3: Global Sales & Support Training"],
+    "Linda": ["Q2: Beta Launch to Early Adopters"],
+    "Mallory": ["Q2: Beta Launch to Early Adopters"],
+    "Nancy": ["Q2: Localization Framework Implementation"],
+    "Oscar": ["Q2: Regional Marketing Strategy - Phase 1", "Q4: Official Global Product Launch"],
+    "Peggy": ["Q2: Regional Marketing Strategy - Phase 1", "Q4: Official Global Product Launch"],
+    "Quentin": ["Q2: Feature Set 2 Finalization"],
+    "Romeo": ["Q3: Public Launch Candidate 1 (RC1)", "Q4: Q1 2026 Roadmap Planning"],
+    "Sybil": ["Q3: Public Launch Candidate 1 (RC1)"],
+    "Trent": ["Q3: Public Launch Candidate 1 (RC1)"],
+    "All Stakeholders": ["Q4: Post-Launch Monitoring & Feedback Analysis"]
+  },
+  "regional_summaries": {
+    "North America": {
+      "milestones_involved": 9,
+      "total_effort_person_weeks": 2450,
+      "features_covered": ["Feature 1-50", "All 50 features"]
+    },
+    "Europe": {
+      "milestones_involved": 9,
+      "total_effort_person_weeks": 2420,
+      "features_covered": ["Feature 1-10", "Feature 21-33", "Feature 34-50", "All 50 features"]
+    },
+    "Asia": {
+      "milestones_involved": 8,
+      "total_effort_person_weeks": 2210,
+      "features_covered": ["Feature 1-5", "Feature 11-23", "Feature 34-50", "All 50 features"]
+    },
+    "South America": {
+      "milestones_involved": 5,
+      "total_effort_person_weeks": 1360,
+      "features_covered": ["Feature 21-23", "All 50 features"]
+    },
+    "Africa": {
+      "milestones_involved": 5,
+      "total_effort_person_weeks": 1340,
+      "features_covered": ["All 50 features"]
+    },
+    "Australia": {
+      "milestones_involved": 5,
+      "total_effort_person_weeks": 1320,
+      "features_covered": ["All 50 features"]
+    }
+  }
+}

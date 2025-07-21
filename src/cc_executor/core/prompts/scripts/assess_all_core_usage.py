@@ -21,8 +21,7 @@ current_dir = Path(__file__).parent
 project_root = current_dir.parent.parent.parent.parent
 src_path = project_root / "src"
 if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
-
+    
 # Now we can import hooks
 from cc_executor.hooks import setup_environment
 from cc_executor.hooks import check_task_dependencies

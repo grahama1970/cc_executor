@@ -114,7 +114,7 @@ async def test_logger_tools():
     logger.info("\n=== Testing Logger Tools ===")
     
     try:
-        from cc_executor.servers.mcp_logger_tools import (
+        from cc_executor.servers.mcp_debugging_assistant import (
             assess_complexity, query_agent_logs, analyze_agent_performance
         )
         

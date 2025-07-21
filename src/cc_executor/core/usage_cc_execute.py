@@ -17,8 +17,6 @@ import sys
 import os
 from pathlib import Path
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from cc_executor.client.cc_execute import cc_execute, CCExecutorConfig
 from loguru import logger

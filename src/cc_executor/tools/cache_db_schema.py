@@ -25,9 +25,7 @@ from datetime import datetime, timedelta
 
 from loguru import logger
 
-# Add logger agent to path
 LOGGER_AGENT_PATH = Path(__file__).parent.parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"
-sys.path.insert(0, str(LOGGER_AGENT_PATH))
 
 try:
     from agent_log_manager import get_log_manager

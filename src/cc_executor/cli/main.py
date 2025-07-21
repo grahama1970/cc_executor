@@ -594,7 +594,7 @@ def test_assess(
         content = f.read()
     
     # Find Python code blocks
-    import re
+        import re
     code_blocks = re.findall(r'```python\n(.*?)\n```', content, re.DOTALL)
     
     if not code_blocks:
@@ -1031,8 +1031,7 @@ def run_usage_tests():
     # Ensure proper path setup
     project_root = Path(__file__).parent.parent.parent.parent
     if str(project_root / "src") not in sys.path:
-        sys.path.insert(0, str(project_root / "src"))
-    
+            
     from cc_executor.core.usage_helper import OutputCapture
     from typer.testing import CliRunner
     

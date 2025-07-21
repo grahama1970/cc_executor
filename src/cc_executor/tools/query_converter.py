@@ -37,8 +37,7 @@ load_dotenv(find_dotenv())
 # Add logger agent path FIRST before any imports
 logger_agent_path = Path(__file__).parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"
 if str(logger_agent_path) not in sys.path:
-    sys.path.insert(0, str(logger_agent_path))
-
+    
 # Now we can import from logger_agent
 try:
     # Import with full module path

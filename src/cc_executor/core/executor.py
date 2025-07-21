@@ -26,7 +26,6 @@ from loguru import logger
 import redis  # Always available in cc_executor environment
 
 # Import JSON utilities for robust parsing
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 from cc_executor.utils.json_utils import clean_json_string
 
 # FIX 3: Helper function for parsing partial JSON

@@ -43,9 +43,6 @@ import asyncio
 logger.remove()
 logger.add(sys.stderr, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
 
-# Add parent directories to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import logger agent components
 try:
@@ -56,7 +53,7 @@ except ImportError:
     LOGGER_AVAILABLE = False
 
 # Import tree_sitter_utils
-from utils.tree_sitter_utils import parse_python_code
+from cc_executor.utils.tree_sitter_utils import parse_python_code
 
 
 # Error-specific analysis strategies

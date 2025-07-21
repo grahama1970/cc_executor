@@ -1,158 +1,218 @@
-# CC-Executor MCP Servers
+# MCP Servers: An AI Agent's Retrievable Memory System
 
-This directory contains MCP (Model Context Protocol) servers for the cc_executor project.
+This README consolidates and supersedes the previous `README_short.md` and the original `README.md`.
+It has been audited against the current source code (see list at the end of this file)
+and should be treated as the single source of truth for how the MCP servers work.
 
-## Main Server
+----
 
-### `mcp_cc_execute.py` - CC-Orchestration Support Tools
+## 1 Conceptual Foundations
 
-**IMPORTANT**: This server provides orchestration SUPPORT tools, not direct execution!
+### 1.1 Memory as a Knowledge Graph
+Traditional AI agents are stateless and solve each problem from scratch.
+The MCP system changes that paradigm by persisting every action, error, outcome,
+and tool call in an **ArangoDB** graph database; edges capture semantic relations
+so the agent can perform associative recall and learn from experience.
 
-CC-Executor is designed to be used by a Claude orchestrator managing multi-step task lists. The orchestrator uses cc_execute.md prompts to spawn fresh Claude instances for complex tasks.
+### 1.2 The Core Learning Loop
 
-**Key Purpose:**
-- Help orchestrators analyze and plan task execution
-- Provide WebSocket server health monitoring
-- Validate task lists before execution
-- Suggest optimal execution strategies
-- Track execution history for learning
-
-**Available Tools:**
-
-1. **`check_websocket_status()`** - Verify WebSocket server is running
-   ```python
-   status = await check_websocket_status()
-   # Returns: {"status": "running", "port": "8005", "health": {...}}
-   ```
-
-2. **`get_task_complexity(task)`** - Analyze task complexity
-   ```python
-   complexity = await get_task_complexity("Create a FastAPI app")
-   # Returns complexity score and execution recommendations
-   ```
-
-3. **`validate_task_list(tasks)`** - Pre-flight validation
-   ```python
-   validation = await validate_task_list([
-       "Task 1: Create API",
-       "Task 2: Add tests"
-   ])
-   # Returns validation results, warnings, estimated time
-   ```
-
-4. **`monitor_execution(session_id=None)`** - Check running executions
-   ```python
-   status = await monitor_execution()
-   # Returns active sessions and recent activity from logs
-   ```
-
-5. **`get_execution_history(limit=10)`** - Review past executions
-   ```python
-   history = await get_execution_history()
-   # Returns execution statistics and success rates
-   ```
-
-6. **`get_hook_status()`** - Check hook configuration
-   ```python
-   hooks = await get_hook_status()
-   # Returns hook status and UUID4 verification info
-   ```
-
-7. **`suggest_execution_strategy(task_list)`** - Get execution recommendations
-   ```python
-   strategy = await suggest_execution_strategy(tasks)
-   # Returns which tasks should use cc_execute.md vs direct execution
-   ```
-
-**Usage Pattern (for Orchestrators):**
-
-```markdown
-## Task List Execution Plan
-
-1. Check server status with check_websocket_status()
-2. Validate tasks with validate_task_list()
-3. Get strategy with suggest_execution_strategy()
-
-For each task:
-- If strategy recommends cc_execute.md:
-  Use cc_execute.md prompt to spawn fresh Claude instance
-- If strategy recommends direct:
-  Execute directly in current context
+```text
+┌──────────────────────────┐      1. start_journey      ┌─────────────────────────┐
+│        AI Agent          ├───────────────────────────►│   mcp_tool_journey      │
+│      (Claude Code)       │                            │ (select first tool)     │
+└───────────┬──────────────┘                            └────────────┬────────────┘
+            │                                                       │ 2. execute
+            │ 6. complete_journey                                   │   tool
+            │  (reward back-prop)                                   │
+            │                                                       ▼
+┌───────────┴──────────────┐                           ┌──────────────────────────┐
+│ mcp_tool_journey         │◄──────────────────────────┤  *any MCP tool*          │
+│ (update Q-values)        │    5. reward              │  (e.g. mcp_cc_execute)   │
+└───────────┬──────────────┘                           └────────────┬─────────────┘
+            ▲                                                       │ 3. record_tool_step
+            │                                                       │    & get next tool
+┌───────────┴──────────────┐                           ┌───────────▼─────────────┐
+│ mcp_outcome_adjudicator  ├───────────────────────────┤   mcp_tool_journey      │
+│ (determine success)      │     4. adjudicate         │   (choose next tool)    │
+└──────────────────────────┘                           └─────────────────────────┘
 ```
 
-**What This Is NOT:**
-- NOT a direct execution tool
-- NOT a replacement for cc_execute.md
-- NOT meant to execute tasks itself
+Reinforcement-learning parameters (Q-learning + Thompson sampling) are updated
+step-by-step, allowing the agent to converge on optimal tool sequences.
 
-**What This IS:**
-- Orchestration support and planning
-- Task complexity analysis
-- Execution monitoring via logs
-- Strategy recommendations
+----
 
-## Other Files
+## 2 System Architecture
 
-### Active/In-Use:
-- `mcp_server_fastmcp.py` - FastMCP server implementation
-- `arxiv_mcp_server.py` - ArXiv paper search and analysis MCP server
-
-### Deprecated/Test Files:
-- `mcp_cc_execute_enhanced.py` - Features merged into main `mcp_cc_execute.py`
-- `mcp_server.py` - Old implementation
-- `mcp_server_enhanced.py` - Old enhanced version
-- `mcp_server_http.py` - HTTP-based server (not used)
-- `poc_mcp.py` - Proof of concept
-- `poc_mcp_http.py` - HTTP proof of concept
-- `test_mcp_minimal.py` - Minimal test implementation
-- `mcp_ai_backends_template.py` - Template for AI backends
-- `mcp_gemini_execute.py` - Gemini-specific implementation
-
-## Configuration
-
-The MCP servers are configured in `.mcp.json` at the project root:
-
-```json
-{
-  "mcpServers": {
-    "cc-orchestration": {
-      "command": "uv",
-      "args": ["run", "python", "src/cc_executor/servers/mcp_cc_execute.py"],
-      "env": {
-        "CC_EXECUTOR_PORT": "8005"
-      }
-    }
-  }
-}
+```text
+AI Agent  ⇆  MCP Servers  ⇆  ArangoDB + FAISS  ⇆  External CLIs / LLMs
 ```
 
-**Note**: The server name changed from "cc-execute" to "cc-orchestration" to better reflect its purpose as an orchestration support tool.
+Servers are grouped by responsibility:
 
-## Logs
+- **Orchestrators**: high-level workflows (`mcp_debugging_assistant.py`).
+- **Learning Engine**: realtime RL (`mcp_tool_journey.py`).
+- **Outcome Oracle**: reward calculation (`mcp_outcome_adjudicator.py`).
+- **Offline Optimiser**: analyse history (`mcp_tool_sequence_optimizer.py`).
+- **Code Intelligence**: AST analysis (`mcp_code_analyzer.py`), Multi-tool review (`mcp_code_review.py`).
+- **Content Processing**: Document extraction (`mcp_crawler.py`), Response validation (`mcp_response_validator.py`).
+- **Domain Tools**: DB (`mcp_arango_tools.py`), Visualisation (`mcp_d3_visualizer.py`, `mcp_d3_visualization_advisor.py`),
+  LLM access (`mcp_llm_instance.py`, `mcp_litellm_request.py`, `mcp_litellm_batch.py`,
+  `mcp_universal_llm_executor.py`), Task delegation (`mcp_cc_execute.py`).
 
-All MCP server logs are written to:
-- `/logs/mcp/mcp_cc_execute_YYYYMMDD_HHMMSS.log`
+### 2.1 Database Collections
+- `log_events`, `errors_and_failures`, `tool_journey_edges`, `q_values`, `thompson_params`,
+  `pattern_similarity` and others are created automatically on first use.
 
-State files are saved to:
-- `/state/mcp_executions/`
+----
 
-## Development
+## 3 Server Catalogue
 
-To test the enhanced MCP server:
+| # | File | Purpose | Key MCP tools / resources |
+|---|------|---------|---------------------------|
+| 1 | `mcp_arango_tools.py` | Graph-DB interface, pattern analysis, FAISS similarity search | `query`, `insert`, `edge`, `build_similarity_graph`, `find_similar_documents`, `detect_communities`, `detect_anomalies`, `analyze_pattern_evolution` |
+| 2 | `mcp_tool_journey.py` | Journey & realtime RL | `start_journey`, `record_tool_step`, `complete_journey`, `query_similar_journeys` |
+| 3 | `mcp_outcome_adjudicator.py` | Truth oracle, reward calc | `adjudicate_outcome` |
+| 4 | `mcp_tool_sequence_optimizer.py` | Offline sequence mining | `optimize_tool_sequence`, `find_successful_sequences`, `analyze_sequence_performance` |
+| 5 | `mcp_debugging_assistant.py` | Pre-made debugging workflows | `resolve_error_workflow`, `analyze_error_cascade`, `suggest_preventive_measures`, `create_debugging_report`, `compare_debugging_approaches` |
+| 6 | `mcp_cc_execute.py` | Spawn Claude-Code subprocesses & verify filesystem side-effects | `execute_task`, `execute_task_list`, `verify_execution` |
+| 7 | `mcp_llm_instance.py` | Unified CLI interface for Claude / GPT / Gemini etc | `execute_llm`, `stream_llm`, `estimate_tokens`, `configure_llm` |
+| 8 | `mcp_litellm_request.py` | Single LiteLLM call with retries | `process_single_request` |
+| 9 | `mcp_litellm_batch.py` | Parallel LiteLLM batch | `process_batch_requests` |
+|10| `mcp_universal_llm_executor.py` | Generic subprocess wrapper around arbitrary LLM CLIs | `execute_llm`, `concatenate_files`, `estimate_tokens`, `parse_llm_output` |
+|11| `mcp_d3_visualization_advisor.py` | Decide best D3 layout for given data | `analyze_and_recommend_visualization` |
+|12| `mcp_d3_visualizer.py` | Generate interactive HTML visualisations | `generate_graph_visualization`, `generate_intelligent_visualization`, `visualize_arango_graph` |
+|13| `mcp_crawler.py` | Extract & process HTML, RST, Markdown, and other document formats | `crawl_url`, `extract_content`, `parse_structured_data` |
+|14| `mcp_code_analyzer.py` | AST-based code analysis using tree-sitter for 40+ languages | `analyze_code`, `extract_ast`, `find_patterns`, `analyze_dependencies` |
+|15| `mcp_code_review.py` | Multi-tool code review with security & quality checks | `start_review`, `get_review_results`, `list_available_tools` |
+|16| `mcp_response_validator.py` | Validate & transform API responses to ensure consistency | `validate_response`, `transform_response`, `check_schema_compliance` |
+|17| *(archived)* | *KiloCode integration moved to slash commands* | *See /docs/code_review/SIMPLE_KILOCODE_WORKFLOW.md* |
+
+----
+
+## 4 Learning Use-Cases
+
+### 4.1 Error → Solution
+1. `start_journey` with task description and context.  
+2. `mcp_arango_tools.find_similar_documents` to recall past fixes.  
+3. Execute a candidate fix, e.g. `mcp_cc_execute.execute_task("uv pip install pandas")`.  
+4. `adjudicate_outcome` verifies success (hard evidence preferred).  
+5. `complete_journey` back-propagates reward.
+
+### 4.2 Tool Sequence Optimisation
+`tool_journey_edges` edges store success statistics; offline optimiser
+periodically boosts high-performing sequences to solve the cold-start problem.
+
+### 4.3 Graph-Based Pattern Discovery
+FAISS + ArangoDB enables semantic clustering of errors, solutions and tool journeys;
+graph algorithms (Louvain, HNSW etc.) surface non-obvious patterns.
+
+### 4.4 KiloCode Integration - Simple Slash Command Workflow
+
+KiloCode integration is now handled through simple slash commands and file exchange:
+
+1. **Claude Code**: Human runs `/code-review` → generates review request file
+2. **KiloCode**: Human runs `/review-contextual` → saves results file  
+3. **Claude Code**: Human runs `/implement-fixes` → reads results and implements changes
+
+**Benefits**:
+- Uses both tools' native slash commands
+- Uses KiloCode's own LLM (no external API calls)
+- Simple file exchange in `/docs/code_review/reviewer/incoming/`
+- Follows orchestrator guide naming conventions
+- Human-friendly at each step
+
+See `/docs/code_review/SIMPLE_KILOCODE_WORKFLOW.md` for complete documentation.
+
+### 4.5 Enhanced Problem-Solving with New MCP Servers
+
+The addition of specialized MCP servers significantly enhances the agent's ability to solve complex problems:
+
+#### **Code Intelligence** (`mcp_code_analyzer.py`, `mcp_code_review.py`)
+- **AST-Based Understanding**: Using tree-sitter, the agent can analyze code structure across 40+ languages, understanding function calls, dependencies, and patterns without executing code
+- **Security & Quality Checks**: Multi-tool code review catches SQL injection risks, hardcoded secrets, and style violations before they become problems
+- **Pattern Learning**: AST analysis results are stored in ArangoDB, allowing the agent to learn common code patterns and anti-patterns over time
+
+#### **Content Processing** (`mcp_crawler.py`, `mcp_response_validator.py`)
+- **Multi-Format Document Handling**: Extract structured content from HTML, Markdown, RST, and other formats, enabling the agent to learn from documentation and web resources
+- **Response Consistency**: Validate and transform API responses to ensure all MCP servers return data in a consistent format, reducing integration errors
+- **Schema Compliance**: Automatic validation against expected schemas prevents downstream processing failures
+
+#### **Synergistic Benefits**
+1. **Error Prevention**: Code review + AST analysis catch issues before execution
+2. **Documentation Learning**: Crawler extracts technical docs → Agent learns best practices → Code analyzer applies them
+3. **Reliable Integration**: Response validator ensures all tools speak the same "language" in the graph database
+4. **Pattern Discovery**: AST patterns + Graph algorithms reveal non-obvious code relationships
+
+These servers transform the agent from reactive (fixing errors after they occur) to proactive (preventing errors through analysis and validation).
+
+----
+
+## 5 Why FAISS?
+- ArangoDB lacks native vector search.
+- FAISS provides logarithmic nearest-neighbour search and supports millions of vectors.
+- Similarity edges are written back to the graph so regular AQL traversals work.
+
+----
+
+## 6 Two-Level Code Review System
+If enabled, a post-task hook triggers a fast Haiku/mini-model review (Level 1)
+followed by a deeper Gemini/Opus review (Level 2). Results are stored in ArangoDB
+so the agent learns code quality patterns over time.
+
+----
+
+## 7 Configuration
+Create a `.env` file or export environment variables:
 
 ```bash
-# Run tests
-python src/cc_executor/servers/mcp_cc_execute.py --test
+ARANGO_HOST=localhost
+ARANGO_PORT=8529
+ARANGO_DATABASE=logger_agent
+ARANGO_USERNAME=root
+ARANGO_PASSWORD=changeme
 
-# Start server directly
-python src/cc_executor/servers/mcp_cc_execute.py
+# LLM API Keys
+ANTHROPIC_API_KEY=...
+GOOGLE_AI_API_KEY=...
+OPENAI_API_KEY=...
 ```
 
-## Future Enhancements
+----
 
-When Claude Code adds streaming support, the following features will automatically become available:
-- Real-time progress updates visible in Claude UI
-- Live streaming of task output
-- Interactive user prompts during execution (user elicitation)
+## 8 File Inventory (auto-generated)
+```text
+mcp_arango_tools.py
+mcp_tool_journey.py
+mcp_outcome_adjudicator.py
+mcp_tool_sequence_optimizer.py
+mcp_debugging_assistant.py
+mcp_cc_execute.py
+mcp_llm_instance.py
+mcp_litellm_request.py
+mcp_litellm_batch.py
+mcp_universal_llm_executor.py
+mcp_d3_visualizer.py
+mcp_d3_visualization_advisor.py
+mcp_crawler.py
+mcp_code_analyzer.py
+mcp_code_review.py
+mcp_response_validator.py
+mcp_kilocode_review.py
+mcp_kilocode_workflow.py
+```
 
-The infrastructure for these features is already implemented and ready.
+----
+
+## 9 Future Roadmap
+- Federated learning of Q-values without sharing sensitive data.
+- Causal analysis of successful tool sequences.
+- Predictive failure analysis.
+- Automatic bootstrapping from git history.
+
+----
+
+## 10 Changelog
+- 2025-07-19: First unified README produced by `kilocode` agent.
+
+_End of document_

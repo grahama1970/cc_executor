@@ -29,9 +29,8 @@ from loguru import logger
 from contextlib import contextmanager
 
 # Import hook modules for direct execution
-sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-from setup_environment import find_venv_path, setup_environment_vars, create_activation_wrapper
-from claude_instance_pre_check import EnvironmentValidator
+from cc_executor.hooks.setup_environment import find_venv_path, setup_environment_vars, create_activation_wrapper
+from cc_executor.hooks.claude_instance_pre_check import EnvironmentValidator
 
 
 class ProgrammaticHookEnforcement:
@@ -412,6 +411,54 @@ class HookIntegration:
                 'success': True,
                 'metrics': self.enforcer.get_metrics()
             }
+            
+        elif hook_type == 'post-task-list':
+            # Special handling for post-task-list code review
+            logger.info("Executing post-task-list hook for code review")
+            
+            # Import and run the post-task-list review
+            try:
+                from cc_executor.hooks.post_task_list_review import PostTaskListReview
+                
+                reviewer = PostTaskListReview()
+                session_id = context.get('session_id', os.environ.get('CLAUDE_SESSION_ID', 'unknown'))
+                
+                # Check if all tasks are complete
+                all_complete, summary = reviewer.check_all_tasks_complete(session_id)
+                
+                if all_complete and len(summary.get('total_tasks', 0)) > 0:
+                    # Get modified files
+                    modified_files = reviewer.get_modified_files(session_id)
+                    
+                    if modified_files:
+                        # Run the review
+                        review_context = {
+                            "session_id": session_id,
+                            "task_summary": summary,
+                            "timestamp": time.time(),
+                            "trigger": hook_type
+                        }
+                        
+                        result = await reviewer.trigger_review(modified_files, review_context)
+                        
+                        return {
+                            'hook_type': hook_type,
+                            'success': result.get('success', False),
+                            'review_result': result,
+                            'files_reviewed': len(modified_files)
+                        }
+                    else:
+                        logger.info("No modified files to review")
+                else:
+                    logger.info(f"Not triggering review - all_complete: {all_complete}, tasks: {summary}")
+                    
+            except Exception as e:
+                logger.error(f"Error in post-task-list hook: {e}")
+                return {
+                    'hook_type': hook_type,
+                    'success': False,
+                    'error': str(e)
+                }
             
         # Fall back to config-based execution for other hooks
         if not self.config:

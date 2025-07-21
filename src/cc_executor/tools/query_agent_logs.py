@@ -27,8 +27,6 @@ import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from arango import ArangoClient
 import asyncio

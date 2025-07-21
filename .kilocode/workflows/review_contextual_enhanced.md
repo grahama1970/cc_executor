@@ -3,7 +3,7 @@
 
 ### **Description**
 Context-aware two-phase code review that ensures recommendations are practical and compatible with your project's specific requirements:
-1. **Phase 1: Contextual Analysis (O3)** - Complete review with project constraints applied
+1. **Phase 1: Contextual Analysis (O3-pro)** - Complete review with project constraints applied
 2. **Phase 2: Validation & Synthesis (Gemini 2.5 Pro)** - Independent validation with context awareness
 
 **IMPORTANT**: This workflow provides **analysis and recommendations only**. No code changes are written to files.

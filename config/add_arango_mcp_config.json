@@ -1,0 +1,8 @@
+{
+  "arango-tools": {
+    "command": "python",
+    "args": [
+      "/home/graham/workspace/experiments/cc_executor/src/cc_executor/servers/mcp_arango_tools.py"
+    ]
+  }
+}

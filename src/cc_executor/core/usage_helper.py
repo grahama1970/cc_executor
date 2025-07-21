@@ -182,7 +182,7 @@ if __name__ == "__main__":
         print("\n✅ OutputCapture is working correctly!")
     
     # At this point, the file should have been saved
-    import time
+        import time
     time.sleep(0.1)  # Small delay to ensure file write completes
     
     # Verify the file was created

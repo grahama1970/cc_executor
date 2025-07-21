@@ -187,7 +187,6 @@ async def main():
 if __name__ == "__main__":
     # Import OutputCapture from core
     project_root = Path(__file__).parent.parent.parent.parent
-    sys.path.insert(0, str(project_root / "src"))
     from cc_executor.core.usage_helper import OutputCapture
     
     # Use OutputCapture for consistent JSON output

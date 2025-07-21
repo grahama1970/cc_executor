@@ -17,7 +17,6 @@ from typing import Dict, List, Any, Optional, Tuple
 from loguru import logger
 
 # Import cc_execute and hallucination check
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from cc_executor.client.cc_execute import cc_execute
 from cc_executor.reporting.hallucination_check import check_hallucination
 from cc_executor.utils.json_utils import clean_json_string

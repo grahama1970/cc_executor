@@ -180,8 +180,7 @@ class WebSocketHandler:
         # Initialize Redis task timer for intelligent timeout estimation
         try:
             # Lazy import to avoid circular import issues
-            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            from prompts.redis_task_timing import RedisTaskTimer
+            from cc_executor.prompts.redis_task_timing import RedisTaskTimer
             self.redis_timer = RedisTaskTimer()
             logger.info("Redis task timer initialized for intelligent timeout estimation")
         except Exception as e:
@@ -1650,10 +1649,8 @@ if __name__ == "__main__":
         2. Press F5 (or Run > Start Debugging)
         3. The server will start on ws://localhost:8003/ws (or DEFAULT_PORT if set)
     """
-    # Add the parent directory to sys.path to enable imports
     import sys
     from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
     
     # Check for special flags
     demo_mode = "--demo" in sys.argv

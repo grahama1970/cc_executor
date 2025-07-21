@@ -24,8 +24,6 @@ The hooks are automatically invoked by Claude Code when the
 import os
 import sys
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Hook handler modules - only import what exists
 from . import (

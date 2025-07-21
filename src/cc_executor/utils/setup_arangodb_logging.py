@@ -25,11 +25,9 @@ from datetime import datetime
 
 from loguru import logger
 
-# Add logger agent to path
 LOGGER_AGENT_PATH = Path(__file__).parent.parent.parent.parent / "proof_of_concept" / "logger_agent" / "src"
 if LOGGER_AGENT_PATH.exists():
-    sys.path.insert(0, str(LOGGER_AGENT_PATH))
-    LOGGER_AGENT_AVAILABLE = True
+        LOGGER_AGENT_AVAILABLE = True
 else:
     LOGGER_AGENT_AVAILABLE = False
     logger.warning(f"Logger agent not found at {LOGGER_AGENT_PATH}")
